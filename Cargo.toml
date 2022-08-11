@@ -1,0 +1,20 @@
+[package]
+name = "giallo"
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+description = "A HTML code highlighter built on top of tree-sitter"
+
+[dependencies]
+tree-sitter = "0.20.8"
+once_cell = "1.13.0"
+# TODO: we can maybe just copy the code from there? Avoids some deps
+tree-sitter-highlight = "0.20.1"
+
+# And then all the languages
+tree-sitter-rust = { version = "0.20.1", optional = true }
+
+[features]
+default = ["lang-rust"]
+
+lang-rust = ["dep:tree-sitter-rust"]
