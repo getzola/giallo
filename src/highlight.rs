@@ -16,7 +16,6 @@ pub struct HtmlRenderer<'t> {
 }
 
 impl<'t> HtmlRenderer<'t> {
-    // TODO: pass a theme
     pub fn new(highlight_style: HighlightStyle, theme: &'t Theme) -> Self {
         let mut line_offsets = Vec::with_capacity(50);
         line_offsets.push(0);
@@ -32,7 +31,9 @@ impl<'t> HtmlRenderer<'t> {
         // TODO: pick class/css from the highlight
         //  pass a theme to the renderer + a class/css mode?
         self.html.extend(b"<span");
-        self.html.extend_from_slice(format!(" style='color:{};'", self.theme.get_foreground(highlight.0)).as_bytes());
+        if let Some(color) = self.theme.highlight(highlight.0).fg {
+            self.html.extend_from_slice(format!(" style='color:{};'", color).as_bytes());
+        }
         // self.html
         //     .extend_from_slice(format!("class-{}", highlight.0).as_bytes());
         self.html.extend(b">");
@@ -61,17 +62,24 @@ impl<'t> HtmlRenderer<'t> {
     }
 
     pub fn render(&mut self, extension: &str, source: &[u8]) {
-        let config = LANGUAGES
-            .get(&SupportedLanguage::from_extension(extension).expect("fixme"))
-            .expect("fixme2");
+        let mut config =
+            HighlightConfiguration::new(tree_sitter_rust::language(), tree_sitter_rust::HIGHLIGHT_QUERY, "", "")
+                .unwrap();
+        config.configure(self.theme.scopes());
         let mut highlighter = Highlighter::new();
         let highlight_events = highlighter
             // TODO: figure out injection_callback
-            .highlight(config, source, None, |_| None)
+            .highlight(&config, source, None, |_| None)
             .unwrap();
 
         let mut highlights = Vec::new();
-        self.html.extend_from_slice(format!("<pre style='background-color:{};color:{};'><code>", self.theme.background, self.theme.foreground).as_bytes());
+        self.html.extend_from_slice(
+            format!(
+                "<pre style='background-color:{};color:{};'><code>",
+                self.theme.background.bg.as_ref().expect("background should have a bg"), self.theme.foreground.fg.as_ref().expect("foreground should have a fb")
+            )
+            .as_bytes(),
+        );
 
         for event in highlight_events {
             match event.expect("fixme3") {

@@ -75,7 +75,8 @@ pub(crate) static LANGUAGES: Lazy<HashMap<SupportedLanguage, HighlightConfigurat
             let mut config =
                 HighlightConfiguration::new((lang.language)(), lang.highlight_query, "", "")
                     .unwrap();
-            config.configure(SCOPES);
+            // TODO: benchmark time to configure with ~10 scopes
+            // config.configure(SCOPES);
             languages.insert(lang.id, config);
         }
 
