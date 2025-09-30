@@ -4,56 +4,15 @@ use std::path::Path;
 
 use serde::Deserialize;
 
-use crate::textmate::grammar::{ScopeId, get_scope_id};
+use crate::color::{Color, ParseColorError};
+use crate::style::{FontStyle, Style, StyleModifier};
+use crate::textmate::grammar::{get_scope_id, ScopeId};
 
-/// A color in CSS format (#RRGGBB)
-pub type Color = String;
-
-/// Font style flags
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FontStyle {
-    pub bold: bool,
-    pub italic: bool,
-    pub underline: bool,
-}
-
-impl Default for FontStyle {
-    fn default() -> Self {
-        Self {
-            bold: false,
-            italic: false,
-            underline: false,
-        }
-    }
-}
-
-/// A computed style for a token
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Style {
-    pub foreground: Option<Color>,
-    pub background: Option<Color>,
-    pub font_style: FontStyle,
-}
-
-impl Default for Style {
-    fn default() -> Self {
-        Self {
-            foreground: None,
-            background: None,
-            font_style: FontStyle::default(),
-        }
-    }
-}
-
-/// Style ID for efficient storage and comparison
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct StyleId(pub u32);
-
-/// Token color settings from VSCode theme
+/// Token color settings from VSCode theme JSON
 #[derive(Debug, Clone, Deserialize)]
 pub struct TokenColorSettings {
-    pub foreground: Option<Color>,
-    pub background: Option<Color>,
+    pub foreground: Option<String>,
+    pub background: Option<String>,
     #[serde(rename = "fontStyle")]
     pub font_style: Option<String>,
 }
@@ -71,7 +30,11 @@ pub struct TokenColorRule {
 #[derive(Debug, Clone, Deserialize)]
 pub struct RawTheme {
     pub name: Option<String>,
+    #[serde(rename = "type")]
     pub type_: Option<String>,
+    /// Editor colors like "editor.foreground", "editor.background", etc.
+    pub colors: Option<HashMap<String, String>>,
+    /// Token color rules for syntax highlighting
     #[serde(rename = "tokenColors")]
     pub token_colors: Vec<TokenColorRule>,
 }
@@ -81,36 +44,63 @@ pub struct RawTheme {
 pub struct CompiledThemeRule {
     /// Compiled scope patterns - each pattern is a sequence of scope IDs
     pub scope_patterns: Vec<Vec<ScopeId>>,
-    /// The style to apply
-    pub style: Style,
+    /// The style modifier to apply
+    pub style_modifier: StyleModifier,
 }
 
 /// Compiled theme optimized for fast lookups
 #[derive(Debug, Clone)]
 pub struct CompiledTheme {
     pub name: String,
+    /// Theme type ("light" or "dark")
+    pub theme_type: ThemeType,
+    /// Editor colors (editor.foreground, editor.background, etc.)
+    pub colors: HashMap<String, Color>,
     /// Default style for tokens with no specific rules
     pub default_style: Style,
     /// Theme rules sorted by specificity (most specific first)
     pub rules: Vec<CompiledThemeRule>,
 }
 
-/// Simple cache for style lookups
+/// Theme type for determining fallback colors
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ThemeType {
+    Light,
+    Dark,
+}
+
+impl Default for ThemeType {
+    fn default() -> Self {
+        ThemeType::Dark
+    }
+}
+
+/// Style ID for efficient storage and comparison
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct StyleId(pub u32);
+
+/// Simple cache for style lookups with two-level caching
 pub struct StyleCache {
-    /// Cache from scope stack hash to style ID
+    /// L1 cache: Recent 4 lookups (no HashMap overhead)
+    recent: [(u64, StyleId); 4],
+    /// L2 cache: Full HashMap cache
     cache: HashMap<u64, StyleId>,
     /// Style registry (StyleId -> Style)
     styles: HashMap<StyleId, Style>,
     /// Next style ID to assign
     next_id: u32,
+    /// Recent cache index (round-robin)
+    recent_index: usize,
 }
 
 impl StyleCache {
     pub fn new() -> Self {
         Self {
+            recent: [(0, StyleId(0)); 4],
             cache: HashMap::new(),
             styles: HashMap::new(),
             next_id: 1, // Start from 1, 0 can be reserved for "no style"
+            recent_index: 0,
         }
     }
 
@@ -124,15 +114,30 @@ impl StyleCache {
         scope_stack.hash(&mut hasher);
         let hash = hasher.finish();
 
-        // Check cache first
+        // Check L1 cache first
+        for &(cached_hash, style_id) in &self.recent {
+            if cached_hash == hash {
+                return style_id;
+            }
+        }
+
+        // Check L2 cache
         if let Some(&style_id) = self.cache.get(&hash) {
+            // Move to L1 cache
+            self.recent[self.recent_index] = (hash, style_id);
+            self.recent_index = (self.recent_index + 1) % 4;
             return style_id;
         }
 
         // Compute style and cache it
         let style = self.compute_style(scope_stack, theme);
         let style_id = self.get_or_create_style_id(style);
+
+        // Cache in both levels
         self.cache.insert(hash, style_id);
+        self.recent[self.recent_index] = (hash, style_id);
+        self.recent_index = (self.recent_index + 1) % 4;
+
         style_id
     }
 
@@ -159,29 +164,12 @@ impl StyleCache {
 
     /// Compute style for a scope stack using theme rules
     fn compute_style(&self, scope_stack: &[ScopeId], theme: &CompiledTheme) -> Style {
-        let mut style = theme.default_style.clone();
+        let mut style = theme.default_style;
 
-        // Find the most specific matching rule
+        // Find matching rules and apply them
         for rule in &theme.rules {
             if self.matches_scope_stack(scope_stack, &rule.scope_patterns) {
-                // Merge the rule's style with current style
-                if rule.style.foreground.is_some() {
-                    style.foreground = rule.style.foreground.clone();
-                }
-                if rule.style.background.is_some() {
-                    style.background = rule.style.background.clone();
-                }
-                // Font styles are additive
-                if rule.style.font_style.bold {
-                    style.font_style.bold = true;
-                }
-                if rule.style.font_style.italic {
-                    style.font_style.italic = true;
-                }
-                if rule.style.font_style.underline {
-                    style.font_style.underline = true;
-                }
-
+                style = style.apply(rule.style_modifier);
                 // For now, take the first matching rule
                 // TODO: Implement proper specificity ordering
                 break;
@@ -203,8 +191,7 @@ impl StyleCache {
 
     /// Check if a scope stack matches a specific pattern
     fn matches_pattern(&self, scope_stack: &[ScopeId], pattern: &[ScopeId]) -> bool {
-        // Check if pattern matches the scope stack exactly (for now - we can make this more sophisticated later)
-        // For better specificity, we should prefer exact matches
+        // Check if pattern matches the scope stack exactly
         if scope_stack == pattern {
             return true;
         }
@@ -273,15 +260,42 @@ impl RawTheme {
         Self::load_from_file(theme_path)
     }
 
+    /// Determine if this is a dark theme based on type or name
+    fn determine_theme_type(&self) -> ThemeType {
+        if let Some(type_str) = &self.type_ {
+            if type_str.eq_ignore_ascii_case("light") {
+                return ThemeType::Light;
+            }
+        }
+
+        // Fallback to name-based detection
+        if let Some(name) = &self.name {
+            let name_lower = name.to_lowercase();
+            if name_lower.contains("light") || name_lower.contains("day") {
+                return ThemeType::Light;
+            }
+        }
+
+        // Default to dark theme
+        ThemeType::Dark
+    }
+
     /// Compile this raw theme into an optimized compiled theme
     pub fn compile(&self) -> Result<CompiledTheme, Box<dyn std::error::Error>> {
         let mut rules = Vec::new();
-        let mut default_style = Style::default();
+        let theme_type = self.determine_theme_type();
+
+        // Parse editor colors
+        let colors = self.parse_colors()?;
+
+        // Create default style using Shiki's approach
+        let default_style = self.create_default_style(&colors, theme_type)?;
 
         for token_rule in &self.token_colors {
             // Handle default style (rule with no scope)
             if token_rule.scope.is_empty() {
-                default_style = convert_settings_to_style(&token_rule.settings);
+                // Override default style if there's a global token color rule
+                // TODO: Merge with existing default style
                 continue;
             }
 
@@ -295,37 +309,119 @@ impl RawTheme {
             }
 
             if !scope_patterns.is_empty() {
-                let style = convert_settings_to_style(&token_rule.settings);
+                let style_modifier = convert_settings_to_style_modifier(&token_rule.settings)?;
                 rules.push(CompiledThemeRule {
                     scope_patterns,
-                    style,
+                    style_modifier,
                 });
             }
         }
 
         Ok(CompiledTheme {
-            name: self.name.clone().unwrap_or_else(|| "Unknown Theme".to_string()),
+            name: self
+                .name
+                .clone()
+                .unwrap_or_else(|| "Unknown Theme".to_string()),
+            theme_type,
+            colors,
             default_style,
             rules,
         })
     }
+
+    /// Parse colors from theme, handling hex color validation
+    fn parse_colors(&self) -> Result<HashMap<String, Color>, Box<dyn std::error::Error>> {
+        let mut parsed_colors = HashMap::new();
+
+        if let Some(colors) = &self.colors {
+            for (key, value) in colors {
+                match Color::from_hex(value) {
+                    Ok(color) => {
+                        parsed_colors.insert(key.clone(), color);
+                    }
+                    Err(_) => {
+                        // Skip invalid colors but don't fail the entire theme
+                        eprintln!("Warning: Invalid color '{}' for key '{}'", value, key);
+                    }
+                }
+            }
+        }
+
+        Ok(parsed_colors)
+    }
+
+    /// Create default style following Shiki's approach
+    fn create_default_style(
+        &self,
+        colors: &HashMap<String, Color>,
+        theme_type: ThemeType,
+    ) -> Result<Style, Box<dyn std::error::Error>> {
+        // Primary: use editor colors from theme
+        let foreground = colors.get("editor.foreground").copied().unwrap_or_else(|| {
+            // Theme-type-based fallbacks (like Shiki)
+            match theme_type {
+                ThemeType::Dark => Color::DARK_FG_DEFAULT,
+                ThemeType::Light => Color::LIGHT_FG_DEFAULT,
+            }
+        });
+
+        let background =
+            colors
+                .get("editor.background")
+                .copied()
+                .unwrap_or_else(|| match theme_type {
+                    ThemeType::Dark => Color::DARK_BG_DEFAULT,
+                    ThemeType::Light => Color::LIGHT_BG_DEFAULT,
+                });
+
+        Ok(Style::new(foreground, background, FontStyle::empty()))
+    }
 }
 
-/// Convert TokenColorSettings to Style
-fn convert_settings_to_style(settings: &TokenColorSettings) -> Style {
-    let mut font_style = FontStyle::default();
+/// Convert TokenColorSettings to StyleModifier
+fn convert_settings_to_style_modifier(
+    settings: &TokenColorSettings,
+) -> Result<StyleModifier, ParseColorError> {
+    let foreground = if let Some(fg_str) = &settings.foreground {
+        Some(Color::from_hex(fg_str)?)
+    } else {
+        None
+    };
 
-    if let Some(font_style_str) = &settings.font_style {
-        font_style.bold = font_style_str.contains("bold");
-        font_style.italic = font_style_str.contains("italic");
-        font_style.underline = font_style_str.contains("underline");
-    }
+    let background = if let Some(bg_str) = &settings.background {
+        Some(Color::from_hex(bg_str)?)
+    } else {
+        None
+    };
 
-    Style {
-        foreground: settings.foreground.clone(),
-        background: settings.background.clone(),
+    let font_style = if let Some(font_style_str) = &settings.font_style {
+        Some(parse_font_style(font_style_str))
+    } else {
+        None
+    };
+
+    Ok(StyleModifier {
+        foreground,
+        background,
         font_style,
+    })
+}
+
+/// Parse font style string into FontStyle bitflags
+fn parse_font_style(font_style_str: &str) -> FontStyle {
+    let mut font_style = FontStyle::empty();
+
+    if font_style_str.contains("bold") {
+        font_style |= FontStyle::BOLD;
     }
+    if font_style_str.contains("italic") {
+        font_style |= FontStyle::ITALIC;
+    }
+    if font_style_str.contains("underline") {
+        font_style |= FontStyle::UNDERLINE;
+    }
+
+    font_style
 }
 
 /// Compile a scope string into a pattern of ScopeIds
@@ -371,15 +467,50 @@ mod tests {
 
     #[test]
     fn test_font_style_parsing() {
-        let settings = TokenColorSettings {
-            foreground: Some("#FFFFFF".to_string()),
-            background: None,
-            font_style: Some("bold italic".to_string()),
+        let font_style = parse_font_style("bold italic");
+        assert!(font_style.contains(FontStyle::BOLD));
+        assert!(font_style.contains(FontStyle::ITALIC));
+        assert!(!font_style.contains(FontStyle::UNDERLINE));
+    }
+
+    #[test]
+    fn test_theme_type_detection() {
+        let dark_theme = RawTheme {
+            name: Some("Dark Plus".to_string()),
+            type_: None,
+            colors: None,
+            token_colors: vec![],
+        };
+        assert_eq!(dark_theme.determine_theme_type(), ThemeType::Dark);
+
+        let light_theme = RawTheme {
+            name: None,
+            type_: Some("light".to_string()),
+            colors: None,
+            token_colors: vec![],
+        };
+        assert_eq!(light_theme.determine_theme_type(), ThemeType::Light);
+    }
+
+    #[test]
+    fn test_style_cache_l1_cache() {
+        let theme = CompiledTheme {
+            name: "Test".to_string(),
+            theme_type: ThemeType::Dark,
+            colors: HashMap::new(),
+            default_style: Style::default(),
+            rules: vec![],
         };
 
-        let style = convert_settings_to_style(&settings);
-        assert!(style.font_style.bold);
-        assert!(style.font_style.italic);
-        assert!(!style.font_style.underline);
+        let mut cache = StyleCache::new();
+        let scope_stack = vec![ScopeId(1), ScopeId(2)];
+
+        // First lookup should compute and cache
+        let style_id1 = cache.get_style_id(&scope_stack, &theme);
+
+        // Second lookup should hit L1 cache
+        let style_id2 = cache.get_style_id(&scope_stack, &theme);
+
+        assert_eq!(style_id1, style_id2);
     }
 }

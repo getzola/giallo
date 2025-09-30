@@ -1,5 +1,5 @@
-use std::sync::{Arc, OnceLock};
 use serde::{Deserialize, Serialize};
+use std::sync::{Arc, OnceLock};
 
 /// A regex wrapper that serializes as a string but compiles lazily at runtime
 #[derive(Debug)]
@@ -28,9 +28,9 @@ impl Regex {
     }
 
     pub fn compiled(&self) -> Option<&Arc<onig::Regex>> {
-        self.compiled.get_or_init(|| {
-            onig::Regex::new(&self.pattern).ok().map(Arc::new)
-        }).as_ref()
+        self.compiled
+            .get_or_init(|| onig::Regex::new(&self.pattern).ok().map(Arc::new))
+            .as_ref()
     }
 
     /// Validate that this regex pattern compiles successfully
@@ -59,12 +59,27 @@ impl<'de> Deserialize<'de> for Regex {
 }
 
 /// Errors that can occur during grammar compilation
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum CompileError {
-    #[error("Invalid regex pattern '{pattern}': {error}")]
     InvalidRegex { pattern: String, error: onig::Error },
-    #[error("Unknown scope '{scope}'")]
     UnknownScope { scope: String },
-    #[error("Unresolved include '{include}'")]
     UnresolvedInclude { include: String },
 }
+
+impl std::fmt::Display for CompileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CompileError::InvalidRegex { pattern, error } => {
+                write!(f, "Invalid regex pattern '{}': {}", pattern, error)
+            }
+            CompileError::UnknownScope { scope } => {
+                write!(f, "Unknown scope '{}'", scope)
+            }
+            CompileError::UnresolvedInclude { include } => {
+                write!(f, "Unresolved include '{}'", include)
+            }
+        }
+    }
+}
+
+impl std::error::Error for CompileError {}

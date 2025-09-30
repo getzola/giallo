@@ -2,10 +2,6 @@ pub mod grammar;
 pub mod tokenizer;
 
 pub use grammar::{
-    CompiledGrammar, CompiledPattern, CompileError,
-    RawGrammar, Pattern, Regex,
-    ScopeId,
+    CompileError, CompiledGrammar, CompiledPattern, Pattern, RawGrammar, Regex, ScopeId,
 };
-pub use tokenizer::{
-    Tokenizer, Token, TokenBatch, TokenizeError,
-};
+pub use tokenizer::{Token, TokenBatch, TokenizeError, Tokenizer};

@@ -1,5 +1,5 @@
-use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 use super::common::Regex;
 use super::ScopeId;
@@ -27,6 +27,8 @@ pub struct CompiledBeginEndPattern {
     pub content_name_scope_id: Option<ScopeId>,
     pub begin_regex: Regex,
     pub end_regex: Regex,
+    /// The original end pattern string (may contain unresolved backreferences)
+    pub end_pattern_source: String,
     #[serde(default)]
     pub captures: BTreeMap<String, CompiledCapture>,
     #[serde(default)]
@@ -45,6 +47,8 @@ pub struct CompiledBeginWhilePattern {
     pub content_name_scope_id: Option<ScopeId>,
     pub begin_regex: Regex,
     pub while_regex: Regex,
+    /// The original while pattern string (may contain unresolved backreferences)
+    pub while_pattern_source: String,
     #[serde(default)]
     pub captures: BTreeMap<String, CompiledCapture>,
     #[serde(default)]

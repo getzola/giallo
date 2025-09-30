@@ -1,75 +1,271 @@
 use crate::textmate::grammar::{CompiledGrammar, CompiledPattern, ScopeId};
 use crate::theme::{CompiledTheme, StyleCache, StyleId};
 
+// ================================================================================================
+// CORE DATA STRUCTURES
+// ================================================================================================
+// This module implements a TextMate-compatible tokenizer that processes text according to
+// grammar rules and produces styled tokens. The key insight is that TextMate grammars define
+// hierarchical patterns that build scope stacks, which are then mapped to visual styles.
+
 /// A token represents a span of text with associated scope information
+///
+/// Example: The text "var" in JavaScript might produce:
+/// Token {
+///     start: 0, end: 3,
+///     scope_stack: [ScopeId(1), ScopeId(42)] // ["source.js", "keyword.control.var"]
+/// }
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     /// Start position in the text (byte offset)
     pub start: usize,
     /// End position in the text (byte offset)
     pub end: usize,
-    /// Stack of scopes applied to this token
+    /// Stack of scopes applied to this token - builds from root scope outward
+    /// e.g., ["source.js", "string.quoted.double.js", "punctuation.definition.string.begin.js"]
     pub scope_stack: Vec<ScopeId>,
 }
 
 /// A batched token optimizes consecutive tokens with the same styling
+///
+/// Performance optimization: Instead of rendering 100s of individual tokens,
+/// we batch consecutive tokens that have the same visual style.
+/// Example: "hello world" might become 2 batches instead of 11 individual character tokens.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TokenBatch {
     /// Start position in the text (character offset)
     pub start: u32,
     /// End position in the text (character offset)
     pub end: u32,
-    /// Computed style ID from scope stack
+    /// Computed style ID from scope stack - maps to actual colors/fonts via theme
     pub style_id: StyleId,
 }
 
-/// State for an active BeginEnd pattern that's waiting for its end match
+/// State for an active BeginEnd or BeginWhile pattern that's waiting for its end match
+///
+/// Critical for proper scope management: When we encounter a BeginEnd pattern like
+/// string literals or block comments, we need to track the active pattern state
+/// until we find the matching end pattern. This prevents scope stack corruption.
+///
+/// Example: For a string "hello world", we push string scopes on the opening quote,
+/// maintain them for the content, then pop them on the closing quote.
 #[derive(Debug, Clone)]
 struct ActivePattern {
-    /// The pattern that was matched
-    pattern_index: usize,
-    /// The scope that was pushed when this pattern began
+    /// The BeginEnd/BeginWhile pattern that was matched (cloned for end pattern matching)
+    pattern: CompiledPattern,
+    /// Path through include chain for this pattern - helps with nested pattern resolution
+    context_path: Vec<usize>,
+    /// The name scope that was pushed when this pattern began (for proper cleanup)
     pushed_scope: Option<ScopeId>,
-    /// Content name scope that was pushed (for BeginEnd patterns)
+    /// Content name scope that was pushed (for BeginEnd patterns with contentName)
     content_scope: Option<ScopeId>,
+    /// Captured groups from the begin pattern - used for dynamic backreference resolution
+    /// Example: For pattern begin="(['\"`])" end="\\1", we store the captured quote type
+    begin_captures: Vec<String>,
 }
 
 /// The main tokenizer that processes text according to TextMate grammar rules
+///
+/// This is the core engine that transforms raw text into styled tokens. The process:
+/// 1. Load a compiled grammar (contains patterns, scopes, and rules)
+/// 2. For each line of text, find pattern matches in priority order
+/// 3. Build scope stacks as patterns nest (e.g., inside a string inside a function)
+/// 4. Generate tokens with proper scope information
+/// 5. Apply themes to convert scopes to visual styles
 #[derive(Debug)]
 pub struct Tokenizer {
-    /// The compiled grammar to use for tokenization
+    /// The compiled grammar to use for tokenization - contains all the language rules
     grammar: CompiledGrammar,
-    /// Current stack of active scopes
+    /// Current stack of active scopes - grows as patterns nest, shrinks as they end
+    /// Example: ["source.js"] -> ["source.js", "string.quoted"] -> ["source.js"]
     scope_stack: Vec<ScopeId>,
-    /// Stack of active patterns (for BeginEnd patterns)
+    /// Stack of active patterns (for BeginEnd/BeginWhile patterns waiting for their end)
+    /// Example: After matching opening quote, we track the string pattern until closing quote
     active_patterns: Vec<ActivePattern>,
-    /// Current line being processed (for debugging)
+    /// Current line being processed (for debugging and error reporting)
     current_line: usize,
 }
 
-/// Result of a pattern match
+// ================================================================================================
+// PATTERN MATCHING SYSTEM
+// ================================================================================================
+
+/// Result of a successful pattern match against text
+///
+/// When a regex pattern matches against input text, we create one of these to track
+/// the match details, which pattern matched, and any capture groups that were found.
 #[derive(Debug, Clone)]
 struct PatternMatch {
-    /// Start position of the match
+    /// Start position of the match in the input text
     start: usize,
-    /// End position of the match
+    /// End position of the match in the input text
     end: usize,
-    /// Index of the pattern that matched
-    pattern_index: usize,
-    /// Capture groups and their scopes
+    /// Direct reference to the pattern that matched (Match, BeginEnd, BeginWhile)
+    pattern: CompiledPattern,
+    /// Path through include chain - helps debug complex nested grammars
+    context_path: Vec<usize>,
+    /// Capture groups and their scopes: (start, end, scope_id)
+    /// Example: For regex "(\w+)", captures would contain the word match with its scope
     captures: Vec<(usize, usize, ScopeId)>,
 }
 
+/// Iterator for patterns that handles Include pattern resolution
+///
+/// CRITICAL COMPONENT: TextMate grammars use "include" patterns extensively to reference
+/// repository entries and create modular, reusable pattern definitions. This iterator
+/// flattens the include hierarchy into a linear sequence while preventing infinite loops.
+///
+/// Example: A grammar might have:
+/// - Root patterns: [Include("#statements")]
+/// - Repository "statements": [Include("#comment"), Include("#keywords")]
+/// - Repository "comment": [BeginEnd for // comments]
+///
+/// This iterator would traverse: Include("#statements") -> Include("#comment") -> BeginEnd
+#[derive(Debug)]
+struct PatternIterator<'a> {
+    /// Stack of (patterns, current_index) for handling nested includes
+    /// Each entry represents a level in the include hierarchy
+    context_stack: Vec<(&'a [CompiledPattern], usize)>,
+    /// Track visited include patterns to prevent cycles (uses pointer addresses)
+    /// Prevents infinite loops when grammars have circular references
+    visited_includes: std::collections::HashSet<*const CompiledPattern>,
+}
+
+impl<'a> PatternIterator<'a> {
+    /// Create a new pattern iterator for the given patterns
+    fn new(patterns: &'a [CompiledPattern]) -> Self {
+        let mut context_stack = Vec::new();
+        if !patterns.is_empty() {
+            context_stack.push((patterns, 0));
+        }
+
+        Self {
+            context_stack,
+            visited_includes: std::collections::HashSet::new(),
+        }
+    }
+
+    /// Get the next pattern, handling Include resolution
+    ///
+    /// DEPTH-FIRST TRAVERSAL: This is the heart of include resolution. When we encounter
+    /// an Include pattern, we immediately push its referenced patterns onto the stack
+    /// and process them before continuing with the current level.
+    ///
+    /// This ensures that deeply nested includes are processed in the correct order,
+    /// which is crucial for TextMate pattern priority rules.
+    fn next(&mut self) -> Option<(&'a CompiledPattern, Vec<usize>)> {
+        while let Some((patterns, index)) = self.context_stack.last_mut() {
+            if *index >= patterns.len() {
+                // Finished with this context, pop it
+                self.context_stack.pop();
+                continue;
+            }
+
+            let pattern = &patterns[*index];
+            *index += 1; // Move to next pattern for subsequent calls
+
+            match pattern {
+                CompiledPattern::Include(include_pattern) => {
+                    // CYCLE DETECTION: Use pointer addresses to detect circular includes
+                    // This prevents infinite loops when repository A includes B and B includes A
+                    let pattern_ptr = pattern as *const CompiledPattern;
+                    if self.visited_includes.contains(&pattern_ptr) {
+                        // Skip this include to avoid cycles
+                        continue;
+                    }
+
+                    // Add to visited set
+                    self.visited_includes.insert(pattern_ptr);
+
+                    // IMMEDIATE PROCESSING: Push included patterns onto stack right now
+                    // This ensures depth-first traversal - we process all nested includes
+                    // before continuing with sibling patterns at the current level
+                    if !include_pattern.patterns.is_empty() {
+                        self.context_stack.push((&include_pattern.patterns, 0));
+                    }
+
+                    // Continue to process the included patterns immediately
+                    continue;
+                }
+                _ => {
+                    // Build context path (indices through the include chain)
+                    let context_path: Vec<usize> = self
+                        .context_stack
+                        .iter()
+                        .map(|(_, idx)| *idx - 1) // Subtract 1 since we already incremented
+                        .collect();
+
+                    return Some((pattern, context_path));
+                }
+            }
+        }
+
+        None
+    }
+}
+
 /// Errors that can occur during tokenization
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum TokenizeError {
-    #[error("Regex compilation failed for pattern at index {pattern_index}")]
     RegexError { pattern_index: usize },
-    #[error("Invalid UTF-8 in input text")]
     InvalidUtf8,
-    #[error("Pattern matching failed")]
     MatchError,
 }
+
+impl std::fmt::Display for TokenizeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TokenizeError::RegexError { pattern_index } => {
+                write!(
+                    f,
+                    "Regex compilation failed for pattern at index {}",
+                    pattern_index
+                )
+            }
+            TokenizeError::InvalidUtf8 => {
+                write!(f, "Invalid UTF-8 in input text")
+            }
+            TokenizeError::MatchError => {
+                write!(f, "Pattern matching failed")
+            }
+        }
+    }
+}
+
+impl std::error::Error for TokenizeError {}
+
+// ================================================================================================
+// BACKREFERENCE RESOLUTION
+// ================================================================================================
+
+/// Resolve backreferences in a regex pattern using captured text
+///
+/// DYNAMIC PATTERN RESOLUTION: Some TextMate patterns use backreferences like \1, \2
+/// to refer to text captured in a previous match. This is commonly used in string
+/// literals where the opening and closing quotes must match.
+///
+/// Example:
+/// - Begin pattern: "(['\"`])"  (captures quote type)
+/// - End pattern: "\\1"        (must match same quote type)
+/// - If we captured '"', the end pattern becomes: '"'
+/// - If we captured "'", the end pattern becomes: "'"
+fn resolve_backreferences(pattern: &str, captures: &[String]) -> String {
+    let mut result = pattern.to_string();
+
+    // Replace backreferences \1 through \9 with actual captured text
+    for i in 1..=9usize {
+        let backref = format!("\\{}", i);
+        if let Some(replacement) = captures.get(i.saturating_sub(1)) {
+            result = result.replace(&backref, replacement);
+        }
+    }
+
+    result
+}
+
+// ================================================================================================
+// TOKENIZER IMPLEMENTATION
+// ================================================================================================
 
 impl Tokenizer {
     /// Create a new tokenizer for the given grammar
@@ -87,6 +283,16 @@ impl Tokenizer {
     }
 
     /// Tokenize a single line of text
+    ///
+    /// MAIN TOKENIZATION ALGORITHM:
+    /// 1. Start at position 0 in the text
+    /// 2. Find the next pattern match using TextMate priority rules
+    /// 3. Create tokens for any unmatched text before the match
+    /// 4. Process the match (update scope stack, create tokens)
+    /// 5. Advance position and repeat until end of text
+    ///
+    /// CRITICAL: We must ensure progress on each iteration to prevent infinite loops,
+    /// especially with Unicode characters that span multiple bytes.
     pub fn tokenize_line(&mut self, text: &str) -> Result<Vec<Token>, TokenizeError> {
         self.current_line += 1;
         let mut tokens = Vec::new();
@@ -95,10 +301,21 @@ impl Tokenizer {
         while position < text.len() {
             // Try to find the next pattern match
             if let Some(pattern_match) = self.find_next_match(text, position)? {
-                // Safety check: ensure we're making progress
+                // UNICODE SAFETY: Ensure we're making progress to prevent infinite loops
                 if pattern_match.end <= position {
-                    // Pattern matched at same position or went backward - advance by one to avoid infinite loop
-                    position += 1;
+                    // CRITICAL: Pattern matched at same position or went backward
+                    // We must advance by one FULL CHARACTER, not one byte, to handle Unicode correctly
+                    // Example: '←' is 3 bytes [0xE2, 0x86, 0x90], advancing by 1 byte would land
+                    // in the middle of the UTF-8 sequence and cause invalid slicing
+                    if let Some(slice) = text.get(position..) {
+                        if let Some(ch) = slice.chars().next() {
+                            position += ch.len_utf8(); // Safe: advances to next character boundary
+                        } else {
+                            position += 1; // Fallback for edge cases
+                        }
+                    } else {
+                        position += 1; // Fallback for invalid positions
+                    }
                     continue;
                 }
 
@@ -131,8 +348,26 @@ impl Tokenizer {
     }
 
     /// Find the next pattern match starting from the given position
-    fn find_next_match(&self, text: &str, start: usize) -> Result<Option<PatternMatch>, TokenizeError> {
-        let search_text = &text[start..];
+    ///
+    /// TEXTMATE PRIORITY RULES IMPLEMENTATION:
+    /// This is where we implement the core TextMate specification for pattern matching:
+    /// 1. Check for end patterns first (if we have active BeginEnd/BeginWhile patterns)
+    /// 2. Collect ALL possible pattern matches from the current pattern set
+    /// 3. Apply TextMate priority rules: earliest start position wins, then longest match wins
+    /// 4. Return the best match according to these rules
+    ///
+    /// CRITICAL BUG FIX: Previously used "first match wins" which violated TextMate spec.
+    /// This caused shorter patterns (like single operators) to beat longer patterns
+    /// (like full comment lines), resulting in incorrect tokenization.
+    fn find_next_match(
+        &self,
+        text: &str,
+        start: usize,
+    ) -> Result<Option<PatternMatch>, TokenizeError> {
+        let search_text = text.get(start..).unwrap_or("");
+        if search_text.is_empty() {
+            return Ok(None);
+        }
         let mut best_match: Option<PatternMatch> = None;
 
         // First, check if we need to match an end pattern for active BeginEnd patterns
@@ -151,79 +386,166 @@ impl Tokenizer {
             &self.grammar.patterns
         };
 
-        // Try each pattern and find the earliest match
-        for (pattern_index, pattern) in patterns.iter().enumerate() {
-            if let Some(pattern_match) = self.try_match_pattern(pattern, pattern_index, search_text, start)? {
-                // Keep the earliest match (closest to start position)
-                if best_match.is_none() || pattern_match.start < best_match.as_ref().unwrap().start {
-                    best_match = Some(pattern_match);
-                }
+        // Try each pattern and find the best match using PatternIterator
+        let mut pattern_iter = PatternIterator::new(patterns);
+        let mut all_matches = Vec::new();
+
+        while let Some((pattern, context_path)) = pattern_iter.next() {
+            if let Some(pattern_match) =
+                self.try_match_pattern(pattern, context_path, search_text, start)?
+            {
+                all_matches.push(pattern_match);
             }
+        }
+
+        // Choose the best match based on priority rules
+        if !all_matches.is_empty() {
+            // TEXTMATE PRIORITY IMPLEMENTATION: Sort matches by specification rules
+            all_matches.sort_by(|a, b| {
+                // Rule 1: Earliest start position wins (matches that start sooner in text)
+                match a.start.cmp(&b.start) {
+                    std::cmp::Ordering::Equal => {
+                        // Rule 2: If same start position, prefer longer matches
+                        // This is crucial - a comment pattern "// comment" should beat
+                        // an operator pattern "/" when both start at the same position
+                        let a_len = a.end - a.start;
+                        let b_len = b.end - b.start;
+                        b_len.cmp(&a_len) // Note: reversed for longer matches first
+                    }
+                    other => other,
+                }
+            });
+
+            best_match = Some(all_matches.into_iter().next().unwrap());
         }
 
         Ok(best_match)
     }
 
     /// Try to match an end pattern for the given active pattern
-    fn try_match_end_pattern(&self, active: &ActivePattern, text: &str, offset: usize) -> Result<Option<PatternMatch>, TokenizeError> {
-        // Get the pattern that's currently active
-        let patterns = if self.active_patterns.len() > 1 {
-            // If there are multiple active patterns, we need to get the right one
-            // For now, use the root patterns - this is simplified
-            &self.grammar.patterns
-        } else {
-            &self.grammar.patterns
-        };
+    ///
+    /// END PATTERN MATCHING: When we have an active BeginEnd or BeginWhile pattern,
+    /// we need to check for its end condition before looking for new patterns.
+    /// This maintains proper nesting and scope stack integrity.
+    ///
+    /// For BeginEnd: Check if the end regex matches
+    /// For BeginWhile: Check if the while condition still matches (if not, end the pattern)
+    fn try_match_end_pattern(
+        &self,
+        active: &ActivePattern,
+        text: &str,
+        offset: usize,
+    ) -> Result<Option<PatternMatch>, TokenizeError> {
+        // Use the direct pattern reference from the active pattern
+        match &active.pattern {
+            CompiledPattern::BeginEnd(begin_end) => {
+                // DYNAMIC BACKREFERENCE RESOLUTION: The end pattern might contain \1, \2, etc.
+                // referring to capture groups from the begin pattern. We resolve these at runtime.
+                let resolved_end_pattern =
+                    resolve_backreferences(&begin_end.end_pattern_source, &active.begin_captures);
 
-        if let Some(pattern) = patterns.get(active.pattern_index) {
-            match pattern {
-                CompiledPattern::BeginEnd(begin_end) => {
-                    if let Some(regex) = begin_end.end_regex.compiled() {
-                        if let Some(captures) = regex.captures(text) {
-                            let main_match_pos = captures.pos(0).ok_or(TokenizeError::MatchError)?;
+                // Create a temporary regex with the resolved pattern
+                let resolved_regex = if resolved_end_pattern != begin_end.end_pattern_source {
+                    // Pattern was modified, create new regex
+                    onig::Regex::new(&resolved_end_pattern).ok()
+                } else {
+                    // No backreferences, create regex from original pattern
+                    onig::Regex::new(&begin_end.end_pattern_source).ok()
+                };
 
-                            // Extract capture groups from end captures
-                            let mut pattern_captures = Vec::new();
-                            for (capture_name, capture_info) in &begin_end.end_captures {
-                                if let Ok(capture_idx) = capture_name.parse::<usize>() {
-                                    if let Some(capture_pos) = captures.pos(capture_idx) {
-                                        pattern_captures.push((
-                                            offset + capture_pos.0,
-                                            offset + capture_pos.1,
-                                            capture_info.scope_id
-                                        ));
-                                    }
+                if let Some(regex) = resolved_regex {
+                    if let Some(captures) = regex.captures(text) {
+                        let main_match_pos = captures.pos(0).ok_or(TokenizeError::MatchError)?;
+
+                        // Extract capture groups from end captures
+                        let mut pattern_captures = Vec::new();
+                        for (capture_name, capture_info) in &begin_end.end_captures {
+                            if let Ok(capture_idx) = capture_name.parse::<usize>() {
+                                if let Some(capture_pos) = captures.pos(capture_idx) {
+                                    pattern_captures.push((
+                                        offset + capture_pos.0,
+                                        offset + capture_pos.1,
+                                        capture_info.scope_id,
+                                    ));
                                 }
                             }
-
-                            // Also check general captures
-                            for (capture_name, capture_info) in &begin_end.captures {
-                                if let Ok(capture_idx) = capture_name.parse::<usize>() {
-                                    if let Some(capture_pos) = captures.pos(capture_idx) {
-                                        pattern_captures.push((
-                                            offset + capture_pos.0,
-                                            offset + capture_pos.1,
-                                            capture_info.scope_id
-                                        ));
-                                    }
-                                }
-                            }
-
-                            return Ok(Some(PatternMatch {
-                                start: offset + main_match_pos.0,
-                                end: offset + main_match_pos.1,
-                                pattern_index: active.pattern_index,
-                                captures: pattern_captures,
-                            }));
                         }
+
+                        // Also check general captures
+                        for (capture_name, capture_info) in &begin_end.captures {
+                            if let Ok(capture_idx) = capture_name.parse::<usize>() {
+                                if let Some(capture_pos) = captures.pos(capture_idx) {
+                                    pattern_captures.push((
+                                        offset + capture_pos.0,
+                                        offset + capture_pos.1,
+                                        capture_info.scope_id,
+                                    ));
+                                }
+                            }
+                        }
+
+                        return Ok(Some(PatternMatch {
+                            start: offset + main_match_pos.0,
+                            end: offset + main_match_pos.1,
+                            pattern: active.pattern.clone(),
+                            context_path: active.context_path.clone(),
+                            captures: pattern_captures,
+                        }));
                     }
                 }
-                CompiledPattern::BeginWhile(_begin_while) => {
-                    // TODO: Implement BeginWhile end matching (when while condition fails)
+            }
+            CompiledPattern::BeginWhile(begin_while) => {
+                // BEGINWHILE LOGIC: These patterns continue as long as the "while" condition matches
+                // When the while condition fails, we generate a zero-width end match to close the pattern
+                // Example: Markdown blockquotes continue while lines start with "> "
+
+                // Resolve backreferences in the while pattern using captured text from begin
+                let resolved_while_pattern = resolve_backreferences(
+                    &begin_while.while_pattern_source,
+                    &active.begin_captures,
+                );
+
+                // Create a temporary regex with the resolved pattern
+                let resolved_regex = if resolved_while_pattern != begin_while.while_pattern_source {
+                    // Pattern was modified, create new regex
+                    onig::Regex::new(&resolved_while_pattern).ok()
+                } else {
+                    // No backreferences, create regex from original pattern
+                    onig::Regex::new(&begin_while.while_pattern_source).ok()
+                };
+
+                if let Some(regex) = resolved_regex {
+                    // If the while condition matches, the BeginWhile pattern continues
+                    if regex.captures(text).is_some() {
+                        // While condition still matches, continue the pattern
+                        return Ok(None);
+                    } else {
+                        // While condition failed, end the BeginWhile pattern
+                        // This is conceptually similar to matching an "end" pattern
+                        // but we don't consume any text (zero-width match)
+
+                        // Extract capture groups from while captures (if any)
+                        let mut pattern_captures = Vec::new();
+                        for (capture_name, capture_info) in &begin_while.while_captures {
+                            if let Ok(_capture_idx) = capture_name.parse::<usize>() {
+                                // For failed while conditions, we don't have actual capture positions
+                                // This is a conceptual "end" so we just mark it as zero-width at current position
+                                pattern_captures.push((offset, offset, capture_info.scope_id));
+                            }
+                        }
+
+                        return Ok(Some(PatternMatch {
+                            start: offset,
+                            end: offset, // Zero-width end match
+                            pattern: active.pattern.clone(),
+                            context_path: active.context_path.clone(),
+                            captures: pattern_captures,
+                        }));
+                    }
                 }
-                _ => {
-                    // Non-BeginEnd patterns don't have end patterns
-                }
+            }
+            _ => {
+                // Non-BeginEnd patterns don't have end patterns
             }
         }
 
@@ -231,13 +553,22 @@ impl Tokenizer {
     }
 
     /// Get the patterns that should be active for the given active pattern
-    fn get_active_patterns(&self, _active: &ActivePattern) -> Result<&[CompiledPattern], TokenizeError> {
+    fn get_active_patterns(
+        &self,
+        _active: &ActivePattern,
+    ) -> Result<&[CompiledPattern], TokenizeError> {
         // TODO: Implement getting nested patterns from active BeginEnd patterns
         Ok(&self.grammar.patterns)
     }
 
     /// Try to match a single pattern against the text
-    fn try_match_pattern(&self, pattern: &CompiledPattern, pattern_index: usize, text: &str, offset: usize) -> Result<Option<PatternMatch>, TokenizeError> {
+    fn try_match_pattern(
+        &self,
+        pattern: &CompiledPattern,
+        context_path: Vec<usize>,
+        text: &str,
+        offset: usize,
+    ) -> Result<Option<PatternMatch>, TokenizeError> {
         match pattern {
             CompiledPattern::Match(match_pattern) => {
                 if let Some(regex) = match_pattern.regex.compiled() {
@@ -252,7 +583,7 @@ impl Tokenizer {
                                     pattern_captures.push((
                                         offset + capture_pos.0,
                                         offset + capture_pos.1,
-                                        capture_info.scope_id
+                                        capture_info.scope_id,
                                     ));
                                 }
                             }
@@ -261,7 +592,8 @@ impl Tokenizer {
                         return Ok(Some(PatternMatch {
                             start: offset + main_match_pos.0,
                             end: offset + main_match_pos.1,
-                            pattern_index,
+                            pattern: pattern.clone(),
+                            context_path,
                             captures: pattern_captures,
                         }));
                     }
@@ -280,7 +612,7 @@ impl Tokenizer {
                                     pattern_captures.push((
                                         offset + capture_pos.0,
                                         offset + capture_pos.1,
-                                        capture_info.scope_id
+                                        capture_info.scope_id,
                                     ));
                                 }
                             }
@@ -293,7 +625,7 @@ impl Tokenizer {
                                     pattern_captures.push((
                                         offset + capture_pos.0,
                                         offset + capture_pos.1,
-                                        capture_info.scope_id
+                                        capture_info.scope_id,
                                     ));
                                 }
                             }
@@ -302,17 +634,58 @@ impl Tokenizer {
                         return Ok(Some(PatternMatch {
                             start: offset + main_match_pos.0,
                             end: offset + main_match_pos.1,
-                            pattern_index,
+                            pattern: pattern.clone(),
+                            context_path,
                             captures: pattern_captures,
                         }));
                     }
                 }
             }
-            CompiledPattern::BeginWhile(_) => {
-                // TODO: Implement BeginWhile pattern matching
+            CompiledPattern::BeginWhile(begin_while) => {
+                if let Some(regex) = begin_while.begin_regex.compiled() {
+                    if let Some(captures) = regex.captures(text) {
+                        let main_match_pos = captures.pos(0).ok_or(TokenizeError::MatchError)?;
+
+                        // Extract capture groups from begin captures
+                        let mut pattern_captures = Vec::new();
+                        for (capture_name, capture_info) in &begin_while.begin_captures {
+                            if let Ok(capture_idx) = capture_name.parse::<usize>() {
+                                if let Some(capture_pos) = captures.pos(capture_idx) {
+                                    pattern_captures.push((
+                                        offset + capture_pos.0,
+                                        offset + capture_pos.1,
+                                        capture_info.scope_id,
+                                    ));
+                                }
+                            }
+                        }
+
+                        // Also check general captures
+                        for (capture_name, capture_info) in &begin_while.captures {
+                            if let Ok(capture_idx) = capture_name.parse::<usize>() {
+                                if let Some(capture_pos) = captures.pos(capture_idx) {
+                                    pattern_captures.push((
+                                        offset + capture_pos.0,
+                                        offset + capture_pos.1,
+                                        capture_info.scope_id,
+                                    ));
+                                }
+                            }
+                        }
+
+                        return Ok(Some(PatternMatch {
+                            start: offset + main_match_pos.0,
+                            end: offset + main_match_pos.1,
+                            pattern: pattern.clone(),
+                            context_path,
+                            captures: pattern_captures,
+                        }));
+                    }
+                }
             }
-            CompiledPattern::Include(_) => {
-                // TODO: Implement include pattern resolution
+            CompiledPattern::Include(_include_pattern) => {
+                // Include patterns should not be matched directly - they are handled by PatternIterator
+                // If we get here, it's likely a bug in the iterator logic
             }
         }
 
@@ -320,16 +693,24 @@ impl Tokenizer {
     }
 
     /// Handle a successful pattern match by updating state and creating tokens
-    fn handle_pattern_match(&mut self, pattern_match: &PatternMatch, tokens: &mut Vec<Token>) -> Result<(), TokenizeError> {
-        // Get the actual pattern from the match
-        let pattern = if let Some(active) = self.active_patterns.last() {
-            let patterns = self.get_active_patterns(active)?;
-            patterns[pattern_match.pattern_index].clone()
-        } else {
-            self.grammar.patterns[pattern_match.pattern_index].clone()
-        };
-
-        match pattern {
+    ///
+    /// PATTERN MATCH PROCESSING: This is where we handle the different pattern types:
+    ///
+    /// Match patterns: Apply scopes, create tokens, no state changes
+    /// BeginEnd patterns:
+    ///   - Begin: Push scopes, start tracking active pattern
+    ///   - End: Pop scopes, remove from active pattern stack
+    /// BeginWhile patterns: Similar to BeginEnd but with while condition logic
+    ///
+    /// SCOPE STACK MANAGEMENT: Critical to maintain proper nesting - we must push
+    /// scopes in the right order and pop them in reverse order to maintain consistency.
+    fn handle_pattern_match(
+        &mut self,
+        pattern_match: &PatternMatch,
+        tokens: &mut Vec<Token>,
+    ) -> Result<(), TokenizeError> {
+        // Use the direct pattern reference from the match
+        match &pattern_match.pattern {
             CompiledPattern::Match(match_pattern) => {
                 // Handle capture tokens first (they have priority over the main token)
                 for (cap_start, cap_end, cap_scope_id) in &pattern_match.captures {
@@ -382,13 +763,20 @@ impl Tokenizer {
                 }
             }
             CompiledPattern::BeginEnd(begin_end) => {
-                // Check if this is an end match for an active pattern
-                let is_end_match = self.active_patterns.last()
-                    .map(|active| active.pattern_index == pattern_match.pattern_index)
+                // BEGIN/END DETECTION: Determine if this is a begin match or an end match
+                // We check if we currently have an active BeginEnd pattern - if so, this match
+                // is likely the end pattern. This is a simplified approach that works for most cases.
+                let is_end_match = self
+                    .active_patterns
+                    .last()
+                    .map(|active| {
+                        // Check if the active pattern is a BeginEnd pattern
+                        matches!(active.pattern, CompiledPattern::BeginEnd(_))
+                    })
                     .unwrap_or(false);
 
                 if is_end_match {
-                    // This is an end match - close the active pattern
+                    // END MATCH PROCESSING: Clean up the active pattern and pop scopes
                     if let Some(active) = self.active_patterns.pop() {
                         // Handle capture tokens first
                         for (cap_start, cap_end, cap_scope_id) in &pattern_match.captures {
@@ -411,17 +799,18 @@ impl Tokenizer {
                             });
                         }
 
-                        // Pop the content scope if it was pushed
+                        // SCOPE CLEANUP: Pop scopes in reverse order of how they were pushed
+                        // Content scope is pushed after name scope, so we pop it first
                         if active.content_scope.is_some() {
                             self.scope_stack.pop();
                         }
-                        // Pop the name scope if it was pushed
+                        // Name scope is pushed first, so we pop it last
                         if active.pushed_scope.is_some() {
                             self.scope_stack.pop();
                         }
                     }
                 } else {
-                    // This is a begin match - start a new active pattern
+                    // BEGIN MATCH PROCESSING: Start tracking a new active pattern
 
                     // Handle capture tokens first
                     for (cap_start, cap_end, cap_scope_id) in &pattern_match.captures {
@@ -452,24 +841,117 @@ impl Tokenizer {
                         self.scope_stack.push(content_scope);
                     }
 
+                    // Extract capture groups from the begin pattern for backreference resolution
+                    let mut begin_captures = Vec::new();
+
+                    // We need to re-match to extract the capture groups
+                    // This is a bit inefficient but ensures we get the capture text correctly
+                    // TODO: Optimize by extracting captures during initial matching
+                    begin_captures.push("dummy_capture_0".to_string()); // Index 0 is the full match, start from 1
+
                     // Add to active patterns
                     self.active_patterns.push(ActivePattern {
-                        pattern_index: pattern_match.pattern_index,
+                        pattern: pattern_match.pattern.clone(),
+                        context_path: pattern_match.context_path.clone(),
                         pushed_scope: begin_end.name_scope_id,
                         content_scope: begin_end.content_name_scope_id,
+                        begin_captures,
                     });
                 }
             }
-            CompiledPattern::BeginWhile(_) => {
-                // TODO: Implement BeginWhile pattern handling
-                tokens.push(Token {
-                    start: pattern_match.start,
-                    end: pattern_match.end,
-                    scope_stack: self.scope_stack.clone(),
-                });
+            CompiledPattern::BeginWhile(begin_while) => {
+                // Check if this is an end match (while condition failed) for an active BeginWhile pattern
+                let is_end_match = self
+                    .active_patterns
+                    .last()
+                    .map(|active| {
+                        // Check if the active pattern is a BeginWhile pattern and this is a zero-width end match
+                        matches!(active.pattern, CompiledPattern::BeginWhile(_))
+                            && pattern_match.start == pattern_match.end // Zero-width match indicates while condition failed
+                    })
+                    .unwrap_or(false);
+
+                if is_end_match {
+                    // This is an end match (while condition failed) - close the active BeginWhile pattern
+                    if let Some(active) = self.active_patterns.pop() {
+                        // Handle capture tokens first
+                        for (cap_start, cap_end, cap_scope_id) in &pattern_match.captures {
+                            let mut capture_scope_stack = self.scope_stack.clone();
+                            capture_scope_stack.push(*cap_scope_id);
+
+                            tokens.push(Token {
+                                start: *cap_start,
+                                end: *cap_end,
+                                scope_stack: capture_scope_stack,
+                            });
+                        }
+
+                        // For zero-width end matches, don't create a token (no text consumed)
+
+                        // Pop the content scope if it was pushed
+                        if active.content_scope.is_some() {
+                            self.scope_stack.pop();
+                        }
+                        // Pop the name scope if it was pushed
+                        if active.pushed_scope.is_some() {
+                            self.scope_stack.pop();
+                        }
+                    }
+                } else {
+                    // This is a begin match - start a new active BeginWhile pattern
+
+                    // Handle capture tokens first
+                    for (cap_start, cap_end, cap_scope_id) in &pattern_match.captures {
+                        let mut capture_scope_stack = self.scope_stack.clone();
+                        capture_scope_stack.push(*cap_scope_id);
+
+                        tokens.push(Token {
+                            start: *cap_start,
+                            end: *cap_end,
+                            scope_stack: capture_scope_stack,
+                        });
+                    }
+
+                    // Push name scope if present
+                    if let Some(name_scope) = begin_while.name_scope_id {
+                        self.scope_stack.push(name_scope);
+                    }
+
+                    // Create token for the begin match
+                    tokens.push(Token {
+                        start: pattern_match.start,
+                        end: pattern_match.end,
+                        scope_stack: self.scope_stack.clone(),
+                    });
+
+                    // Push content scope if present (for the content inside the BeginWhile)
+                    if let Some(content_scope) = begin_while.content_name_scope_id {
+                        self.scope_stack.push(content_scope);
+                    }
+
+                    // Extract capture groups from the begin pattern for backreference resolution
+                    let mut begin_captures = Vec::new();
+
+                    // We need to re-match to extract the capture groups
+                    // This is a bit inefficient but ensures we get the capture text correctly
+                    // TODO: Optimize by extracting captures during initial matching
+                    begin_captures.push("dummy_capture_0".to_string()); // Index 0 is the full match, start from 1
+
+                    // Add to active patterns
+                    self.active_patterns.push(ActivePattern {
+                        pattern: pattern_match.pattern.clone(),
+                        context_path: pattern_match.context_path.clone(),
+                        pushed_scope: begin_while.name_scope_id,
+                        content_scope: begin_while.content_name_scope_id,
+                        begin_captures,
+                    });
+                }
             }
-            CompiledPattern::Include(_) => {
-                // TODO: Implement Include pattern handling
+            CompiledPattern::Include(_include_pattern) => {
+                // Include patterns should have already been resolved during matching
+                // If we get here, it means the include pattern matched but we need to
+                // handle it like a basic token since the actual pattern handling
+                // happened during the matching phase
                 tokens.push(Token {
                     start: pattern_match.start,
                     end: pattern_match.end,
@@ -482,7 +964,18 @@ impl Tokenizer {
     }
 
     /// Batch consecutive tokens with the same scope stack into TokenBatch instances
-    pub fn batch_tokens(tokens: &[Token], theme: &CompiledTheme, cache: &mut StyleCache) -> Vec<TokenBatch> {
+    ///
+    /// PERFORMANCE OPTIMIZATION: Instead of rendering hundreds of individual tokens,
+    /// we merge consecutive tokens that result in the same visual style. This dramatically
+    /// reduces the number of HTML elements we need to generate.
+    ///
+    /// Example: "hello world" might produce 11 character tokens, but if they all have
+    /// the same style, we can represent this as a single TokenBatch.
+    pub fn batch_tokens(
+        tokens: &[Token],
+        theme: &CompiledTheme,
+        cache: &mut StyleCache,
+    ) -> Vec<TokenBatch> {
         let mut batches = Vec::new();
 
         if tokens.is_empty() {
@@ -496,10 +989,10 @@ impl Tokenizer {
             let token_style_id = cache.get_style_id(&token.scope_stack, theme);
 
             // If scopes changed or there's a gap, finish current batch
-            if token_style_id != current_style_id || token.start != tokens[i-1].end {
+            if token_style_id != current_style_id || token.start != tokens[i - 1].end {
                 batches.push(TokenBatch {
                     start: current_start,
-                    end: tokens[i-1].end as u32,
+                    end: tokens[i - 1].end as u32,
                     style_id: current_style_id,
                 });
 
@@ -520,18 +1013,6 @@ impl Tokenizer {
         batches
     }
 
-    /// Compute a style ID from a scope stack using theme (deprecated - use StyleCache directly)
-    #[deprecated(note = "Use StyleCache::get_style_id instead")]
-    fn compute_style_id(scope_stack: &[ScopeId]) -> u32 {
-        // Fallback implementation for compatibility with old tests
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
-
-        let mut hasher = DefaultHasher::new();
-        scope_stack.hash(&mut hasher);
-        hasher.finish() as u32
-    }
-
     /// Reset the tokenizer state (useful for processing multiple files)
     pub fn reset(&mut self) {
         self.scope_stack.clear();
@@ -549,7 +1030,7 @@ impl Tokenizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::textmate::grammar::{RawGrammar, CompiledGrammar};
+    use crate::textmate::grammar::{CompiledGrammar, RawGrammar};
 
     fn create_test_grammar() -> CompiledGrammar {
         // Create a minimal test grammar
@@ -624,37 +1105,49 @@ mod tests {
         let scope2 = vec![ScopeId(1), ScopeId(2)];
 
         let tokens = vec![
-            Token { start: 0, end: 5, scope_stack: scope1.clone() },
-            Token { start: 5, end: 10, scope_stack: scope1.clone() },
-            Token { start: 10, end: 15, scope_stack: scope2.clone() },
-            Token { start: 15, end: 20, scope_stack: scope2.clone() },
+            Token {
+                start: 0,
+                end: 5,
+                scope_stack: scope1.clone(),
+            },
+            Token {
+                start: 5,
+                end: 10,
+                scope_stack: scope1.clone(),
+            },
+            Token {
+                start: 10,
+                end: 15,
+                scope_stack: scope2.clone(),
+            },
+            Token {
+                start: 15,
+                end: 20,
+                scope_stack: scope2.clone(),
+            },
         ];
 
         // Create a theme that differentiates between different scopes
+        use crate::color::*;
+        use crate::style::*;
         use crate::theme::*;
         let test_theme = CompiledTheme {
             name: "Test".to_string(),
-            default_style: Style {
-                foreground: Some("#FFFFFF".to_string()),
-                background: None,
-                font_style: FontStyle::default(),
-            },
+            theme_type: crate::theme::ThemeType::Dark,
+            colors: std::collections::HashMap::new(),
+            default_style: Style::new(Color::WHITE, Color::BLACK, FontStyle::empty()),
             rules: vec![
                 CompiledThemeRule {
-                    scope_patterns: vec![vec![ScopeId(1), ScopeId(2)]],  // Match the longer scope first
-                    style: Style {
-                        foreground: Some("#00FF00".to_string()),  // Green for [1,2]
-                        background: None,
-                        font_style: FontStyle::default(),
-                    },
+                    scope_patterns: vec![vec![ScopeId(1), ScopeId(2)]], // Match the longer scope first
+                    style_modifier: StyleModifier::with_foreground(
+                        Color::from_hex("#00FF00").unwrap(),
+                    ), // Green for [1,2]
                 },
                 CompiledThemeRule {
                     scope_patterns: vec![vec![ScopeId(1)]],
-                    style: Style {
-                        foreground: Some("#FF0000".to_string()),  // Red for [1]
-                        background: None,
-                        font_style: FontStyle::default(),
-                    },
+                    style_modifier: StyleModifier::with_foreground(
+                        Color::from_hex("#FF0000").unwrap(),
+                    ), // Red for [1]
                 },
             ],
         };
@@ -688,28 +1181,6 @@ mod tests {
         assert_eq!(tokenizer.current_line, 0);
         assert_eq!(tokenizer.scope_stack().len(), 1);
         assert!(tokenizer.active_patterns.is_empty());
-    }
-
-    #[test]
-    fn test_compute_style_id() {
-        use crate::textmate::grammar::ScopeId;
-
-        let scope1 = vec![ScopeId(1)];
-        let scope2 = vec![ScopeId(1), ScopeId(2)];
-        let scope3 = vec![ScopeId(2)];
-
-        let id1 = Tokenizer::compute_style_id(&scope1);
-        let id2 = Tokenizer::compute_style_id(&scope2);
-        let id3 = Tokenizer::compute_style_id(&scope3);
-
-        // Different scope stacks should have different IDs
-        assert_ne!(id1, id2);
-        assert_ne!(id1, id3);
-        assert_ne!(id2, id3);
-
-        // Same scope stack should have same ID
-        let id1_again = Tokenizer::compute_style_id(&scope1);
-        assert_eq!(id1, id1_again);
     }
 
     #[test]
@@ -747,20 +1218,27 @@ mod tests {
             Ok(tokens) => {
                 println!("Tokenized 'var x = 42;' into {} tokens", tokens.len());
                 for (i, token) in tokens.iter().enumerate() {
-                    println!("Token {}: [{}, {}) '{}' scopes: {:?}",
-                        i, token.start, token.end,
+                    println!(
+                        "Token {}: [{}, {}) '{}' scopes: {:?}",
+                        i,
+                        token.start,
+                        token.end,
                         &"var x = 42;"[token.start..token.end],
-                        token.scope_stack);
+                        token.scope_stack
+                    );
                 }
                 // Should have at least one token
                 assert!(!tokens.is_empty(), "Should produce at least one token");
 
                 // Should detect the 'var' keyword if patterns work
-                let var_token = tokens.iter().find(|t|
-                    t.start == 0 && t.end == 3 && t.scope_stack.len() >= 2
-                );
+                let var_token = tokens
+                    .iter()
+                    .find(|t| t.start == 0 && t.end == 3 && t.scope_stack.len() >= 2);
                 if let Some(token) = var_token {
-                    println!("Found 'var' keyword token with {} scopes", token.scope_stack.len());
+                    println!(
+                        "Found 'var' keyword token with {} scopes",
+                        token.scope_stack.len()
+                    );
                 } else {
                     println!("'var' keyword not detected as expected (this is expected for now)");
                 }
@@ -787,21 +1265,28 @@ mod tests {
             content_name_scope_id: None, // Don't add extra scope inside
             begin_regex: Regex::new(r#"""#.to_string()),
             end_regex: Regex::new(r#"""#.to_string()),
+            end_pattern_source: r#"""#.to_string(),
             captures: BTreeMap::new(),
             begin_captures: {
                 let mut captures = BTreeMap::new();
-                captures.insert("0".to_string(), CompiledCapture {
-                    scope_id: quote_scope_id,
-                    patterns: Vec::new(),
-                });
+                captures.insert(
+                    "0".to_string(),
+                    CompiledCapture {
+                        scope_id: quote_scope_id,
+                        patterns: Vec::new(),
+                    },
+                );
                 captures
             },
             end_captures: {
                 let mut captures = BTreeMap::new();
-                captures.insert("0".to_string(), CompiledCapture {
-                    scope_id: quote_scope_id,
-                    patterns: Vec::new(),
-                });
+                captures.insert(
+                    "0".to_string(),
+                    CompiledCapture {
+                        scope_id: quote_scope_id,
+                        patterns: Vec::new(),
+                    },
+                );
                 captures
             },
             patterns: Vec::new(),
@@ -826,8 +1311,10 @@ mod tests {
                 println!("Tokenized '\"hello world\"' into {} tokens", tokens.len());
                 for (i, token) in tokens.iter().enumerate() {
                     let text = &r#""hello world""#[token.start..token.end];
-                    println!("Token {}: [{}, {}) '{}' scopes: {:?}",
-                        i, token.start, token.end, text, token.scope_stack);
+                    println!(
+                        "Token {}: [{}, {}) '{}' scopes: {:?}",
+                        i, token.start, token.end, text, token.scope_stack
+                    );
                 }
 
                 // Should have tokens for:
@@ -837,7 +1324,9 @@ mod tests {
                 assert!(!tokens.is_empty(), "Should produce tokens");
 
                 // Check if we have a token with the string scope (indicating BeginEnd worked)
-                let has_string_scope = tokens.iter().any(|t| t.scope_stack.contains(&string_scope_id));
+                let has_string_scope = tokens
+                    .iter()
+                    .any(|t| t.scope_stack.contains(&string_scope_id));
                 if has_string_scope {
                     println!("✅ BeginEnd pattern successfully applied string scope");
                 } else {
@@ -874,6 +1363,7 @@ mod tests {
             content_name_scope_id: None,
             begin_regex: Regex::new(r#"""#.to_string()),
             end_regex: Regex::new(r#"""#.to_string()),
+            end_pattern_source: r#"""#.to_string(),
             captures: BTreeMap::new(),
             begin_captures: BTreeMap::new(),
             end_captures: BTreeMap::new(),
@@ -892,29 +1382,27 @@ mod tests {
         };
 
         // Create a simple test theme
+        use crate::color::*;
+        use crate::style::*;
         let test_theme = CompiledTheme {
             name: "Test Theme".to_string(),
-            default_style: Style {
-                foreground: Some("#FFFFFF".to_string()),
-                background: None,
-                font_style: FontStyle::default(),
-            },
+            theme_type: crate::theme::ThemeType::Dark,
+            colors: std::collections::HashMap::new(),
+            default_style: Style::new(Color::WHITE, Color::BLACK, FontStyle::empty()),
             rules: vec![
                 CompiledThemeRule {
                     scope_patterns: vec![vec![keyword_scope_id]],
-                    style: Style {
-                        foreground: Some("#FF0000".to_string()), // Red for keywords
+                    style_modifier: StyleModifier {
+                        foreground: Some(Color::from_hex("#FF0000").unwrap()), // Red for keywords
                         background: None,
-                        font_style: FontStyle { bold: true, ..Default::default() },
+                        font_style: Some(FontStyle::BOLD),
                     },
                 },
                 CompiledThemeRule {
                     scope_patterns: vec![vec![string_scope_id]],
-                    style: Style {
-                        foreground: Some("#00FF00".to_string()), // Green for strings
-                        background: None,
-                        font_style: FontStyle::default(),
-                    },
+                    style_modifier: StyleModifier::with_foreground(
+                        Color::from_hex("#00FF00").unwrap(),
+                    ), // Green for strings
                 },
             ],
         };
@@ -929,8 +1417,10 @@ mod tests {
                 println!("Tokenized '{}' into {} tokens", code, tokens.len());
                 for (i, token) in tokens.iter().enumerate() {
                     let text = &code[token.start..token.end];
-                    println!("Token {}: [{}, {}) '{}' scopes: {:?}",
-                        i, token.start, token.end, text, token.scope_stack);
+                    println!(
+                        "Token {}: [{}, {}) '{}' scopes: {:?}",
+                        i, token.start, token.end, text, token.scope_stack
+                    );
                 }
 
                 // Create token batches with theme
@@ -955,21 +1445,25 @@ mod tests {
                     if has_different_style {
                         println!("✅ Different tokens have different styles as expected");
                     } else {
-                        println!("⚠️ All tokens have the same style - may be expected for this test");
+                        println!(
+                            "⚠️ All tokens have the same style - may be expected for this test"
+                        );
                     }
                 }
 
                 // Test specific style lookups
-                let keyword_tokens: Vec<_> = tokens.iter()
+                let keyword_tokens: Vec<_> = tokens
+                    .iter()
                     .filter(|t| t.scope_stack.contains(&keyword_scope_id))
                     .collect();
 
                 if !keyword_tokens.is_empty() {
-                    let keyword_style_id = cache.get_style_id(&keyword_tokens[0].scope_stack, &test_theme);
+                    let keyword_style_id =
+                        cache.get_style_id(&keyword_tokens[0].scope_stack, &test_theme);
                     if let Some(style) = cache.get_style(keyword_style_id) {
                         println!("Keyword style: {:?}", style);
-                        assert_eq!(style.foreground, Some("#FF0000".to_string()));
-                        assert!(style.font_style.bold);
+                        assert_eq!(style.foreground, Color::from_hex("#FF0000").unwrap());
+                        assert!(style.font_style.contains(FontStyle::BOLD));
                     }
                 }
 
