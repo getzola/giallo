@@ -1,1 +1,1 @@
-mod textmate;
+pub mod textmate;

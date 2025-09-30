@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "Bash(git submodule add:*)",
+      "Bash(cargo run:*)",
+      "WebFetch(domain:docs.rs)",
+      "Bash(find:*)",
+      "Bash(cargo test:*)",
+      "Bash(cat:*)",
+      "Bash(cargo doc:*)",
+      "Bash(cargo --version)",
+      "Bash(rustc --version)",
+      "Read(//home/vincent/Code/pulls/syntect/**)",
+      "Bash(cargo check:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
