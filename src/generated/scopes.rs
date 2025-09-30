@@ -1,5 +1,5 @@
 // Auto-generated scope mappings - do not edit manually
-#[derive(Copy, Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ScopeId(pub u32);
 
 pub static SCOPE_MAP: ::phf::Map<&'static str, u32> = ::phf::Map {
