@@ -28,7 +28,9 @@
       "Bash(timeout 30 cargo test test_javascript_comment_scopes -- --nocapture)",
       "Bash(timeout 20 cargo test test_javascript_comment_scopes -- --nocapture)",
       "Bash(cargo:*)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//home/vincent/Code/pulls/**)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
