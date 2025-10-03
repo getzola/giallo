@@ -24,6 +24,8 @@ impl fmt::Debug for Regex {
 
 impl Regex {
     pub fn new(pattern: String) -> Self {
+        // TODO: validate and look for backreference
+
         Self {
             pattern,
             compiled: OnceLock::new(),
@@ -43,6 +45,16 @@ impl Regex {
     /// Validate that this regex pattern compiles successfully
     pub fn validate(&self) -> Result<(), onig::Error> {
         onig::Regex::new(&self.pattern).map(|_| ())
+    }
+
+    pub fn has_backreferences(&self) -> bool {
+        for i in 1..=9 {
+            let backref = format!("\\{}", i);
+            if self.pattern.contains(&backref) {
+                return true;
+            }
+        }
+        false
     }
 }
 

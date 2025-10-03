@@ -1,78 +1,197 @@
-use super::common::Regex;
-use crate::grammars::raw::{Capture, Pattern, RepositoryEntry, Rule};
+use std::collections::HashMap;
+use std::ops::Deref;
+
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashSet};
 
-use super::{RawGrammar, ScopeId, get_scope_id};
+use crate::grammars::raw::{Captures, RawGrammar, RawRule};
+use crate::grammars::regex::Regex;
+use crate::grammars::{ScopeId, get_scope_id};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompiledCapture {
-    pub scope_id: ScopeId,
-    #[serde(default)]
-    pub patterns: Vec<CompiledPattern>,
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct RuleId(u16);
+
+impl Deref for RuleId {
+    type Target = u16;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompiledMatchPattern {
-    pub name_scope_id: Option<ScopeId>,
-    pub regex: Regex,
-    #[serde(default)]
-    pub captures: BTreeMap<String, CompiledCapture>,
-    #[serde(default)]
-    pub patterns: Vec<CompiledPattern>,
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct RegexId(u16);
+
+impl Deref for RegexId {
+    type Target = u16;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompiledBeginEndPattern {
-    pub name_scope_id: Option<ScopeId>,
-    pub content_name_scope_id: Option<ScopeId>,
-    pub begin_regex: Regex,
-    pub end_regex: Regex,
-    /// The original end pattern string (may contain unresolved backreferences)
-    pub end_pattern_source: String,
-    #[serde(default)]
-    pub captures: BTreeMap<String, CompiledCapture>,
-    #[serde(default)]
-    pub begin_captures: BTreeMap<String, CompiledCapture>,
-    #[serde(default)]
-    pub end_captures: BTreeMap<String, CompiledCapture>,
-    #[serde(default)]
-    pub patterns: Vec<CompiledPattern>,
-    #[serde(default)]
-    pub apply_end_pattern_last: bool,
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct RepositoryId(u16);
+
+impl Deref for RepositoryId {
+    type Target = u16;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompiledBeginWhilePattern {
-    pub name_scope_id: Option<ScopeId>,
-    pub content_name_scope_id: Option<ScopeId>,
-    pub begin_regex: Regex,
-    pub while_regex: Regex,
-    /// The original while pattern string (may contain unresolved backreferences)
-    pub while_pattern_source: String,
-    #[serde(default)]
-    pub captures: BTreeMap<String, CompiledCapture>,
-    #[serde(default)]
-    pub begin_captures: BTreeMap<String, CompiledCapture>,
-    #[serde(default)]
-    pub while_captures: BTreeMap<String, CompiledCapture>,
-    #[serde(default)]
-    pub patterns: Vec<CompiledPattern>,
+// TODO optimise the String here
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[serde(transparent)]
+pub struct Repository(HashMap<String, RuleId>);
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
+pub struct RepositoryStack {
+    // TODO: check what's the biggest stack we get from shiki grammars
+    stack: [Option<RepositoryId>; 8],
+    len: u8,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompiledIncludePattern {
-    /// The resolved patterns from the include reference
-    pub patterns: Vec<CompiledPattern>,
+impl RepositoryStack {
+    pub fn push(mut self, id: RepositoryId) -> Self {
+        self.stack[self.len as usize] = Some(id);
+        self.len += 1;
+        self
+    }
+
+    pub fn pop(mut self) -> (RepositoryId, Self) {
+        let popped = self.stack[self.len as usize - 1].take().unwrap();
+        self.len -= 1;
+        (popped, self)
+    }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// per vscode-textmate:
+///  Allowed values:
+///  * Scope Name, e.g. `source.ts`
+///  * Top level scope reference, e.g. `source.ts#entity.name.class`
+///  * Relative scope reference, e.g. `#entity.name.class`
+///  * self, e.g. `$self`
+///  * base, e.g. `$base`
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub enum Reference {
+    Self_,
+    Base,
+    Local(String),
+    OtherComplete(ScopeId),
+    OtherSpecific(ScopeId, String),
+    Unknown(String),
+}
+
+impl From<&str> for Reference {
+    fn from(value: &str) -> Self {
+        let r = match value.as_ref() {
+            "$self" => Self::Self_,
+            "$base" => Self::Base,
+            s if s.starts_with('#') => Self::Local(s[1..].to_string()),
+            s if s.contains('#') => {
+                let (scope, rule) = s.split_once('#').unwrap();
+                match get_scope_id(scope) {
+                    Some(scope_id) => Self::OtherSpecific(scope_id, rule.to_string()),
+                    None => Self::Unknown(value.to_string()),
+                }
+            }
+            s if s.contains('.') => {
+                // Try parsing as scope.repository format (e.g., "source.js.regexp")
+                if let Some(dot_pos) = s.rfind('.') {
+                    let (scope_part, rule_part) = s.split_at(dot_pos);
+                    let rule_part = &rule_part[1..]; // Remove the '.'
+
+                    // Check if the scope part is a valid scope
+                    if let Some(scope_id) = get_scope_id(scope_part) {
+                        return Self::OtherSpecific(scope_id, rule_part.to_string());
+                    }
+                }
+                // If not a valid scope.rule format, fall through to complete scope lookup
+                match get_scope_id(value) {
+                    Some(scope_id) => Self::OtherComplete(scope_id),
+                    None => Self::Unknown(value.to_string()),
+                }
+            }
+            _ => match get_scope_id(value) {
+                Some(scope_id) => Self::OtherComplete(scope_id),
+                None => Self::Unknown(value.to_string()),
+            },
+        };
+
+        if matches!(r, Self::Unknown(_)) {
+            println!("Scope {value} not found");
+        }
+        r
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum CompiledPattern {
-    BeginEnd(CompiledBeginEndPattern),
-    BeginWhile(CompiledBeginWhilePattern),
-    Match(CompiledMatchPattern),
-    Include(CompiledIncludePattern),
+enum RuleIdOrReference {
+    RuleId(RuleId),
+    Reference(Reference),
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Match {
+    id: RuleId,
+    // some match only care about the captures
+    scope_id: Option<ScopeId>,
+    regex_id: RegexId,
+    captures: Vec<RuleId>,
+    repository_stack: RepositoryStack,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct IncludeOnly {
+    id: RuleId,
+    scope_id: Option<ScopeId>,
+    content_scope_id: Option<ScopeId>,
+    repository_stack: RepositoryStack,
+    patterns: Vec<RuleIdOrReference>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct BeginEnd {
+    id: RuleId,
+    scope_id: Option<ScopeId>,
+    content_scope_id: Option<ScopeId>,
+    begin: RegexId,
+    begin_captures: Vec<Option<RuleId>>,
+    end: RegexId,
+    end_has_backrefs: bool,
+    end_captures: Vec<Option<RuleId>>,
+    apply_end_pattern_last: bool,
+    patterns: Vec<RuleIdOrReference>,
+    repository_stack: RepositoryStack,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct BeginWhile {
+    id: RuleId,
+    scope_id: Option<ScopeId>,
+    content_scope_id: Option<ScopeId>,
+    begin: RegexId,
+    begin_captures: Vec<Option<RuleId>>,
+    while_: RegexId,
+    while_has_backrefs: bool,
+    while_captures: Vec<Option<RuleId>>,
+    apply_end_pattern_last: bool,
+    patterns: Vec<RuleIdOrReference>,
+    repository_stack: RepositoryStack,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub enum Rule {
+    Match(Match),
+    IncludeOnly(IncludeOnly),
+    BeginEnd(BeginEnd),
+    BeginWhile(BeginWhile),
+    Noop,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,216 +201,9 @@ pub struct CompiledGrammar {
     pub scope_name: String,
     pub scope_id: ScopeId,
     pub file_types: Vec<String>,
-    pub patterns: Vec<CompiledPattern>,
-    pub first_line_regex: Option<Regex>,
-}
-
-/// Check if a pattern might contain backreferences (\\1 through \\9)
-/// This is a conservative check - we only skip validation if we're fairly sure
-/// there are backreferences to avoid false positives.
-fn might_have_backreferences(pattern: &str) -> bool {
-    // Only consider it a backreference if it's likely to be one
-    // Look for \\ followed by digit, but be more conservative
-    for i in 1..=9 {
-        let backref = format!("\\{}", i);
-        if pattern.contains(&backref) {
-            // Additional heuristic: make sure it looks like a real backreference
-            // by checking it's not escaped (like \\\\1) or in a character class
-            // For now, just use the simple check but be aware this could be improved
-            return true;
-        }
-    }
-    false
-}
-
-/// Compile and validate a regex pattern, optionally allowing backreferences
-fn compile_and_validate_regex(
-    pattern: &str,
-    allow_backreferences: bool,
-) -> Result<Regex, CompileError> {
-    let regex = Regex::new(pattern.to_string());
-
-    // Only validate if backreferences aren't expected
-    if !allow_backreferences || !might_have_backreferences(pattern) {
-        regex.validate().map_err(|e| CompileError::InvalidRegex {
-            pattern: pattern.to_string(),
-            error: e,
-        })?;
-    }
-
-    Ok(regex)
-}
-
-fn get_optional_scope_id(name: &Option<String>) -> Option<ScopeId> {
-    name.as_ref().and_then(|n| get_scope_id(n))
-}
-
-/// Compile a list of patterns recursively
-fn compile_nested_patterns(
-    raw_grammar: &RawGrammar,
-    patterns: &[Pattern],
-    visited: &mut HashSet<String>,
-) -> Result<Vec<CompiledPattern>, CompileError> {
-    patterns
-        .iter()
-        .map(|p| compile_pattern_with_visited(raw_grammar, p, visited))
-        .collect()
-}
-
-/// Compile capture groups
-fn compile_captures(
-    raw_grammar: &RawGrammar,
-    captures: &BTreeMap<String, Capture>,
-    visited: &mut HashSet<String>,
-) -> Result<BTreeMap<String, CompiledCapture>, CompileError> {
-    captures
-        .iter()
-        .map(|(key, capture)| {
-            let scope_id =
-                get_scope_id(&capture.name).ok_or_else(|| CompileError::UnknownScope {
-                    scope: capture.name.clone(),
-                })?;
-            let compiled_capture = CompiledCapture {
-                scope_id,
-                patterns: compile_nested_patterns(raw_grammar, &capture.patterns, visited)?,
-            };
-            Ok((key.clone(), compiled_capture))
-        })
-        .collect()
-}
-
-/// Main pattern compilation function with visited tracking
-fn compile_pattern_with_visited(
-    raw_grammar: &RawGrammar,
-    pattern: &Pattern,
-    visited: &mut HashSet<String>,
-) -> Result<CompiledPattern, CompileError> {
-    match pattern {
-        Pattern::Match(match_pattern) => {
-            let regex = compile_and_validate_regex(&match_pattern.match_, false)?;
-            let name_scope_id = get_optional_scope_id(&match_pattern.name);
-            let captures = compile_captures(raw_grammar, &match_pattern.captures, visited)?;
-            let patterns = compile_nested_patterns(raw_grammar, &match_pattern.patterns, visited)?;
-
-            let compiled = CompiledPattern::Match(CompiledMatchPattern {
-                name_scope_id,
-                regex,
-                captures,
-                patterns,
-            });
-            Ok(compiled)
-        }
-        Pattern::BeginEnd(begin_end) => {
-            let begin_regex = compile_and_validate_regex(&begin_end.begin, false)?;
-            let end_regex = compile_and_validate_regex(&begin_end.end, true)?; // Allow backrefs
-            let name_scope_id = get_optional_scope_id(&begin_end.name);
-            let content_name_scope_id = get_optional_scope_id(&begin_end.content_name);
-            let captures = compile_captures(raw_grammar, &begin_end.captures, visited)?;
-            let begin_captures = compile_captures(raw_grammar, &begin_end.begin_captures, visited)?;
-            let patterns = compile_nested_patterns(raw_grammar, &begin_end.patterns, visited)?;
-            let end_captures = compile_captures(raw_grammar, &begin_end.end_captures, visited)?;
-
-            Ok(CompiledPattern::BeginEnd(CompiledBeginEndPattern {
-                name_scope_id,
-                content_name_scope_id,
-                begin_regex,
-                end_regex,
-                captures,
-                begin_captures,
-                end_captures,
-                patterns,
-                end_pattern_source: begin_end.end.clone(),
-                apply_end_pattern_last: begin_end.apply_end_pattern_last.unwrap_or(0) != 0,
-            }))
-        }
-        Pattern::BeginWhile(begin_while) => {
-            let begin_regex = compile_and_validate_regex(&begin_while.begin, false)?;
-            let while_regex = compile_and_validate_regex(&begin_while.while_, true)?; // Allow backrefs
-            let name_scope_id = get_optional_scope_id(&begin_while.name);
-            let content_name_scope_id = get_optional_scope_id(&begin_while.content_name);
-            let captures = compile_captures(raw_grammar, &begin_while.captures, visited)?;
-            let begin_captures =
-                compile_captures(raw_grammar, &begin_while.begin_captures, visited)?;
-            let patterns = compile_nested_patterns(raw_grammar, &begin_while.patterns, visited)?;
-            let while_captures =
-                compile_captures(raw_grammar, &begin_while.while_captures, visited)?;
-
-            Ok(CompiledPattern::BeginWhile(CompiledBeginWhilePattern {
-                name_scope_id,
-                content_name_scope_id,
-                begin_regex,
-                while_regex,
-                while_pattern_source: begin_while.while_.clone(),
-                captures,
-                begin_captures,
-                while_captures,
-                patterns,
-            }))
-        }
-
-        Pattern::Include(include) => {
-            if include.include.starts_with('#') {
-                let repo_key = &include.include[1..];
-
-                // Check for cycles
-                if visited.contains(repo_key) {
-                    return Ok(CompiledPattern::Include(CompiledIncludePattern {
-                        patterns: vec![],
-                    }));
-                }
-
-                // Check if repository entry exists
-                if let Some(repo_entry) = raw_grammar.repository.get(repo_key) {
-                    // Add to visited set BEFORE processing (for true cycle detection)
-                    visited.insert(repo_key.to_string());
-
-                    let patterns = match repo_entry {
-                        RepositoryEntry::DirectArray(patterns) => {
-                            let compiled = compile_nested_patterns(raw_grammar, patterns, visited)?;
-                            compiled
-                        }
-                        RepositoryEntry::PatternContainer { patterns } => {
-                            let compiled = compile_nested_patterns(raw_grammar, patterns, visited)?;
-                            compiled
-                        }
-                        RepositoryEntry::DirectPattern(pattern) => {
-                            let compiled_pattern = compile_pattern_with_visited(raw_grammar, pattern, visited)?;
-                            vec![compiled_pattern]
-                        }
-                    };
-
-                    // Remove from visited set AFTER processing (allow reuse in different branches)
-                    visited.remove(repo_key);
-
-                    Ok(CompiledPattern::Include(CompiledIncludePattern {
-                        patterns,
-                    }))
-                } else {
-                    // Repository key not found - gracefully handle by returning empty patterns
-                    Ok(CompiledPattern::Include(CompiledIncludePattern {
-                        patterns: vec![],
-                    }))
-                }
-            } else {
-                // TODO: External includes not implemented yet - return empty patterns
-                Ok(CompiledPattern::Include(CompiledIncludePattern {
-                    patterns: vec![],
-                }))
-            }
-        }
-
-        Pattern::Repository(repo) => Ok(CompiledPattern::Include(CompiledIncludePattern {
-            patterns: compile_nested_patterns(raw_grammar, &repo.patterns, visited)?,
-        })),
-    }
-}
-
-/// Main pattern compilation function
-fn compile_pattern(
-    raw_grammar: &RawGrammar,
-    pattern: &Pattern,
-) -> Result<CompiledPattern, CompileError> {
-    compile_pattern_with_visited(raw_grammar, pattern, &mut HashSet::new())
+    pub regexes: Vec<Regex>,
+    pub rules: Vec<Rule>,
+    pub repositories: Vec<Repository>,
 }
 
 impl CompiledGrammar {
@@ -300,36 +212,207 @@ impl CompiledGrammar {
             scope: raw.scope_name.clone(),
         })?;
 
-        // Compile the first line match regex if present
-        let first_line_regex = raw
-            .first_line_match
-            .as_ref()
-            .map(|pattern| {
-                compile_and_validate_regex(pattern, false).map_err(|e| match e {
-                    CompileError::InvalidRegex { pattern, error } => {
-                        CompileError::InvalidRegex { pattern, error }
-                    }
-                    other => other,
-                })
-            })
-            .transpose()?;
-
-        // Compile all patterns
-        let patterns = raw
-            .patterns
-            .iter()
-            .map(|pattern| compile_pattern(&raw, pattern))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(CompiledGrammar {
+        let mut grammar = Self {
             name: raw.name,
             display_name: raw.display_name,
             scope_name: raw.scope_name,
             file_types: raw.file_types,
             scope_id,
-            patterns,
-            first_line_regex,
-        })
+            regexes: Vec::new(),
+            rules: Vec::new(),
+            repositories: Vec::new(),
+        };
+
+        let root_rule = RawRule {
+            patterns: raw.patterns,
+            repository: raw.repository,
+            ..Default::default()
+        };
+        let root_rule_id = grammar.compile_rule(root_rule, RepositoryStack::default())?;
+        assert_eq!(*root_rule_id, 0);
+
+        Ok(grammar)
+    }
+
+    fn compile_rule(
+        &mut self,
+        raw_rule: RawRule,
+        repository_stack: RepositoryStack,
+    ) -> Result<RuleId, CompileError> {
+        let id = RuleId(self.rules.len() as u16);
+
+        // push a no-op to reserve its spot
+        self.rules.push(Rule::Noop);
+        let scope_id = raw_rule.name.map(|x| get_scope_id(&x).unwrap());
+
+        // https://github.com/microsoft/vscode-textmate/blob/f03a6a8790af81372d0e81facae75554ec5e97ef/src/rule.ts#L389-L447
+        let rule = if let Some(pat) = raw_rule.match_ {
+            Rule::Match(Match {
+                id,
+                scope_id,
+                regex_id: self.compile_regex(pat).0,
+                captures: vec![],
+                repository_stack,
+            })
+        } else if let Some(begin_pat) = raw_rule.begin {
+            let content_scope_id = raw_rule.content_name.map(|x| get_scope_id(&x).unwrap());
+            let apply_end_pattern_last = raw_rule.apply_end_pattern_last;
+            if let Some(while_pat) = raw_rule.while_ {
+                let (while_, while_has_backrefs) = self.compile_regex(while_pat);
+                Rule::BeginWhile(BeginWhile {
+                    id,
+                    scope_id,
+                    content_scope_id,
+                    begin: self.compile_regex(begin_pat).0,
+                    begin_captures: self
+                        .compile_captures(raw_rule.begin_captures, repository_stack)?,
+                    while_,
+                    while_has_backrefs,
+                    while_captures: self
+                        .compile_captures(raw_rule.while_captures, repository_stack)?,
+                    patterns: self.compile_patterns(raw_rule.patterns, repository_stack)?,
+                    apply_end_pattern_last,
+                    repository_stack,
+                })
+            } else if let Some(end_pat) = raw_rule.end {
+                let (end, end_has_backrefs) = self.compile_regex(end_pat);
+                Rule::BeginEnd(BeginEnd {
+                    id,
+                    scope_id,
+                    content_scope_id,
+                    begin: self.compile_regex(begin_pat).0,
+                    begin_captures: self
+                        .compile_captures(raw_rule.begin_captures, repository_stack)?,
+                    end,
+                    end_has_backrefs,
+                    end_captures: self
+                        .compile_captures(raw_rule.while_captures, repository_stack)?,
+                    patterns: self.compile_patterns(raw_rule.patterns, repository_stack)?,
+                    apply_end_pattern_last,
+                    repository_stack,
+                })
+            } else {
+                // a rule that has begin without while/end is just a match, probably a typo
+                Rule::Match(Match {
+                    id,
+                    scope_id,
+                    regex_id: self.compile_regex(begin_pat).0,
+                    captures: vec![],
+                    repository_stack,
+                })
+            }
+        } else {
+            let repository_stack = if raw_rule.repository.is_empty() {
+                repository_stack
+            } else {
+                let repo_id = self.compile_repository(raw_rule.repository, repository_stack)?;
+                repository_stack.push(repo_id)
+            };
+
+            // vscode-textmate does something funny here:
+            // - if patterns are NOT present and includes are, it moves includes to patterns;
+            // - however, if patterns ARE present, includes are ignored
+            // https://github.com/microsoft/vscode-textmate/blob/f03a6a8790af81372d0e81facae75554ec5e97ef/src/rule.ts#L404
+            let patterns = if raw_rule.patterns.is_empty() {
+                if let Some(include) = raw_rule.include {
+                    vec![RawRule {
+                        include: Some(include),
+                        ..Default::default()
+                    }]
+                } else {
+                    raw_rule.patterns
+                }
+            } else {
+                raw_rule.patterns
+            };
+
+            if patterns.is_empty() {
+                Rule::Noop
+            } else {
+                Rule::IncludeOnly(IncludeOnly {
+                    id,
+                    scope_id,
+                    repository_stack,
+                    content_scope_id: raw_rule.content_name.map(|x| get_scope_id(&x).unwrap()),
+                    patterns: self.compile_patterns(patterns, repository_stack)?,
+                })
+            }
+        };
+
+        self.rules[*id as usize] = rule;
+        Ok(id)
+    }
+
+    fn compile_regex(&mut self, pattern: String) -> (RegexId, bool) {
+        let regex_id = RegexId(self.regexes.len() as u16);
+        let re = Regex::new(pattern);
+        let has_backrefs = re.has_backreferences();
+        self.regexes.push(re);
+
+        (regex_id, has_backrefs)
+    }
+
+    fn compile_repository(
+        &mut self,
+        raw_repository: HashMap<String, RawRule>,
+        repository_stack: RepositoryStack,
+    ) -> Result<RepositoryId, CompileError> {
+        let repo_id = RepositoryId(self.repositories.len() as u16);
+
+        self.repositories.push(Repository::default());
+        let stack = repository_stack.push(repo_id);
+
+        let mut rules = HashMap::new();
+
+        for (name, raw_rule) in raw_repository {
+            rules.insert(name, self.compile_rule(raw_rule, stack)?);
+        }
+
+        self.repositories[*repo_id as usize] = Repository(rules);
+
+        Ok(repo_id)
+    }
+
+    fn compile_captures(
+        &mut self,
+        captures: Captures,
+        repository_stack: RepositoryStack,
+    ) -> Result<Vec<Option<RuleId>>, CompileError> {
+        if captures.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // mdc.json syntax has actually a 912 backref
+        let max_capture = captures.keys().max().copied().unwrap_or_default();
+        let mut out: Vec<Option<RuleId>> = vec![None; max_capture + 1];
+
+        for (key, rule) in captures.0 {
+            out[key] = Some(self.compile_rule(rule, repository_stack)?);
+        }
+
+        Ok(out)
+    }
+
+    fn compile_patterns(
+        &mut self,
+        rules: Vec<RawRule>,
+        repository_stack: RepositoryStack,
+    ) -> Result<Vec<RuleIdOrReference>, CompileError> {
+        let mut out = vec![];
+
+        for r in rules {
+            if let Some(include) = r.include {
+                // vscode ignores other rule contents is there's an include
+                // https://github.com/microsoft/vscode-textmate/blob/f03a6a8790af81372d0e81facae75554ec5e97ef/src/rule.ts#L495
+                out.push(RuleIdOrReference::Reference(include.as_str().into()));
+            } else {
+                out.push(RuleIdOrReference::RuleId(
+                    self.compile_rule(r, repository_stack)?,
+                ));
+            }
+        }
+
+        Ok(out)
     }
 }
 
@@ -364,43 +447,22 @@ mod tests {
     use std::fs;
 
     use super::*;
+    use crate::grammars::raw::RawGrammar;
 
     #[test]
-    fn can_load_and_compile_all_shiki_grammars() {
+    fn can_compile_all_shiki_grammars() {
         let entries = fs::read_dir("grammars-themes/packages/tm-grammars/grammars")
             .expect("Failed to read grammars directory");
 
         for entry in entries {
             let entry = entry.expect("Failed to read directory entry");
             let path = entry.path();
-            RawGrammar::load_from_file(&path)
-                .unwrap()
-                .compile()
-                .expect(&format!("Failed to compile grammar: {path:?}"));
+
+            let raw_grammar = RawGrammar::load_from_file(&path).unwrap();
+
+            println!(">> {path:?}");
+            assert!(raw_grammar.compile().is_ok());
         }
-    }
-
-    #[test]
-    fn test_json_grammar_compilation() {
-        let raw_grammar = RawGrammar::load_from_file("grammars-themes/packages/tm-grammars/grammars/json.json")
-            .expect("Failed to load JSON grammar");
-
-        let compiled_grammar = raw_grammar.compile()
-            .expect("Failed to compile JSON grammar");
-
-        // Snapshot the compiled grammar structure to ensure correctness
-        insta::assert_debug_snapshot!(compiled_grammar);
-    }
-
-    #[test]
-    fn test_markdown_grammar_compilation() {
-        let raw_grammar = RawGrammar::load_from_file("grammars-themes/packages/tm-grammars/grammars/markdown.json")
-            .expect("Failed to load Markdown grammar");
-
-        let compiled_grammar = raw_grammar.compile()
-            .expect("Failed to compile Markdown grammar");
-
-        // Snapshot the compiled grammar structure to ensure correctness
-        insta::assert_debug_snapshot!(compiled_grammar);
+        assert!(false);
     }
 }

@@ -31,7 +31,11 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Read(//home/vincent/Code/pulls/**)",
       "Bash(python3:*)",
-      "Bash(/dev/null)"
+      "Bash(/dev/null)",
+      "Bash(timeout 30s cargo test --lib grammars::compiled::tests::test_json_grammar_compilation -- --nocapture)",
+      "Bash(wc:*)",
+      "Bash(xargs:*)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,548 @@
+---
+source: src/grammars/compiled.rs
+assertion_line: 384
+expression: compiled_grammar
+---
+CompiledGrammar {
+    name: "json",
+    display_name: Some(
+        "JSON",
+    ),
+    scope_name: "source.json",
+    scope_id: ScopeId(
+        23181,
+    ),
+    file_types: [],
+    patterns: [
+        Include(
+            CompiledIncludePattern {
+                patterns: [
+                    Include(
+                        CompiledIncludePattern {
+                            patterns: [
+                                Include(
+                                    CompiledIncludePattern {
+                                        patterns: [
+                                            Match(
+                                                CompiledMatchPattern {
+                                                    name_scope_id: Some(
+                                                        ScopeId(
+                                                            1587,
+                                                        ),
+                                                    ),
+                                                    regex: \b(?:true|false|null)\b,
+                                                    captures: {},
+                                                    patterns: [],
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                Include(
+                                    CompiledIncludePattern {
+                                        patterns: [
+                                            Match(
+                                                CompiledMatchPattern {
+                                                    name_scope_id: Some(
+                                                        ScopeId(
+                                                            2300,
+                                                        ),
+                                                    ),
+                                                    regex: -?(?:0|[1-9]\d*)(?:(?:\.\d+)?(?:[Ee][-+]?\d+)?)?,
+                                                    captures: {},
+                                                    patterns: [],
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                Include(
+                                    CompiledIncludePattern {
+                                        patterns: [
+                                            BeginEnd(
+                                                CompiledBeginEndPattern {
+                                                    name_scope_id: Some(
+                                                        ScopeId(
+                                                            25709,
+                                                        ),
+                                                    ),
+                                                    content_name_scope_id: None,
+                                                    begin_regex: ",
+                                                    end_regex: ",
+                                                    end_pattern_source: "\"",
+                                                    captures: {},
+                                                    begin_captures: {
+                                                        "0": CompiledCapture {
+                                                            scope_id: ScopeId(
+                                                                19734,
+                                                            ),
+                                                            patterns: [],
+                                                        },
+                                                    },
+                                                    end_captures: {
+                                                        "0": CompiledCapture {
+                                                            scope_id: ScopeId(
+                                                                19907,
+                                                            ),
+                                                            patterns: [],
+                                                        },
+                                                    },
+                                                    patterns: [
+                                                        Include(
+                                                            CompiledIncludePattern {
+                                                                patterns: [
+                                                                    Include(
+                                                                        CompiledIncludePattern {
+                                                                            patterns: [
+                                                                                Match(
+                                                                                    CompiledMatchPattern {
+                                                                                        name_scope_id: Some(
+                                                                                            ScopeId(
+                                                                                                1146,
+                                                                                            ),
+                                                                                        ),
+                                                                                        regex: \\(?:["/\\bfnrt]|u\h{4}),
+                                                                                        captures: {},
+                                                                                        patterns: [],
+                                                                                    },
+                                                                                ),
+                                                                                Match(
+                                                                                    CompiledMatchPattern {
+                                                                                        name_scope_id: Some(
+                                                                                            ScopeId(
+                                                                                                5670,
+                                                                                            ),
+                                                                                        ),
+                                                                                        regex: \\.,
+                                                                                        captures: {},
+                                                                                        patterns: [],
+                                                                                    },
+                                                                                ),
+                                                                            ],
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                            },
+                                                        ),
+                                                    ],
+                                                    apply_end_pattern_last: false,
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                Include(
+                                    CompiledIncludePattern {
+                                        patterns: [
+                                            BeginEnd(
+                                                CompiledBeginEndPattern {
+                                                    name_scope_id: Some(
+                                                        ScopeId(
+                                                            16654,
+                                                        ),
+                                                    ),
+                                                    content_name_scope_id: None,
+                                                    begin_regex: \[,
+                                                    end_regex: ],
+                                                    end_pattern_source: "]",
+                                                    captures: {},
+                                                    begin_captures: {
+                                                        "0": CompiledCapture {
+                                                            scope_id: ScopeId(
+                                                                18234,
+                                                            ),
+                                                            patterns: [],
+                                                        },
+                                                    },
+                                                    end_captures: {
+                                                        "0": CompiledCapture {
+                                                            scope_id: ScopeId(
+                                                                18250,
+                                                            ),
+                                                            patterns: [],
+                                                        },
+                                                    },
+                                                    patterns: [
+                                                        Include(
+                                                            CompiledIncludePattern {
+                                                                patterns: [],
+                                                            },
+                                                        ),
+                                                        Match(
+                                                            CompiledMatchPattern {
+                                                                name_scope_id: Some(
+                                                                    ScopeId(
+                                                                        21679,
+                                                                    ),
+                                                                ),
+                                                                regex: ,,
+                                                                captures: {},
+                                                                patterns: [],
+                                                            },
+                                                        ),
+                                                        Match(
+                                                            CompiledMatchPattern {
+                                                                name_scope_id: Some(
+                                                                    ScopeId(
+                                                                        5355,
+                                                                    ),
+                                                                ),
+                                                                regex: [^]\s],
+                                                                captures: {},
+                                                                patterns: [],
+                                                            },
+                                                        ),
+                                                    ],
+                                                    apply_end_pattern_last: false,
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                Include(
+                                    CompiledIncludePattern {
+                                        patterns: [
+                                            BeginEnd(
+                                                CompiledBeginEndPattern {
+                                                    name_scope_id: Some(
+                                                        ScopeId(
+                                                            16662,
+                                                        ),
+                                                    ),
+                                                    content_name_scope_id: None,
+                                                    begin_regex: \{,
+                                                    end_regex: },
+                                                    end_pattern_source: "}",
+                                                    captures: {},
+                                                    begin_captures: {
+                                                        "0": CompiledCapture {
+                                                            scope_id: ScopeId(
+                                                                18791,
+                                                            ),
+                                                            patterns: [],
+                                                        },
+                                                    },
+                                                    end_captures: {
+                                                        "0": CompiledCapture {
+                                                            scope_id: ScopeId(
+                                                                18797,
+                                                            ),
+                                                            patterns: [],
+                                                        },
+                                                    },
+                                                    patterns: [
+                                                        Include(
+                                                            CompiledIncludePattern {
+                                                                patterns: [
+                                                                    BeginEnd(
+                                                                        CompiledBeginEndPattern {
+                                                                            name_scope_id: Some(
+                                                                                ScopeId(
+                                                                                    25236,
+                                                                                ),
+                                                                            ),
+                                                                            content_name_scope_id: None,
+                                                                            begin_regex: ",
+                                                                            end_regex: ",
+                                                                            end_pattern_source: "\"",
+                                                                            captures: {},
+                                                                            begin_captures: {
+                                                                                "0": CompiledCapture {
+                                                                                    scope_id: ScopeId(
+                                                                                        22240,
+                                                                                    ),
+                                                                                    patterns: [],
+                                                                                },
+                                                                            },
+                                                                            end_captures: {
+                                                                                "0": CompiledCapture {
+                                                                                    scope_id: ScopeId(
+                                                                                        22269,
+                                                                                    ),
+                                                                                    patterns: [],
+                                                                                },
+                                                                            },
+                                                                            patterns: [
+                                                                                Include(
+                                                                                    CompiledIncludePattern {
+                                                                                        patterns: [
+                                                                                            Include(
+                                                                                                CompiledIncludePattern {
+                                                                                                    patterns: [
+                                                                                                        Match(
+                                                                                                            CompiledMatchPattern {
+                                                                                                                name_scope_id: Some(
+                                                                                                                    ScopeId(
+                                                                                                                        1146,
+                                                                                                                    ),
+                                                                                                                ),
+                                                                                                                regex: \\(?:["/\\bfnrt]|u\h{4}),
+                                                                                                                captures: {},
+                                                                                                                patterns: [],
+                                                                                                            },
+                                                                                                        ),
+                                                                                                        Match(
+                                                                                                            CompiledMatchPattern {
+                                                                                                                name_scope_id: Some(
+                                                                                                                    ScopeId(
+                                                                                                                        5670,
+                                                                                                                    ),
+                                                                                                                ),
+                                                                                                                regex: \\.,
+                                                                                                                captures: {},
+                                                                                                                patterns: [],
+                                                                                                            },
+                                                                                                        ),
+                                                                                                    ],
+                                                                                                },
+                                                                                            ),
+                                                                                        ],
+                                                                                    },
+                                                                                ),
+                                                                            ],
+                                                                            apply_end_pattern_last: false,
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                            },
+                                                        ),
+                                                        Include(
+                                                            CompiledIncludePattern {
+                                                                patterns: [
+                                                                    Include(
+                                                                        CompiledIncludePattern {
+                                                                            patterns: [
+                                                                                BeginEnd(
+                                                                                    CompiledBeginEndPattern {
+                                                                                        name_scope_id: Some(
+                                                                                            ScopeId(
+                                                                                                330,
+                                                                                            ),
+                                                                                        ),
+                                                                                        content_name_scope_id: None,
+                                                                                        begin_regex: /\*\*(?!/),
+                                                                                        end_regex: \*/,
+                                                                                        end_pattern_source: "\\*/",
+                                                                                        captures: {
+                                                                                            "0": CompiledCapture {
+                                                                                                scope_id: ScopeId(
+                                                                                                    18604,
+                                                                                                ),
+                                                                                                patterns: [],
+                                                                                            },
+                                                                                        },
+                                                                                        begin_captures: {},
+                                                                                        end_captures: {},
+                                                                                        patterns: [],
+                                                                                        apply_end_pattern_last: false,
+                                                                                    },
+                                                                                ),
+                                                                                BeginEnd(
+                                                                                    CompiledBeginEndPattern {
+                                                                                        name_scope_id: Some(
+                                                                                            ScopeId(
+                                                                                                408,
+                                                                                            ),
+                                                                                        ),
+                                                                                        content_name_scope_id: None,
+                                                                                        begin_regex: /\*,
+                                                                                        end_regex: \*/,
+                                                                                        end_pattern_source: "\\*/",
+                                                                                        captures: {
+                                                                                            "0": CompiledCapture {
+                                                                                                scope_id: ScopeId(
+                                                                                                    18604,
+                                                                                                ),
+                                                                                                patterns: [],
+                                                                                            },
+                                                                                        },
+                                                                                        begin_captures: {},
+                                                                                        end_captures: {},
+                                                                                        patterns: [],
+                                                                                        apply_end_pattern_last: false,
+                                                                                    },
+                                                                                ),
+                                                                                Match(
+                                                                                    CompiledMatchPattern {
+                                                                                        name_scope_id: Some(
+                                                                                            ScopeId(
+                                                                                                630,
+                                                                                            ),
+                                                                                        ),
+                                                                                        regex: (//).*$\n?,
+                                                                                        captures: {
+                                                                                            "1": CompiledCapture {
+                                                                                                scope_id: ScopeId(
+                                                                                                    18604,
+                                                                                                ),
+                                                                                                patterns: [],
+                                                                                            },
+                                                                                        },
+                                                                                        patterns: [],
+                                                                                    },
+                                                                                ),
+                                                                            ],
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                            },
+                                                        ),
+                                                        BeginEnd(
+                                                            CompiledBeginEndPattern {
+                                                                name_scope_id: Some(
+                                                                    ScopeId(
+                                                                        16767,
+                                                                    ),
+                                                                ),
+                                                                content_name_scope_id: None,
+                                                                begin_regex: :,
+                                                                end_regex: (,)|(?=}),
+                                                                end_pattern_source: "(,)|(?=})",
+                                                                captures: {},
+                                                                begin_captures: {
+                                                                    "0": CompiledCapture {
+                                                                        scope_id: ScopeId(
+                                                                            21837,
+                                                                        ),
+                                                                        patterns: [],
+                                                                    },
+                                                                },
+                                                                end_captures: {
+                                                                    "1": CompiledCapture {
+                                                                        scope_id: ScopeId(
+                                                                            21847,
+                                                                        ),
+                                                                        patterns: [],
+                                                                    },
+                                                                },
+                                                                patterns: [
+                                                                    Include(
+                                                                        CompiledIncludePattern {
+                                                                            patterns: [],
+                                                                        },
+                                                                    ),
+                                                                    Match(
+                                                                        CompiledMatchPattern {
+                                                                            name_scope_id: Some(
+                                                                                ScopeId(
+                                                                                    5362,
+                                                                                ),
+                                                                            ),
+                                                                            regex: [^,\s],
+                                                                            captures: {},
+                                                                            patterns: [],
+                                                                        },
+                                                                    ),
+                                                                ],
+                                                                apply_end_pattern_last: false,
+                                                            },
+                                                        ),
+                                                        Match(
+                                                            CompiledMatchPattern {
+                                                                name_scope_id: Some(
+                                                                    ScopeId(
+                                                                        5362,
+                                                                    ),
+                                                                ),
+                                                                regex: [^}\s],
+                                                                captures: {},
+                                                                patterns: [],
+                                                            },
+                                                        ),
+                                                    ],
+                                                    apply_end_pattern_last: false,
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                                Include(
+                                    CompiledIncludePattern {
+                                        patterns: [
+                                            Include(
+                                                CompiledIncludePattern {
+                                                    patterns: [
+                                                        BeginEnd(
+                                                            CompiledBeginEndPattern {
+                                                                name_scope_id: Some(
+                                                                    ScopeId(
+                                                                        330,
+                                                                    ),
+                                                                ),
+                                                                content_name_scope_id: None,
+                                                                begin_regex: /\*\*(?!/),
+                                                                end_regex: \*/,
+                                                                end_pattern_source: "\\*/",
+                                                                captures: {
+                                                                    "0": CompiledCapture {
+                                                                        scope_id: ScopeId(
+                                                                            18604,
+                                                                        ),
+                                                                        patterns: [],
+                                                                    },
+                                                                },
+                                                                begin_captures: {},
+                                                                end_captures: {},
+                                                                patterns: [],
+                                                                apply_end_pattern_last: false,
+                                                            },
+                                                        ),
+                                                        BeginEnd(
+                                                            CompiledBeginEndPattern {
+                                                                name_scope_id: Some(
+                                                                    ScopeId(
+                                                                        408,
+                                                                    ),
+                                                                ),
+                                                                content_name_scope_id: None,
+                                                                begin_regex: /\*,
+                                                                end_regex: \*/,
+                                                                end_pattern_source: "\\*/",
+                                                                captures: {
+                                                                    "0": CompiledCapture {
+                                                                        scope_id: ScopeId(
+                                                                            18604,
+                                                                        ),
+                                                                        patterns: [],
+                                                                    },
+                                                                },
+                                                                begin_captures: {},
+                                                                end_captures: {},
+                                                                patterns: [],
+                                                                apply_end_pattern_last: false,
+                                                            },
+                                                        ),
+                                                        Match(
+                                                            CompiledMatchPattern {
+                                                                name_scope_id: Some(
+                                                                    ScopeId(
+                                                                        630,
+                                                                    ),
+                                                                ),
+                                                                regex: (//).*$\n?,
+                                                                captures: {
+                                                                    "1": CompiledCapture {
+                                                                        scope_id: ScopeId(
+                                                                            18604,
+                                                                        ),
+                                                                        patterns: [],
+                                                                    },
+                                                                },
+                                                                patterns: [],
+                                                            },
+                                                        ),
+                                                    ],
+                                                },
+                                            ),
+                                        ],
+                                    },
+                                ),
+                            ],
+                        },
+                    ),
+                ],
+            },
+        ),
+    ],
+    first_line_regex: None,
+}
