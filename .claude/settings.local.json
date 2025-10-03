@@ -30,7 +30,8 @@
       "Bash(cargo:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Read(//home/vincent/Code/pulls/**)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(/dev/null)"
     ],
     "deny": [],
     "ask": []

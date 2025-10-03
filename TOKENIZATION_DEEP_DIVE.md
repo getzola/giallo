@@ -562,7 +562,142 @@ if pattern_match.end <= position {
 - After fix: 0 crashes across 218 international language samples
 - Edge cases handled: Arabic, Chinese, Greek, emoji, mathematical symbols
 
-### Issue 5: Dynamic Backreference Resolution
+### Issue 5: Coarse Tokenization (Pattern Matching Priority Bug)
+
+**Problem:** TokenMate tokenizer was producing only 4-5 coarse tokens instead of fine-grained tokenization due to incorrect pattern matching order.
+
+**Manifestation:**
+```json
+Input: {"name": "value"}
+
+WRONG OUTPUT (before fix - 4 coarse tokens):
+Token 0: "{" (0..1) -> scopes: ["source.json", "punctuation.definition.dictionary.begin.json"]
+Token 1: "{" (0..1) -> scopes: ["source.json", "meta.structure.dictionary.json"] // DUPLICATE!
+Token 2: "\"name\": \"value\"" (1..16) -> scopes: ["source.json", "meta.structure.dictionary.json"] // ENTIRE CONTENT AS ONE TOKEN!
+Token 3: "}" (16..17) -> scopes: ["source.json", "meta.structure.dictionary.json"]
+
+EXPECTED OUTPUT (fine-grained - 9+ tokens):
+Token 0: "{" (0..1) -> scopes: ["source.json", "punctuation.definition.dictionary.begin.json"]
+Token 1: "\"" (1..2) -> scopes: ["source.json", "meta.structure.dictionary.json", "punctuation.support.type.property-name.begin.json"]
+Token 2: "name" (2..6) -> scopes: ["source.json", "meta.structure.dictionary.json", "string.json support.type.property-name.json"]
+Token 3: "\"" (6..7) -> scopes: ["source.json", "meta.structure.dictionary.json", "string.json support.type.property-name.json", "punctuation.support.type.property-name.end.json"]
+... (9 total tokens with proper granularity)
+```
+
+**Root Cause Analysis:**
+
+1. **Wrong Pattern Priority Order**: End patterns were checked *before* nested patterns
+2. **Duplicate Token Generation**: BeginEnd patterns created both capture tokens AND main tokens for same positions
+3. **Zero-Width Match Infinite Loops**: Empty regex patterns caused character-by-character fallback
+
+**Detailed Investigation:**
+
+The issue occurred in `find_next_match()`:
+
+```rust
+// WRONG: Original implementation checked end patterns first
+if let Some(active) = self.active_patterns.last() {
+    if let Some(end_match) = self.try_match_end_pattern(active, search_text, start)? {
+        return Ok(Some(end_match)); // Immediate return - bypasses nested patterns!
+    }
+}
+```
+
+**What Was Happening:**
+1. At position 1 with text `"name": "value"}`, the end pattern `}` was found at position 16
+2. End pattern was returned immediately without trying nested patterns for `"name"`
+3. Result: Jumped from position 1 to position 16, creating one massive token for all content
+4. No fine-grained tokenization of individual components inside the BeginEnd pattern
+
+**Additional Issues Found:**
+
+**Duplicate Tokens:**
+```rust
+// BeginEnd patterns created tokens in two places:
+// 1. Capture tokens (lines 903-912) - for "0" capture
+for (cap_start, cap_end, cap_scope_id) in &pattern_match.captures {
+    tokens.push(Token { ... }); // First token for position 0..1
+}
+
+// 2. Main token (lines 933-937) - for begin match itself
+tokens.push(Token {
+    start: pattern_match.start,  // Second token for SAME position 0..1
+    end: pattern_match.end,
+    scope_stack: self.scope_stack.clone(),
+});
+```
+
+**Zero-Width Matches:**
+```rust
+// Empty regex patterns ("") caused zero-width matches at every position
+if pattern_match.start == pattern_match.end { // 2..2, 3..3, 4..4, etc.
+    // Triggered infinite loop prevention, advancing character-by-character
+    position += ch.len_utf8(); // Bypassed proper pattern matching
+}
+```
+
+**Solution Implemented:**
+
+**1. Fixed Pattern Priority Order:**
+```rust
+// CORRECT: Try nested patterns first, end patterns only as fallback
+let patterns = if let Some(active) = self.active_patterns.last() {
+    // Use nested patterns from active BeginEnd/BeginWhile pattern
+    match &active.pattern {
+        CompiledPattern::BeginEnd(begin_end) => &begin_end.patterns,
+        // ... other pattern types
+    }
+} else {
+    &self.grammar.patterns // Root patterns if no active pattern
+};
+
+// Collect all nested pattern matches FIRST
+while let Some((pattern, context_path)) = pattern_iter.next() {
+    if let Some(pattern_match) = self.try_match_pattern(pattern, context_path, text, start)? {
+        all_matches.push(pattern_match);
+    }
+}
+
+// ONLY check end patterns if no nested patterns matched
+if all_matches.is_empty() {
+    if let Some(active) = self.active_patterns.last() {
+        if let Some(end_match) = self.try_match_end_pattern(active, search_text, start)? {
+            return Ok(Some(end_match));
+        }
+    }
+}
+```
+
+**2. Eliminated Duplicate Tokens:**
+```rust
+// Check if captures already cover the full match before creating main token
+let has_full_match_capture = pattern_match.captures.iter()
+    .any(|(start, end, _)| *start == pattern_match.start && *end == pattern_match.end);
+
+if !has_full_match_capture {
+    // Only create main token if no "0" capture already covers same position
+    tokens.push(Token {
+        start: pattern_match.start,
+        end: pattern_match.end,
+        scope_stack: self.scope_stack.clone(),
+    });
+}
+```
+
+**3. Filtered Zero-Width Matches:**
+```rust
+// Skip zero-width matches from empty patterns to prevent infinite loops
+if let Some(mut pattern_match) = self.try_match_pattern(pattern, context_path, search_text, start)? {
+    if pattern_match.start != pattern_match.end { // Filter out zero-width matches
+        pattern_match.order = pattern_order;
+        all_matches.push(pattern_match);
+    }
+}
+```
+
+**Impact:** This fix resolved the fundamental tokenization issue, transforming coarse 4-token output into proper fine-grained 9+ token output that matches TextMate specification behavior for nested pattern processing.
+
+### Issue 6: Dynamic Backreference Resolution
 
 **Problem:** BeginEnd patterns with backreferences like `\1`, `\2` weren't resolving correctly.
 

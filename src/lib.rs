@@ -1,6 +1,7 @@
 pub mod grammars;
-pub mod textmate;
+// pub mod textmate;
 pub mod themes;
+// mod tokenizer;
 
 // #[cfg(test)]
 // mod snapshot_tests {

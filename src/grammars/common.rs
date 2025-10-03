@@ -1,8 +1,9 @@
-use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::sync::{Arc, OnceLock};
 
+use serde::{Deserialize, Serialize};
+
 /// A regex wrapper that serializes as a string but compiles lazily at runtime
-#[derive(Debug)]
 pub struct Regex {
     pattern: String,
     compiled: OnceLock<Option<Arc<onig::Regex>>>,
@@ -12,6 +13,12 @@ impl Clone for Regex {
     fn clone(&self) -> Self {
         // Create a new regex with the same pattern but fresh lazy compilation
         Regex::new(self.pattern.clone())
+    }
+}
+
+impl fmt::Debug for Regex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.pattern)
     }
 }
 

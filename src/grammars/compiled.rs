@@ -1,5 +1,5 @@
 use super::common::Regex;
-use crate::grammars::raw::{Capture, Pattern, RepositoryEntry};
+use crate::grammars::raw::{Capture, Pattern, RepositoryEntry, Rule};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
 
@@ -173,12 +173,13 @@ fn compile_pattern_with_visited(
             let captures = compile_captures(raw_grammar, &match_pattern.captures, visited)?;
             let patterns = compile_nested_patterns(raw_grammar, &match_pattern.patterns, visited)?;
 
-            Ok(CompiledPattern::Match(CompiledMatchPattern {
+            let compiled = CompiledPattern::Match(CompiledMatchPattern {
                 name_scope_id,
                 regex,
                 captures,
                 patterns,
-            }))
+            });
+            Ok(compiled)
         }
         Pattern::BeginEnd(begin_end) => {
             let begin_regex = compile_and_validate_regex(&begin_end.begin, false)?;
@@ -231,6 +232,7 @@ fn compile_pattern_with_visited(
         Pattern::Include(include) => {
             if include.include.starts_with('#') {
                 let repo_key = &include.include[1..];
+
                 // Check for cycles
                 if visited.contains(repo_key) {
                     return Ok(CompiledPattern::Include(CompiledIncludePattern {
@@ -238,17 +240,28 @@ fn compile_pattern_with_visited(
                     }));
                 }
 
-                visited.insert(repo_key.to_string());
+                // Check if repository entry exists
                 if let Some(repo_entry) = raw_grammar.repository.get(repo_key) {
+                    // Add to visited set BEFORE processing (for true cycle detection)
+                    visited.insert(repo_key.to_string());
+
                     let patterns = match repo_entry {
-                        RepositoryEntry::DirectArray(patterns)
-                        | RepositoryEntry::PatternContainer { patterns } => {
-                            compile_nested_patterns(raw_grammar, patterns, visited)?
+                        RepositoryEntry::DirectArray(patterns) => {
+                            let compiled = compile_nested_patterns(raw_grammar, patterns, visited)?;
+                            compiled
+                        }
+                        RepositoryEntry::PatternContainer { patterns } => {
+                            let compiled = compile_nested_patterns(raw_grammar, patterns, visited)?;
+                            compiled
                         }
                         RepositoryEntry::DirectPattern(pattern) => {
-                            vec![compile_pattern_with_visited(raw_grammar, pattern, visited)?]
+                            let compiled_pattern = compile_pattern_with_visited(raw_grammar, pattern, visited)?;
+                            vec![compiled_pattern]
                         }
                     };
+
+                    // Remove from visited set AFTER processing (allow reuse in different branches)
+                    visited.remove(repo_key);
 
                     Ok(CompiledPattern::Include(CompiledIncludePattern {
                         patterns,
@@ -365,5 +378,29 @@ mod tests {
                 .compile()
                 .expect(&format!("Failed to compile grammar: {path:?}"));
         }
+    }
+
+    #[test]
+    fn test_json_grammar_compilation() {
+        let raw_grammar = RawGrammar::load_from_file("grammars-themes/packages/tm-grammars/grammars/json.json")
+            .expect("Failed to load JSON grammar");
+
+        let compiled_grammar = raw_grammar.compile()
+            .expect("Failed to compile JSON grammar");
+
+        // Snapshot the compiled grammar structure to ensure correctness
+        insta::assert_debug_snapshot!(compiled_grammar);
+    }
+
+    #[test]
+    fn test_markdown_grammar_compilation() {
+        let raw_grammar = RawGrammar::load_from_file("grammars-themes/packages/tm-grammars/grammars/markdown.json")
+            .expect("Failed to load Markdown grammar");
+
+        let compiled_grammar = raw_grammar.compile()
+            .expect("Failed to compile Markdown grammar");
+
+        // Snapshot the compiled grammar structure to ensure correctness
+        insta::assert_debug_snapshot!(compiled_grammar);
     }
 }

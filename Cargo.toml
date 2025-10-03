@@ -20,6 +20,7 @@ walkdir = { version = "2.0", optional = true }
 tools = ["phf_codegen", "walkdir"]
 
 [dev-dependencies]
+insta = "1.39"
 
 [[bin]]
 name = "tm-generate"
