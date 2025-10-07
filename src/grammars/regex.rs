@@ -56,6 +56,38 @@ impl Regex {
         }
         false
     }
+
+    /// Try to find a match starting at the given position
+    pub fn find_at(&self, text: &str, start: usize) -> Option<(usize, usize)> {
+        let regex = self.compiled()?;
+        let search_text = text.get(start..)?;
+        if let Some(pos) = regex.find(search_text) {
+            // Adjust match positions to be relative to original text
+            Some((pos.0 + start, pos.1 + start))
+        } else {
+            None
+        }
+    }
+
+    /// Try to get captures starting at the given position
+    pub fn captures_at(&self, text: &str, start: usize) -> Option<Vec<String>> {
+        let regex = self.compiled()?;
+        let search_text = text.get(start..)?;
+
+        if let Some(captures) = regex.captures(search_text) {
+            let mut result = Vec::new();
+            for i in 0..captures.len() {
+                if let Some(capture) = captures.at(i) {
+                    result.push(capture.to_string());
+                } else {
+                    result.push(String::new());
+                }
+            }
+            Some(result)
+        } else {
+            None
+        }
+    }
 }
 
 impl Serialize for Regex {

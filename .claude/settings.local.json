@@ -35,7 +35,8 @@
       "Bash(timeout 30s cargo test --lib grammars::compiled::tests::test_json_grammar_compilation -- --nocapture)",
       "Bash(wc:*)",
       "Bash(xargs:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(RUST_BACKTRACE=1 cargo test test_json_tokenization -- --nocapture)"
     ],
     "deny": [],
     "ask": []

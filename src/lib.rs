@@ -1,8 +1,8 @@
 pub mod grammars;
 // pub mod textmate;
 pub mod themes;
-// mod tokenizer;
-
+pub mod tokenizer;
+// mod tokenizer2;
 // #[cfg(test)]
 // mod snapshot_tests {
 //     use crate::grammars::{RawGrammar, ScopeId};
