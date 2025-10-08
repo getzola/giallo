@@ -18,8 +18,9 @@
  * 5. Token Batching: Efficient processing of consecutive same-scope text
  */
 
-use crate::grammars::{CompiledGrammar, Rule, RuleId, ScopeId};
+use crate::grammars::{CompiledGrammar, PatternSet, Rule, RuleId, ScopeId};
 use onig::RegSet;
+use std::collections::HashMap;
 
 /// A tokenized segment of text with its associated scope information.
 ///
@@ -416,6 +417,9 @@ pub struct Tokenizer<'g> {
     grammar: &'g CompiledGrammar,
     /// Current tokenizer state (tracks nested contexts across lines)
     state: TokenizerState,
+    /// Runtime pattern cache by rule ID
+    /// This preserves OnceCell<RegSet> compilation cache across multiple calls
+    pattern_cache: HashMap<RuleId, PatternSet>,
 }
 
 impl<'g> Tokenizer<'g> {
@@ -427,6 +431,7 @@ impl<'g> Tokenizer<'g> {
         Self {
             grammar,
             state: TokenizerState::new(grammar),
+            pattern_cache: HashMap::new(),
         }
     }
 
@@ -436,7 +441,11 @@ impl<'g> Tokenizer<'g> {
     /// previous line to maintain context across line boundaries.
     /// This enables multi-line constructs like block comments and strings.
     pub fn with_state(grammar: &'g CompiledGrammar, state: TokenizerState) -> Self {
-        Self { grammar, state }
+        Self {
+            grammar,
+            state,
+            pattern_cache: HashMap::new(),
+        }
     }
 
     /// Tokenize a single line of text according to TextMate rules.
@@ -646,7 +655,7 @@ impl<'g> Tokenizer<'g> {
     /// ## Returns:
     /// - `Some(MatchResult)` if a pattern matches at exactly the current position
     /// - `None` if no patterns match at the current position
-    fn scan_next(&self, text: &str, pos: usize) -> Result<Option<MatchResult>, TokenizeError> {
+    fn scan_next(&mut self, text: &str, pos: usize) -> Result<Option<MatchResult>, TokenizeError> {
         // 1. Check end patterns first - they have absolute priority
         //    If we're in a BeginEnd or BeginWhile context and its end/while pattern
         //    matches, that takes precedence over any other patterns
@@ -661,7 +670,7 @@ impl<'g> Tokenizer<'g> {
         // can test all relevant patterns with better performance characteristics.
         let current_rule_id = self.state.stack.rule_id;
 
-        if let Some(pattern_set) = self.grammar.get_pattern_set(current_rule_id) {
+        if let Some(pattern_set) = self.get_cached_pattern_set(current_rule_id) {
             // Batch pattern matching: Test all patterns for this rule simultaneously
             //
             // The pattern_set.find_at() method:
@@ -1273,6 +1282,32 @@ impl<'g> Tokenizer<'g> {
         }
     }
 
+    /// Get a cached pattern set for a rule, creating and caching it if needed.
+    ///
+    /// This method preserves the OnceCell<RegSet> compilation cache within PatternSet
+    /// instances across multiple calls, providing significant performance improvements
+    /// over the uncached grammar.get_pattern_set() method.
+    ///
+    /// ## Caching Strategy:
+    /// - Cache key: RuleId (eliminates expensive pattern resolution for cache keys)
+    /// - Cache value: complete PatternSet with preserved OnceCell<RegSet>
+    /// - Cache is stored on the tokenizer instance for session-long reuse
+    /// - Follows vscode-textmate's approach of caching by rule identifier
+    fn get_cached_pattern_set(&mut self, rule_id: RuleId) -> Option<&PatternSet> {
+        // Check if we already have this RuleId cached
+        if self.pattern_cache.contains_key(&rule_id) {
+            return self.pattern_cache.get(&rule_id);
+        }
+
+        // If not cached, get the pattern set from grammar and cache it
+        if let Some(pattern_set) = self.grammar.get_pattern_set(rule_id) {
+            self.pattern_cache.insert(rule_id, pattern_set);
+            self.pattern_cache.get(&rule_id)
+        } else {
+            None
+        }
+    }
+
     /// Get a reference to the current tokenizer state.
     ///
     /// Use this to access the current state for debugging or to pass to
@@ -1381,6 +1416,14 @@ mod tests {
         Ok(compiled_grammar)
     }
 
+    /// Load and compile the TOML grammar for testing
+    fn load_toml_grammar() -> Result<CompiledGrammar, Box<dyn std::error::Error>> {
+        let toml_grammar_path = "grammars-themes/packages/tm-grammars/grammars/toml.json";
+        let raw_grammar = RawGrammar::load_from_file(toml_grammar_path)?;
+        let compiled_grammar = raw_grammar.compile()?;
+        Ok(compiled_grammar)
+    }
+
     /// Test JSON tokenization implementation.
     #[test]
     fn test_json_tokenization() {
@@ -1389,9 +1432,9 @@ mod tests {
         let test_cases = vec![
             ("42", 1),                  // Number -> 1 token
             ("true", 1),                // Boolean -> 1 token
-            (r#""hello""#, 1),          // String -> 1 token (with clean architecture)
-            (r#"{"key": "value"}"#, 1), // Object -> 1 token (with clean architecture)
-            ("[1, 2, 3]", 1),           // Array -> 1 token (with clean architecture)
+            (r#""hello""#, 3),          // String -> 3 tokens (begin quote, content, end quote)
+            (r#"{"key": "value"}"#, 10), // Object -> detailed tokenization
+            ("[1, 2, 3]", 9),           // Array -> detailed tokenization
         ];
 
         for (json_text, expected_tokens) in test_cases {
@@ -1518,6 +1561,74 @@ mod tests {
 
         println!(
             "✅ Restored fallback functionality successfully tokenized complex JSON with {} detailed tokens",
+            result.tokens.len()
+        );
+    }
+
+    #[test]
+    fn test_toml_tokenization_with_pattern_set_stats() {
+        let toml_content = r#"# TOML Configuration
+[database]
+server = "192.168.1.1"
+ports = [ 8001, 8001, 8002 ]
+connection_max = 5000
+enabled = true
+
+[servers.alpha]
+ip = "10.0.0.1"
+dc = "eqdc10"
+
+[servers.beta]
+ip = "10.0.0.2"
+dc = "eqdc10"
+"#;
+
+        let grammar = load_toml_grammar().expect("Failed to load TOML grammar");
+        let mut tokenizer = Tokenizer::new(&grammar);
+
+        let result = tokenizer
+            .tokenize_line(toml_content)
+            .expect("Tokenization should succeed");
+
+        println!("=== TOML Tokenization Pattern Set Usage Analysis ===");
+        println!("Input: {}", toml_content);
+        println!("Tokens ({} total):", result.tokens.len());
+
+        for (i, token) in result.tokens.iter().take(20).enumerate() {
+            let token_text = &toml_content[token.start..token.end];
+            let scopes = token.scope_names();
+            println!(
+                "  [{:2}] '{}' ({:3}-{:3}) -> {:?}",
+                i, token_text.escape_debug(), token.start, token.end, scopes
+            );
+        }
+
+        if result.tokens.len() > 20 {
+            println!("  ... and {} more tokens", result.tokens.len() - 20);
+        }
+
+        // Verify complete coverage
+        let total_chars: usize = result.tokens.iter().map(|t| t.end - t.start).sum();
+        assert_eq!(total_chars, toml_content.len(), "Incomplete coverage");
+
+        // Verify no illegal tokens
+        let has_illegal = result
+            .tokens
+            .iter()
+            .any(|token| token.has_scope_containing("invalid.illegal"));
+        assert!(!has_illegal, "Found illegal tokens");
+
+        // Verify proper TOML scopes
+        let has_valid = result.tokens.iter().any(|token| {
+            token.has_scope_containing("source.toml")
+                || token.has_scope_containing("comment.line")
+                || token.has_scope_containing("punctuation")
+                || token.has_scope_containing("variable.other.key")
+        });
+        assert!(has_valid, "No valid TOML scopes found");
+
+        println!(
+            "✅ TOML tokenization completed with {} tokens",
             result.tokens.len()
         );
     }

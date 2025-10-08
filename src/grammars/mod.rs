@@ -7,6 +7,7 @@ mod regex;
 include!("../generated/scopes.rs");
 
 pub use compiled::*;
+pub use pattern_set::PatternSet;
 pub use raw::RawGrammar;
 pub use regex::Regex;
 

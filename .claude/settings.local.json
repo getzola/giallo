@@ -36,7 +36,8 @@
       "Bash(wc:*)",
       "Bash(xargs:*)",
       "Bash(sed:*)",
-      "Bash(RUST_BACKTRACE=1 cargo test test_json_tokenization -- --nocapture)"
+      "Bash(RUST_BACKTRACE=1 cargo test test_json_tokenization -- --nocapture)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []

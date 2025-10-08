@@ -8,7 +8,7 @@ use crate::grammars::raw::{Captures, RawGrammar, RawRule};
 use crate::grammars::regex::Regex;
 use crate::grammars::{ScopeId, get_scope_id};
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct RuleId(pub u16);
 
@@ -164,8 +164,6 @@ pub struct IncludeOnly {
     pub content_scope_id: Option<ScopeId>,
     pub repository_stack: RepositoryStack,
     pub patterns: Vec<RuleIdOrReference>,
-    /// Pre-compiled pattern set for efficient batch matching
-    pub pattern_set: Option<PatternSet>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -181,8 +179,6 @@ pub struct BeginEnd {
     pub apply_end_pattern_last: bool,
     pub patterns: Vec<RuleIdOrReference>,
     pub repository_stack: RepositoryStack,
-    /// Pre-compiled pattern set for efficient batch matching
-    pub pattern_set: Option<PatternSet>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -198,8 +194,6 @@ pub struct BeginWhile {
     pub apply_end_pattern_last: bool,
     pub patterns: Vec<RuleIdOrReference>,
     pub repository_stack: RepositoryStack,
-    /// Pre-compiled pattern set for efficient batch matching
-    pub pattern_set: Option<PatternSet>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -222,6 +216,7 @@ pub struct CompiledGrammar {
     pub rules: Vec<Rule>,
     pub repositories: Vec<Repository>,
 }
+
 
 impl CompiledGrammar {
     pub fn from_raw_grammar(raw: RawGrammar) -> Result<Self, CompileError> {
@@ -277,7 +272,6 @@ impl CompiledGrammar {
             if let Some(while_pat) = raw_rule.while_ {
                 let (while_, while_has_backrefs) = self.compile_regex(while_pat);
                 let patterns = self.compile_patterns(raw_rule.patterns, repository_stack)?;
-                let pattern_set = self.compute_pattern_data(&patterns);
                 Rule::BeginWhile(BeginWhile {
                     id,
                     scope_id,
@@ -292,12 +286,10 @@ impl CompiledGrammar {
                     patterns,
                     apply_end_pattern_last,
                     repository_stack,
-                    pattern_set,
                 })
             } else if let Some(end_pat) = raw_rule.end {
                 let (end, end_has_backrefs) = self.compile_regex(end_pat);
                 let patterns = self.compile_patterns(raw_rule.patterns, repository_stack)?;
-                let pattern_set = self.compute_pattern_data(&patterns);
                 Rule::BeginEnd(BeginEnd {
                     id,
                     scope_id,
@@ -311,7 +303,6 @@ impl CompiledGrammar {
                     patterns,
                     apply_end_pattern_last,
                     repository_stack,
-                    pattern_set,
                 })
             } else {
                 // a rule that has begin without while/end is just a match, probably a typo
@@ -364,14 +355,12 @@ impl CompiledGrammar {
                     Rule::Noop
                 } else {
                     let compiled_patterns = self.compile_patterns(patterns, repository_stack)?;
-                    let pattern_set = self.compute_pattern_data(&compiled_patterns);
                     Rule::IncludeOnly(IncludeOnly {
                         id,
                         scope_id,
                         repository_stack,
                         content_scope_id: raw_rule.content_name.map(|x| get_scope_id(&x).unwrap()),
                         patterns: compiled_patterns,
-                        pattern_set,
                     })
                 }
             }
@@ -453,101 +442,10 @@ impl CompiledGrammar {
         Ok(out)
     }
 
-    /// Compute pattern data for pre-compilation during grammar construction.
-    ///
-    /// Only pre-compiles pattern sets that don't have backreferences, since patterns
-    /// with backreferences need to be rebuilt at runtime with the actual captured text.
-    /// Returns None if any patterns have backreferences or references that can't be resolved.
-    fn compute_pattern_data(&self, patterns: &[RuleIdOrReference]) -> Option<PatternSet> {
-        let mut pattern_strings = Vec::new();
-        let mut rule_ids = Vec::new();
-
-        for pattern_ref in patterns {
-            match pattern_ref {
-                RuleIdOrReference::RuleId(rule_id) => {
-                    // Get the actual rule and extract its pattern
-                    if let Some(rule) = self.rules.get(**rule_id as usize) {
-                        match rule {
-                            Rule::Match(match_rule) => {
-                                // Only include patterns that have actual regexes (not scope-only)
-                                if let Some(regex_id) = match_rule.regex_id {
-                                    if let Some(regex) = self.regexes.get(*regex_id as usize) {
-                                        // Check if this regex has backreferences
-                                        if regex.has_backreferences() {
-                                            // Can't pre-compile - contains backreferences
-                                            return None;
-                                        }
-                                        pattern_strings.push(regex.pattern().to_string());
-                                        rule_ids.push(*rule_id);
-                                    }
-                                }
-                            }
-                            Rule::BeginEnd(begin_end) => {
-                                // For BeginEnd rules, use the begin pattern
-                                if let Some(regex) = self.regexes.get(*begin_end.begin as usize) {
-                                    // Check if begin pattern has backreferences
-                                    if regex.has_backreferences() {
-                                        return None;
-                                    }
-                                    pattern_strings.push(regex.pattern().to_string());
-                                    rule_ids.push(*rule_id);
-                                }
-                            }
-                            Rule::BeginWhile(begin_while) => {
-                                // For BeginWhile rules, use the begin pattern
-                                if let Some(regex) = self.regexes.get(*begin_while.begin as usize) {
-                                    // Check if begin pattern has backreferences
-                                    if regex.has_backreferences() {
-                                        return None;
-                                    }
-                                    pattern_strings.push(regex.pattern().to_string());
-                                    rule_ids.push(*rule_id);
-                                }
-                            }
-                            Rule::IncludeOnly(include_only) => {
-                                // Recursively resolve IncludeOnly patterns
-                                // Pass has_backrefs=false since IncludeOnly rules don't have end/while patterns
-                                if let Some(sub_pattern_set) =
-                                    self.compute_pattern_data(&include_only.patterns)
-                                {
-                                    // Extract patterns and rule_ids from the sub PatternSet
-                                    pattern_strings
-                                        .extend(sub_pattern_set.patterns().iter().cloned());
-                                    rule_ids.extend(sub_pattern_set.rule_ids().iter().cloned());
-                                } else {
-                                    // Sub-patterns couldn't be pre-compiled, so we can't pre-compile this either
-                                    return None;
-                                }
-                            }
-                            Rule::Noop => {
-                                // Skip no-op rules
-                            }
-                        }
-                    }
-                }
-                RuleIdOrReference::Reference(_) => {
-                    // Any unresolved references mean we can't pre-compile
-                    // These require runtime resolution with proper repository context
-                    return None;
-                }
-            }
-        }
-
-        if pattern_strings.is_empty() {
-            None
-        } else {
-            // Create PatternSet from the collected patterns and rule IDs
-            let items: Vec<(RuleId, String)> = rule_ids
-                .into_iter()
-                .zip(pattern_strings.into_iter())
-                .collect();
-            Some(PatternSet::new(items))
-        }
-    }
 
     /// Get a pattern set for a rule.
     ///
-    /// Returns a PatternSet when available, either from pre-compilation or created on-demand.
+    /// Creates pattern sets at runtime for rules with patterns.
     /// Only rules with patterns (IncludeOnly, BeginEnd, BeginWhile) have pattern sets.
     pub fn get_pattern_set(&self, rule_id: RuleId) -> Option<PatternSet> {
         if let Some(rule) = self.rules.get(*rule_id as usize) {
@@ -557,31 +455,13 @@ impl CompiledGrammar {
                     None
                 }
                 Rule::IncludeOnly(include_only) => {
-                    // Return pre-computed pattern set if available, otherwise create fallback
-                    if let Some(pattern_set) = &include_only.pattern_set {
-                        Some(pattern_set.clone())
-                    } else {
-                        // Create pattern set on-demand for patterns that couldn't be pre-compiled
-                        Some(self.create_simple_pattern_set(&include_only.patterns))
-                    }
+                    Some(self.create_pattern_set(&include_only.patterns))
                 }
                 Rule::BeginEnd(begin_end) => {
-                    // Return pre-computed pattern set if available, otherwise create fallback
-                    if let Some(pattern_set) = &begin_end.pattern_set {
-                        Some(pattern_set.clone())
-                    } else {
-                        // Create pattern set on-demand for patterns that couldn't be pre-compiled
-                        Some(self.create_simple_pattern_set(&begin_end.patterns))
-                    }
+                    Some(self.create_pattern_set(&begin_end.patterns))
                 }
                 Rule::BeginWhile(begin_while) => {
-                    // Return pre-computed pattern set if available, otherwise create fallback
-                    if let Some(pattern_set) = &begin_while.pattern_set {
-                        Some(pattern_set.clone())
-                    } else {
-                        // Create pattern set on-demand for patterns that couldn't be pre-compiled
-                        Some(self.create_simple_pattern_set(&begin_while.patterns))
-                    }
+                    Some(self.create_pattern_set(&begin_while.patterns))
                 }
                 Rule::Noop => {
                     // Noop rules don't have pattern sets
@@ -593,12 +473,12 @@ impl CompiledGrammar {
         }
     }
 
-    /// Create a simple pattern set for cases that couldn't be pre-compiled.
+
+    /// Create a pattern set from a list of pattern references.
     ///
-    /// This is a much simpler fallback than the original complex methods we removed.
-    /// It only handles the most basic cases: direct rule IDs and simple self-references.
-    /// For complex references, it just skips them (better than breaking tokenization).
-    fn create_simple_pattern_set(&self, patterns: &[RuleIdOrReference]) -> PatternSet {
+    /// Handles basic pattern resolution including direct rule IDs and simple references.
+    /// For complex references that can't be resolved, skips them gracefully.
+    fn create_pattern_set(&self, patterns: &[RuleIdOrReference]) -> PatternSet {
         let mut pattern_data = Vec::new();
 
         for pattern_ref in patterns {
@@ -630,7 +510,7 @@ impl CompiledGrammar {
                             Rule::IncludeOnly(include_only) => {
                                 // Recursively handle IncludeOnly patterns (but only one level deep to avoid complexity)
                                 let sub_set =
-                                    self.create_simple_pattern_set(&include_only.patterns);
+                                    self.create_pattern_set(&include_only.patterns);
                                 pattern_data.extend(
                                     sub_set
                                         .rule_ids()
@@ -652,7 +532,7 @@ impl CompiledGrammar {
                             if let Some(root_rule) = self.rules.get(0) {
                                 if let Rule::IncludeOnly(include_only) = root_rule {
                                     let sub_set =
-                                        self.create_simple_pattern_set(&include_only.patterns);
+                                        self.create_pattern_set(&include_only.patterns);
                                     pattern_data.extend(
                                         sub_set
                                             .rule_ids()
@@ -704,7 +584,7 @@ impl CompiledGrammar {
                                                 }
                                             }
                                             Rule::IncludeOnly(include_only) => {
-                                                let sub_set = self.create_simple_pattern_set(
+                                                let sub_set = self.create_pattern_set(
                                                     &include_only.patterns,
                                                 );
                                                 pattern_data.extend(
@@ -785,164 +665,4 @@ mod tests {
         // assert!(false); // Commented out - test was intentionally failing
     }
 
-    #[test]
-    fn analyze_pattern_set_caching_effectiveness() {
-        let entries = fs::read_dir("grammars-themes/packages/tm-grammars/grammars")
-            .expect("Failed to read grammars directory");
-
-        let mut total_grammars = 0;
-        let mut total_pattern_rules = 0;
-        let mut total_cached = 0;
-        let mut total_runtime = 0;
-        let mut grammar_stats = Vec::new();
-
-        for entry in entries {
-            let entry = entry.expect("Failed to read directory entry");
-            let path = entry.path();
-
-            if let Ok(raw_grammar) = RawGrammar::load_from_file(&path) {
-                if let Ok(compiled_grammar) = raw_grammar.compile() {
-                    total_grammars += 1;
-                    let grammar_name = path.file_name().unwrap().to_string_lossy().to_string();
-
-                    let (pattern_rules, cached, runtime) = analyze_grammar_rules(&compiled_grammar);
-
-                    total_pattern_rules += pattern_rules;
-                    total_cached += cached;
-                    total_runtime += runtime;
-
-                    if pattern_rules > 0 {
-                        grammar_stats.push((grammar_name, pattern_rules, cached, runtime));
-                    }
-                }
-            }
-        }
-
-        // Sort grammars by total pattern rules (descending)
-        grammar_stats.sort_by_key(|(_, total, _, _)| std::cmp::Reverse(*total));
-
-        // Print comprehensive analysis
-        println!("\n=== Pattern Set Caching Analysis Results ===");
-        println!("Total grammars analyzed: {}", total_grammars);
-        println!("Total pattern rules: {}", total_pattern_rules);
-
-        if total_pattern_rules > 0 {
-            let cached_percent = (total_cached as f64 / total_pattern_rules as f64) * 100.0;
-            let runtime_percent = (total_runtime as f64 / total_pattern_rules as f64) * 100.0;
-
-            println!(
-                "Pre-compiled (cached): {} ({:.1}%)",
-                total_cached, cached_percent
-            );
-            println!(
-                "Runtime-compiled: {} ({:.1}%)",
-                total_runtime, runtime_percent
-            );
-
-            println!("\nTop 10 grammars by pattern rule count:");
-            for (i, (name, total, cached, runtime)) in grammar_stats.iter().take(10).enumerate() {
-                let cached_pct = if *total > 0 {
-                    (*cached as f64 / *total as f64) * 100.0
-                } else {
-                    0.0
-                };
-                println!(
-                    "{}. {}: {} rules ({} cached {:.1}%, {} runtime {:.1}%)",
-                    i + 1,
-                    name,
-                    total,
-                    cached,
-                    cached_pct,
-                    runtime,
-                    100.0 - cached_pct
-                );
-            }
-
-            // Find grammars with best/worst caching ratios
-            let mut ratios: Vec<_> = grammar_stats
-                .iter()
-                .filter(|(_, total, _, _)| *total >= 10) // Only consider grammars with at least 10 rules
-                .map(|(name, total, cached, runtime)| {
-                    let ratio = (*cached as f64 / *total as f64) * 100.0;
-                    (name, *total, *cached, *runtime, ratio)
-                })
-                .collect();
-
-            if !ratios.is_empty() {
-                ratios.sort_by(|a, b| b.4.partial_cmp(&a.4).unwrap());
-
-                println!("\nBest caching efficiency (>= 10 rules):");
-                for (name, total, cached, _runtime, ratio) in ratios.iter().take(5) {
-                    println!(
-                        "  {}: {:.1}% cached ({}/{} rules)",
-                        name, ratio, cached, total
-                    );
-                }
-
-                println!("\nWorst caching efficiency (>= 10 rules):");
-                for (name, total, cached, _runtime, ratio) in ratios.iter().rev().take(5) {
-                    println!(
-                        "  {}: {:.1}% cached ({}/{} rules)",
-                        name, ratio, cached, total
-                    );
-                }
-            }
-        }
-
-        println!("\n===========================================\n");
-
-        // This is a data analysis test - we don't assert anything, just gather insights
-        // But let's ensure we actually found some grammars
-        assert!(
-            total_grammars > 0,
-            "Should have analyzed at least one grammar"
-        );
-    }
-
-    /// Analyze a single grammar's rules and return (total_pattern_rules, cached_count, runtime_count)
-    fn analyze_grammar_rules(grammar: &super::CompiledGrammar) -> (usize, usize, usize) {
-        let mut pattern_rules = 0;
-        let mut cached = 0;
-        let mut runtime = 0;
-
-        for rule in &grammar.rules {
-            match rule {
-                super::Rule::IncludeOnly(include_only) => {
-                    if !include_only.patterns.is_empty() {
-                        pattern_rules += 1;
-                        if include_only.pattern_set.is_some() {
-                            cached += 1;
-                        } else {
-                            runtime += 1;
-                        }
-                    }
-                }
-                super::Rule::BeginEnd(begin_end) => {
-                    if !begin_end.patterns.is_empty() {
-                        pattern_rules += 1;
-                        if begin_end.pattern_set.is_some() {
-                            cached += 1;
-                        } else {
-                            runtime += 1;
-                        }
-                    }
-                }
-                super::Rule::BeginWhile(begin_while) => {
-                    if !begin_while.patterns.is_empty() {
-                        pattern_rules += 1;
-                        if begin_while.pattern_set.is_some() {
-                            cached += 1;
-                        } else {
-                            runtime += 1;
-                        }
-                    }
-                }
-                super::Rule::Match(_) | super::Rule::Noop => {
-                    // These don't have pattern sets to cache
-                }
-            }
-        }
-
-        (pattern_rules, cached, runtime)
-    }
 }

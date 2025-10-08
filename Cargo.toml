@@ -22,6 +22,11 @@ tools = ["phf_codegen", "walkdir"]
 
 [dev-dependencies]
 insta = "1.39"
+criterion = "0.7"
+
+[[bench]]
+name = "tokenizer"
+harness = false
 
 [[bin]]
 name = "tm-generate"
