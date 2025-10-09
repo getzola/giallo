@@ -1,37 +1,42 @@
-use std::cell::OnceCell;
-
 use onig::RegSet;
-use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
 
-use crate::grammars::RuleId;
+use crate::grammars::{END_RULE_ID, RuleId, WHILE_RULE_ID};
 
-/// A compiled pattern set for efficient batch regex matching.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct PatternSetMatch {
+    pub rule_id: RuleId,
+    pub start: usize,
+    pub end: usize,
+    pub capture_pos: Vec<(usize, usize)>,
+}
+
+impl PatternSetMatch {
+    pub fn is_end_rule(&self) -> bool {
+        self.rule_id == END_RULE_ID
+    }
+
+    pub fn is_while_rule(&self) -> bool {
+        self.rule_id == WHILE_RULE_ID
+    }
+
+    pub fn has_advanced(&self) -> bool {
+        self.end > self.start
+    }
+}
+
+/// A compiled pattern set for efficient batch regex matching using onig RegSet
 ///
-/// Uses onig RegSet internally for batch matching instead of testing patterns individually.
-#[derive(Debug, Serialize, Deserialize)]
+/// RegSet compilation is lazy - it's only created when first needed.
+#[derive(Debug)]
 pub struct PatternSet {
     rule_ids: Vec<RuleId>,
     patterns: Vec<String>,
-    /// Lazily compiled RegSet
-    #[serde(skip)]
-    regset: OnceCell<RegSet>,
-}
-
-// Manual Clone implementation since RegSet doesn't implement Clone
-// We only need it to make the Rule structs clonable but we don't actually use it in the code
-impl Clone for PatternSet {
-    fn clone(&self) -> Self {
-        Self {
-            rule_ids: self.rule_ids.clone(),
-            patterns: self.patterns.clone(),
-            regset: OnceCell::new(), // Don't clone the regset, let it be recompiled
-        }
-    }
+    regset: RefCell<Option<RegSet>>,
 }
 
 impl PartialEq for PatternSet {
     fn eq(&self, other: &Self) -> bool {
-        // Compare based on patterns and rule_ids, ignore the cached regset
         self.patterns == other.patterns && self.rule_ids == other.rule_ids
     }
 }
@@ -41,27 +46,66 @@ impl Eq for PatternSet {}
 impl PatternSet {
     pub fn new(items: Vec<(RuleId, String)>) -> Self {
         let (rule_ids, patterns): (Vec<_>, Vec<_>) = items.into_iter().unzip();
-        assert_eq!(patterns.len(), rule_ids.len());
 
         Self {
             rule_ids,
             patterns,
-            regset: OnceCell::new(),
+            regset: RefCell::new(None),
         }
     }
 
-    pub fn find_at(&self, text: &str, pos: usize) -> Option<(usize, usize, RuleId, Vec<String>)> {
+    pub fn push_back(&mut self, rule_id: RuleId, pat: &str) {
+        self.rule_ids.push(rule_id);
+        self.patterns.push(pat.to_string());
+        self.clear_regset();
+    }
+
+    pub fn push_front(&mut self, rule_id: RuleId, pat: &str) {
+        self.rule_ids.insert(0, rule_id);
+        self.patterns.insert(0, pat.to_string());
+        self.clear_regset();
+    }
+
+    pub fn update_pat_front(&mut self, pat: &str) {
+        debug_assert!(self.patterns.len() > 0);
+        if &self.patterns[0] == pat {
+            return;
+        }
+        self.patterns.insert(0, pat.to_string());
+        self.clear_regset();
+    }
+
+    pub fn update_pat_back(&mut self, pat: &str) {
+        debug_assert!(self.patterns.len() > 0);
+        if let Some(last) = self.patterns.last_mut() {
+            if last.as_str() == pat {
+                return;
+            }
+            *last = pat.to_string();
+            self.clear_regset();
+        }
+    }
+
+    pub fn clear_regset(&mut self) {
+        self.regset.borrow_mut().take();
+    }
+
+    // TODO: return an error there if we can't build the regset
+    pub fn find_at(&self, text: &str, pos: usize) -> Option<PatternSetMatch> {
         if self.patterns.is_empty() {
             return None;
         }
 
-        let regset = self.regset.get_or_init(|| {
-            // Convert Vec<String> to Vec<&str> for RegSet::new
+        if self.regset.borrow().is_none() {
             let pattern_strs: Vec<&str> = self.patterns.iter().map(|s| s.as_str()).collect();
-            RegSet::new(&pattern_strs).expect("Failed to create RegSet")
-        });
+            let regset = RegSet::new(&pattern_strs).expect("Failed to create RegSet");
+            *self.regset.borrow_mut() = Some(regset);
+        }
 
         let search_text = text.get(pos..)?;
+
+        let regset_ref = self.regset.borrow();
+        let regset = regset_ref.as_ref().unwrap();
 
         if let Some((pattern_index, captures)) = regset.captures(search_text) {
             // Only accept matches that start exactly at current position
@@ -71,30 +115,25 @@ impl PatternSet {
                 let absolute_start = pos;
                 let absolute_end = pos + match_end;
 
-                let capture_strings: Vec<String> = captures
-                    .iter()
-                    .filter_map(|i| i)
-                    .map(|s| s.to_string())
-                    .collect();
+                let capture_pos: Vec<(usize, usize)> =
+                    captures.iter_pos().filter_map(|i| i).collect();
 
-                return Some((
-                    absolute_start,
-                    absolute_end,
-                    self.rule_ids[pattern_index],
-                    capture_strings,
-                ));
+                return Some(PatternSetMatch {
+                    rule_id: self.rule_ids[pattern_index],
+                    start: absolute_start,
+                    end: absolute_end,
+                    capture_pos,
+                });
             }
         }
 
         None
     }
 
-    /// Get the patterns in this set
     pub fn patterns(&self) -> &[String] {
         &self.patterns
     }
 
-    /// Get the rule IDs in this set
     pub fn rule_ids(&self) -> &[RuleId] {
         &self.rule_ids
     }

@@ -1,5 +1,6 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
+use std::sync::LazyLock;
 
 use serde::{Deserialize, Serialize};
 
@@ -8,9 +9,59 @@ use crate::grammars::raw::{Captures, RawGrammar, RawRule};
 use crate::grammars::regex::Regex;
 use crate::grammars::{ScopeId, get_scope_id};
 
+// TODO: add name_is_capturing/content_name_is_capturing with regex test from vscode-textmate
+// TODO: how to handle scopes with optional captures?
+static CAPTURING_NAME_RE: LazyLock<onig::Regex> =
+    LazyLock::new(|| onig::Regex::new(r"\$(\d+)|\${(\d+):\/(downcase|upcase)}").unwrap());
+
+fn has_captures(pat: Option<&str>) -> bool {
+    if let Some(p) = pat {
+        CAPTURING_NAME_RE.find(p).is_some()
+    } else {
+        false
+    }
+}
+
+fn replace_captures(original_name: &str, text: &str, captures_pos: Vec<(usize, usize)>) -> String {
+    CAPTURING_NAME_RE
+        .replace_all(original_name, |caps: &onig::Captures| {
+            let capture_num = caps
+                .at(1)
+                .or_else(|| caps.at(2))
+                .unwrap_or("0")
+                .parse::<usize>()
+                .unwrap_or(0);
+            let command = caps.at(3);
+
+            if let Some((start, end)) = captures_pos.get(capture_num) {
+                // Remove leading dots that would make the selector invalid
+                let result = text[*start..*end].trim_start_matches('.').to_string();
+                match command {
+                    Some("downcase") => result.to_lowercase(),
+                    Some("upcase") => result.to_uppercase(),
+                    _ => result,
+                }
+            } else {
+                // Invalid capture bounds, return original match
+                caps.at(0).unwrap().to_string()
+            }
+        })
+        .to_string()
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct RuleId(pub u16);
+
+impl RuleId {
+    pub fn id(self) -> usize {
+        self.0 as usize
+    }
+}
+
+pub const END_RULE_ID: RuleId = RuleId(u16::MAX);
+// TODO: do we need that one?
+pub const WHILE_RULE_ID: RuleId = RuleId(u16::MAX - 1);
 
 impl Deref for RuleId {
     type Target = u16;
@@ -24,6 +75,11 @@ impl Deref for RuleId {
 #[serde(transparent)]
 pub struct RegexId(u16);
 
+impl RegexId {
+    pub fn id(self) -> usize {
+        self.0 as usize
+    }
+}
 impl Deref for RegexId {
     type Target = u16;
 
@@ -35,7 +91,11 @@ impl Deref for RegexId {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct RepositoryId(u16);
-
+impl RepositoryId {
+    pub fn id(self) -> usize {
+        self.0 as usize
+    }
+}
 impl Deref for RepositoryId {
     type Target = u16;
 
@@ -86,11 +146,16 @@ impl RepositoryStack {
 ///  * base, e.g. `$base`
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Reference {
+    // The 3 below are not present at runtime
     Self_,
+    // TODO: not entirely how $base differs from $self and what it actually means
+    // seems like only injection, like calling the parent language when nesting
     Base,
     Local(String),
+    // Below are still present at runtime
     OtherComplete(ScopeId),
     OtherSpecific(ScopeId, String),
+    // Pointing to something in the current grammar but we can't find it
     Unknown(String),
 }
 
@@ -191,7 +256,6 @@ pub struct BeginWhile {
     pub while_: RegexId,
     pub while_has_backrefs: bool,
     pub while_captures: Vec<Option<RuleId>>,
-    pub apply_end_pattern_last: bool,
     pub patterns: Vec<RuleIdOrReference>,
     pub repository_stack: RepositoryStack,
 }
@@ -205,6 +269,49 @@ pub enum Rule {
     Noop,
 }
 
+impl Rule {
+    pub fn apply_end_pattern_last(&self) -> bool {
+        match self {
+            Rule::BeginEnd(b) => b.apply_end_pattern_last,
+            _ => false,
+        }
+    }
+
+    pub fn end_has_backrefs(&self) -> bool {
+        match self {
+            Rule::BeginEnd(b) => b.end_has_backrefs,
+            Rule::BeginWhile(b) => b.while_has_backrefs,
+            _ => false,
+        }
+    }
+
+    pub fn has_patterns(&self) -> bool {
+        match self {
+            Rule::Match(_) | Rule::Noop => false,
+            Rule::IncludeOnly(b) => b.patterns.len() > 0,
+            Rule::BeginEnd(b) => b.patterns.len() > 0,
+            Rule::BeginWhile(b) => b.patterns.len() > 0,
+        }
+    }
+
+    pub fn collect_patterns(&self) -> Vec<RegexId> {
+        let mut out = Vec::new();
+        match self {
+            Rule::Match(m) => {
+                if let Some(r) = m.regex_id {
+                    out.push(r)
+                }
+            }
+            Rule::IncludeOnly(_) => {}
+            Rule::BeginEnd(_) => {}
+            Rule::BeginWhile(_) => {}
+            Rule::Noop => {}
+        }
+
+        out
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledGrammar {
     pub name: String,
@@ -216,7 +323,6 @@ pub struct CompiledGrammar {
     pub rules: Vec<Rule>,
     pub repositories: Vec<Repository>,
 }
-
 
 impl CompiledGrammar {
     pub fn from_raw_grammar(raw: RawGrammar) -> Result<Self, CompileError> {
@@ -242,6 +348,9 @@ impl CompiledGrammar {
         };
         let root_rule_id = grammar.compile_rule(root_rule, RepositoryStack::default())?;
         assert_eq!(*root_rule_id, 0);
+
+        // Resolve all Local references after compilation is complete
+        grammar.resolve_local_references();
 
         Ok(grammar)
     }
@@ -284,7 +393,6 @@ impl CompiledGrammar {
                     while_captures: self
                         .compile_captures(raw_rule.while_captures, repository_stack)?,
                     patterns,
-                    apply_end_pattern_last,
                     repository_stack,
                 })
             } else if let Some(end_pat) = raw_rule.end {
@@ -420,6 +528,62 @@ impl CompiledGrammar {
         Ok(out)
     }
 
+    /// Resolve all Local references after compilation is complete.
+    /// This must be called after all repositories are fully compiled.
+    fn resolve_local_references(&mut self) {
+        let convert_local_references = |patterns: &[RuleIdOrReference],
+                                        repository_stack: RepositoryStack|
+         -> Vec<RuleIdOrReference> {
+            patterns
+                .iter()
+                .filter_map(|pattern| match pattern {
+                    RuleIdOrReference::RuleId(rule_id) => Some(RuleIdOrReference::RuleId(*rule_id)),
+                    RuleIdOrReference::Reference(reference) => match reference {
+                        Reference::Local(name) => {
+                            // Walks the repository stack from most recent (top) to oldest (bottom)
+                            // and returns the first matching rule ID found.
+                            for repo_id in
+                                repository_stack.stack.iter().filter(|x| x.is_some()).rev()
+                            {
+                                let repo = &self.repositories[repo_id.unwrap().id()];
+                                if let Some(rule_id) = repo.get(name) {
+                                    return Some(RuleIdOrReference::RuleId(*rule_id));
+                                }
+                            }
+                            println!("Warning: Local reference '{}' not found", name);
+                            None
+                        }
+                        Reference::Self_ | Reference::Base => {
+                            Some(RuleIdOrReference::RuleId(RuleId(0)))
+                        }
+                        _ => Some(pattern.clone()),
+                    },
+                })
+                .collect()
+        };
+
+        for rule in self.rules.iter_mut() {
+            match rule {
+                Rule::IncludeOnly(x) => {
+                    let resolved_patterns =
+                        convert_local_references(&x.patterns, x.repository_stack);
+                    x.patterns = resolved_patterns;
+                }
+                Rule::BeginEnd(x) => {
+                    let resolved_patterns =
+                        convert_local_references(&x.patterns, x.repository_stack);
+                    x.patterns = resolved_patterns;
+                }
+                Rule::BeginWhile(x) => {
+                    let resolved_patterns =
+                        convert_local_references(&x.patterns, x.repository_stack);
+                    x.patterns = resolved_patterns;
+                }
+                _ => (),
+            }
+        }
+    }
+
     fn compile_patterns(
         &mut self,
         rules: Vec<RawRule>,
@@ -431,7 +595,22 @@ impl CompiledGrammar {
             if let Some(include) = r.include {
                 // vscode ignores other rule contents is there's an include
                 // https://github.com/microsoft/vscode-textmate/blob/f03a6a8790af81372d0e81facae75554ec5e97ef/src/rule.ts#L495
-                out.push(RuleIdOrReference::Reference(include.as_str().into()));
+
+                // Parse reference but defer Local resolution to post-compilation pass
+                let reference = Reference::from(include.as_str());
+                match reference {
+                    Reference::Self_ | Reference::Base => {
+                        // Self/Base references always resolve to root rule
+                        out.push(RuleIdOrReference::RuleId(RuleId(0)));
+                    }
+                    Reference::Local(_)
+                    | Reference::OtherComplete(_)
+                    | Reference::OtherSpecific(_, _) => {
+                        // Keep all other references for post-compilation resolution
+                        out.push(RuleIdOrReference::Reference(reference));
+                    }
+                    Reference::Unknown(_) => {}
+                }
             } else {
                 out.push(RuleIdOrReference::RuleId(
                     self.compile_rule(r, repository_stack)?,
@@ -442,178 +621,99 @@ impl CompiledGrammar {
         Ok(out)
     }
 
+    fn get_rule_patterns(
+        &self,
+        rule_id: RuleId,
+        visited: &mut HashSet<RuleId>,
+    ) -> Vec<(RuleId, String)> {
+        let mut out = vec![];
+        if visited.contains(&rule_id) {
+            return out;
+        }
+        visited.insert(rule_id);
 
-    /// Get a pattern set for a rule.
-    ///
-    /// Creates pattern sets at runtime for rules with patterns.
-    /// Only rules with patterns (IncludeOnly, BeginEnd, BeginWhile) have pattern sets.
-    pub fn get_pattern_set(&self, rule_id: RuleId) -> Option<PatternSet> {
-        if let Some(rule) = self.rules.get(*rule_id as usize) {
-            match rule {
-                Rule::Match(_) => {
-                    // Match rules don't have pattern sets - they are handled individually
-                    None
-                }
-                Rule::IncludeOnly(include_only) => {
-                    Some(self.create_pattern_set(&include_only.patterns))
-                }
-                Rule::BeginEnd(begin_end) => {
-                    Some(self.create_pattern_set(&begin_end.patterns))
-                }
-                Rule::BeginWhile(begin_while) => {
-                    Some(self.create_pattern_set(&begin_while.patterns))
-                }
-                Rule::Noop => {
-                    // Noop rules don't have pattern sets
-                    None
+        let rule = &self.rules[rule_id.id()];
+
+        match rule {
+            Rule::Match(Match { regex_id, .. }) => {
+                if let Some(re) = regex_id.and_then(|x| self.regexes.get(x.id())) {
+                    out.push((rule_id, re.pattern().to_string()));
                 }
             }
-        } else {
-            None
+            Rule::IncludeOnly(i) => {
+                out.extend(self.get_pattern_set_data(&i.patterns, visited));
+            }
+            Rule::BeginEnd(b) => {
+                out.push((rule_id, self.regexes[b.begin.id()].pattern().to_string()))
+            }
+            Rule::BeginWhile(b) => {
+                out.push((rule_id, self.regexes[b.begin.id()].pattern().to_string()))
+            }
+            Rule::Noop => {}
         }
+
+        out
     }
 
+    fn get_pattern_set_data(
+        &self,
+        patterns: &[RuleIdOrReference],
+        visited: &mut HashSet<RuleId>,
+    ) -> Vec<(RuleId, String)> {
+        let mut out = vec![];
 
-    /// Create a pattern set from a list of pattern references.
-    ///
-    /// Handles basic pattern resolution including direct rule IDs and simple references.
-    /// For complex references that can't be resolved, skips them gracefully.
-    fn create_pattern_set(&self, patterns: &[RuleIdOrReference]) -> PatternSet {
-        let mut pattern_data = Vec::new();
-
-        for pattern_ref in patterns {
-            match pattern_ref {
+        for p in patterns {
+            match p {
                 RuleIdOrReference::RuleId(rule_id) => {
-                    // Handle direct rule IDs - these are easy
-                    if let Some(rule) = self.rules.get(**rule_id as usize) {
-                        match rule {
-                            Rule::Match(match_rule) => {
-                                // Add match pattern if it has a regex
-                                if let Some(regex_id) = match_rule.regex_id {
-                                    if let Some(regex) = self.regexes.get(*regex_id as usize) {
-                                        pattern_data.push((*rule_id, regex.pattern().to_string()));
-                                    }
-                                }
-                            }
-                            Rule::BeginEnd(begin_end) => {
-                                // Add begin pattern for BeginEnd rules
-                                if let Some(regex) = self.regexes.get(*begin_end.begin as usize) {
-                                    pattern_data.push((*rule_id, regex.pattern().to_string()));
-                                }
-                            }
-                            Rule::BeginWhile(begin_while) => {
-                                // Add begin pattern for BeginWhile rules
-                                if let Some(regex) = self.regexes.get(*begin_while.begin as usize) {
-                                    pattern_data.push((*rule_id, regex.pattern().to_string()));
-                                }
-                            }
-                            Rule::IncludeOnly(include_only) => {
-                                // Recursively handle IncludeOnly patterns (but only one level deep to avoid complexity)
-                                let sub_set =
-                                    self.create_pattern_set(&include_only.patterns);
-                                pattern_data.extend(
-                                    sub_set
-                                        .rule_ids()
-                                        .iter()
-                                        .zip(sub_set.patterns().iter())
-                                        .map(|(rule_id, pattern)| (*rule_id, pattern.clone())),
-                                );
-                            }
-                            Rule::Noop => {
-                                // Skip no-op rules
-                            }
-                        }
-                    }
+                    out.extend(self.get_rule_patterns(*rule_id, visited))
                 }
                 RuleIdOrReference::Reference(reference) => {
                     match reference {
-                        Reference::Self_ | Reference::Base  => {
-                            // Self-reference: include root patterns (but only if it's rule 0 to avoid infinite recursion)
-                            if let Some(root_rule) = self.rules.get(0) {
-                                if let Rule::IncludeOnly(include_only) = root_rule {
-                                    let sub_set =
-                                        self.create_pattern_set(&include_only.patterns);
-                                    pattern_data.extend(
-                                        sub_set
-                                            .rule_ids()
-                                            .iter()
-                                            .zip(sub_set.patterns().iter())
-                                            .map(|(rule_id, pattern)| (*rule_id, pattern.clone())),
-                                    );
-                                }
-                            }
-                        }
-                        Reference::Local(name) => {
-                            // Look up the local pattern in the repository
-                            // For simplicity, just check the main repository (index 0)
-                            if let Some(repo) = self.repositories.get(0) {
-                                if let Some(rule_id) = repo.get(name) {
-                                    // Recursively process the referenced rule
-                                    if let Some(rule) = self.rules.get(**rule_id as usize) {
-                                        match rule {
-                                            Rule::Match(match_rule) => {
-                                                if let Some(regex_id) = match_rule.regex_id {
-                                                    if let Some(regex) =
-                                                        self.regexes.get(*regex_id as usize)
-                                                    {
-                                                        pattern_data.push((
-                                                            *rule_id,
-                                                            regex.pattern().to_string(),
-                                                        ));
-                                                    }
-                                                }
-                                            }
-                                            Rule::BeginEnd(begin_end) => {
-                                                if let Some(regex) =
-                                                    self.regexes.get(*begin_end.begin as usize)
-                                                {
-                                                    pattern_data.push((
-                                                        *rule_id,
-                                                        regex.pattern().to_string(),
-                                                    ));
-                                                }
-                                            }
-                                            Rule::BeginWhile(begin_while) => {
-                                                if let Some(regex) =
-                                                    self.regexes.get(*begin_while.begin as usize)
-                                                {
-                                                    pattern_data.push((
-                                                        *rule_id,
-                                                        regex.pattern().to_string(),
-                                                    ));
-                                                }
-                                            }
-                                            Rule::IncludeOnly(include_only) => {
-                                                let sub_set = self.create_pattern_set(
-                                                    &include_only.patterns,
-                                                );
-                                                pattern_data.extend(
-                                                    sub_set
-                                                        .rule_ids()
-                                                        .iter()
-                                                        .zip(sub_set.patterns().iter())
-                                                        .map(|(rule_id, pattern)| {
-                                                            (*rule_id, pattern.clone())
-                                                        }),
-                                                );
-                                            }
-                                            Rule::Noop => {
-                                                // Skip no-op rules
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        _ => {
-                            // Skip other complex references (OtherComplete, etc.)
-                        }
+                        // Handled at compile time
+                        Reference::Base | Reference::Self_ | Reference::Local(_) => {}
+                        // TODO
+                        Reference::OtherComplete(_) => {}
+                        Reference::OtherSpecific(_, _) => {}
+                        // We skip those
+                        Reference::Unknown(_) => {}
                     }
                 }
             }
         }
 
-        PatternSet::new(pattern_data)
+        out
+    }
+
+    pub fn collect_patterns(&self, rule_id: RuleId) -> Vec<(RuleId, String)> {
+        // If we have a RuleId, we should have it in our self.rules unless we called the wrong
+        // grammar
+        let patterns = match &self.rules[rule_id.id()] {
+            Rule::Match(_) | Rule::Noop => return vec![],
+            Rule::IncludeOnly(a) => &a.patterns,
+            Rule::BeginEnd(a) => &a.patterns,
+            Rule::BeginWhile(a) => &a.patterns,
+        };
+
+        let mut visited = HashSet::new();
+        self.get_pattern_set_data(patterns, &mut visited)
+    }
+
+    /// Get a pattern set for a rule.
+    /// Only IncludeOnly/BeginEnd/BeginWhile have patterns, it will return None for Match/Noop
+    pub fn get_pattern_set(&self, rule_id: RuleId) -> Option<PatternSet> {
+        // If we have a RuleId, we should have it in our self.rules unless we called the wrong
+        // grammar
+        let patterns = match &self.rules[rule_id.id()] {
+            Rule::Match(_) | Rule::Noop => return None,
+            Rule::IncludeOnly(a) => &a.patterns,
+            Rule::BeginEnd(a) => &a.patterns,
+            Rule::BeginWhile(a) => &a.patterns,
+        };
+
+        let mut visited = HashSet::new();
+        Some(PatternSet::new(
+            self.get_pattern_set_data(patterns, &mut visited),
+        ))
     }
 }
 
@@ -645,8 +745,127 @@ impl std::error::Error for CompileError {}
 
 #[cfg(test)]
 mod tests {
-    use crate::grammars::raw::RawGrammar;
+    use super::{has_captures, replace_captures};
     use std::fs;
+
+    use crate::grammars::raw::RawGrammar;
+
+    #[test]
+    fn can_find_captures() {
+        let inputs = vec![
+            (None, false),
+            (Some("source"), false),
+            (Some("source.hey"), false),
+            (Some("source.hey.$1"), true),
+            (Some("keyword.operator.logical.$1.media.css"), true),
+            (Some("keyword.control.at-rule.${3:/downcase}.css"), true),
+        ];
+
+        for (input, expected) in inputs {
+            assert_eq!(has_captures(input), expected);
+        }
+    }
+
+    #[test]
+    fn can_replace_captures() {
+        let test_cases = vec![
+            // (original_name, text, captures_pos, expected)
+
+            // No captures - should return original
+            (
+                "source.hey",
+                "hello world",
+                vec![(0, 11), (0, 5), (6, 11)],
+                "source.hey",
+            ),
+            // Simple capture replacements
+            (
+                "prefix.$1.suffix",
+                "hello",
+                vec![(0, 5), (0, 5)],
+                "prefix.hello.suffix",
+            ),
+            (
+                "$1_$2",
+                "hello world",
+                vec![(0, 11), (0, 5), (6, 11)],
+                "hello_world",
+            ),
+            (
+                "keyword.operator.logical.$1.media.css",
+                "and",
+                vec![(0, 3), (0, 3)],
+                "keyword.operator.logical.and.media.css",
+            ),
+            // Transformation captures
+            ("${1:/downcase}", "HELLO", vec![(0, 5), (0, 5)], "hello"),
+            ("${1:/upcase}", "world", vec![(0, 5), (0, 5)], "WORLD"),
+            (
+                "keyword.control.at-rule.${1:/downcase}.css",
+                "MEDIA",
+                vec![(0, 5), (0, 5)],
+                "keyword.control.at-rule.media.css",
+            ),
+            // Mixed simple and transformation captures
+            (
+                "$1.${2:/upcase}",
+                "hello world",
+                vec![(0, 11), (0, 5), (6, 11)],
+                "hello.WORLD",
+            ),
+            (
+                "${1:/downcase}_$2_${3:/upcase}",
+                "Hello big WORLD",
+                vec![(0, 15), (0, 5), (6, 9), (10, 15)],
+                "hello_big_WORLD",
+            ),
+            // Leading dots removal
+            ("scope.$1", "..method", vec![(0, 8), (0, 8)], "scope.method"),
+            (
+                "prefix.${1:/downcase}",
+                "...CLASS",
+                vec![(0, 8), (0, 8)],
+                "prefix.class",
+            ),
+            // Missing captures - should return original capture reference
+            ("$1 $5", "hello", vec![(0, 5), (0, 5)], "hello $5"),
+            (
+                "${3:/downcase}",
+                "hello",
+                vec![(0, 5), (0, 5)],
+                "${3:/downcase}",
+            ),
+            // Full match (capture 0)
+            (
+                "match: $0",
+                "hello world",
+                vec![(0, 11), (0, 5), (6, 11)],
+                "match: hello world",
+            ),
+            // Multiple occurrences of same capture
+            (
+                "$1.$1.suffix",
+                "hello",
+                vec![(0, 5), (0, 5)],
+                "hello.hello.suffix",
+            ),
+            (
+                "${1:/downcase}.${1:/upcase}",
+                "Hello",
+                vec![(0, 5), (0, 5)],
+                "hello.HELLO",
+            ),
+        ];
+
+        for (original_name, text, captures_pos, expected) in test_cases {
+            let result = replace_captures(original_name, text, captures_pos);
+            assert_eq!(
+                result, expected,
+                "Failed for input: '{}' with text: '{}' - expected: '{}', got: '{}'",
+                original_name, text, expected, result
+            );
+        }
+    }
 
     #[test]
     fn can_compile_all_shiki_grammars() {
@@ -664,5 +883,4 @@ mod tests {
         }
         // assert!(false); // Commented out - test was intentionally failing
     }
-
 }

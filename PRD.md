@@ -22,22 +22,22 @@ A high-performance TextMate grammar-based syntax highlighter written in Rust, de
 ## Architecture Overview
 
 ```
-tm-highlighter/
+giallo/
 ├── src/
 │   ├── lib.rs                 # Public API
-│   ├── scope.rs               # Scope interning with PHF
-│   ├── grammar.rs             # Grammar types and loading
-│   ├── pattern.rs             # Pattern matching engine
-│   ├── tokenizer.rs           # Core tokenization logic
+│   ├── tokenizer.rs           # Core tokenization logic (98% complete)
+│   ├── grammars/              # Grammar system
+│   │   ├── mod.rs             # Grammar module exports
+│   │   ├── raw.rs             # Grammar loading and parsing
+│   │   ├── compiled.rs        # Optimized grammar structures
+│   │   └── pattern_set.rs     # PatternSet optimization (RegSet caching)
 │   ├── theme.rs               # Theme application and caching
-│   ├── renderer.rs            # HTML output generation
 │   └── generated/             # Pre-generated files (committed)
-│       ├── scopes.rs          # PHF map for scope interning
-│       └── grammars.bin       # Binary serialized grammars
-├── tools/
-│   └── generate.rs            # Grammar/scope generator tool
-├── grammars/                  # Shiki grammar collection (git submodule)
-└── themes/                    # VSCode themes (JSON)
+│       └── scopes.rs          # PHF map for scope interning (30K+ scopes)
+├── grammars-themes/           # TextMate grammars/themes (git submodule)
+│   ├── packages/tm-grammars/  # 238+ language grammars
+│   └── packages/tm-themes/    # VSCode themes
+└── benches/                   # Performance benchmarks
 ```
 
 ## Core Components
