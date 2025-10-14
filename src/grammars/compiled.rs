@@ -21,7 +21,11 @@ fn has_captures(pat: Option<&str>) -> bool {
     }
 }
 
-fn replace_captures(original_name: &str, text: &str, captures_pos: &[(usize, usize)]) -> String {
+pub fn replace_captures(
+    original_name: &str,
+    text: &str,
+    captures_pos: &[(usize, usize)],
+) -> String {
     CAPTURING_NAME_RE
         .replace_all(original_name, |caps: &onig::Captures| {
             let capture_num = caps

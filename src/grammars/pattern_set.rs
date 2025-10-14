@@ -71,7 +71,7 @@ impl PatternSet {
         if &self.patterns[0] == pat {
             return;
         }
-        self.patterns.insert(0, pat.to_string());
+        self.patterns[0] = pat.to_string();
         self.clear_regset();
     }
 
@@ -108,15 +108,16 @@ impl PatternSet {
         let regset = regset_ref.as_ref().unwrap();
 
         if let Some((pattern_index, captures)) = regset.captures(search_text) {
-            // Only accept matches that start exactly at current position
-            if let Some((match_start, match_end)) = captures.pos(0)
-                && match_start == 0
-            {
-                let absolute_start = pos;
+            // Accept matches that start anywhere in the remaining text
+            if let Some((match_start, match_end)) = captures.pos(0) {
+                let absolute_start = pos + match_start;
                 let absolute_end = pos + match_end;
 
-                let capture_pos: Vec<(usize, usize)> =
-                    captures.iter_pos().filter_map(|i| i).collect();
+                // Convert relative capture positions to absolute positions
+                let capture_pos: Vec<(usize, usize)> = captures
+                    .iter_pos()
+                    .filter_map(|cap| cap.map(|(start, end)| (pos + start, pos + end)))
+                    .collect();
 
                 return Some(PatternSetMatch {
                     rule_id: self.rule_ids[pattern_index],

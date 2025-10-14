@@ -1,4 +1,4 @@
 pub mod grammars;
+pub mod scope;
 pub mod themes;
-// pub mod tokenizer;
-mod tokenizer2;
+mod tokenizer;

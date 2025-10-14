@@ -27,7 +27,7 @@ name = "tokenizer"
 harness = false
 
 [[bin]]
-name = "tm-generate"
-path = "tools/generate.rs"
+name = "tm-stats"
+path = "tools/stats.rs"
 required-features = ["tools"]
 
