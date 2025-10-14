@@ -1,8 +1,6 @@
 use std::collections::HashMap;
-use std::fs::{self, File};
-use std::io::{BufWriter, Write};
+use std::fs;
 
-use phf_codegen::Map;
 use serde_json::Value;
 use walkdir::WalkDir;
 
@@ -12,16 +10,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create output directory
     fs::create_dir_all("src/generated")?;
 
-    // Step 1: Extract all scopes and generate PHF map
+    // Step 1: Extract all scopes for informational purposes
     let scopes = extract_all_scopes()?;
-    generate_scope_map(&scopes)?;
 
     // Step 2: Load and serialize all grammars
     // let grammars = load_all_grammars()?;
     // serialize_grammars(&grammars)?;
 
     println!("Generation complete!");
-    println!("- Generated {} unique scopes", scopes.len());
+    println!("- Found {} unique scopes", scopes.len());
     // println!("- Processed {} grammars", grammars.len());
 
     Ok(())
@@ -178,38 +175,6 @@ fn add_hierarchical_scopes(scope: &str, scopes: &mut std::collections::HashSet<S
         accumulated.push_str(part);
         scopes.insert(accumulated.clone());
     }
-}
-
-fn generate_scope_map(scopes: &[String]) -> Result<(), Box<dyn std::error::Error>> {
-    println!("Generating PHF scope map...");
-
-    let mut phf_map = Map::new();
-
-    for (i, scope) in scopes.iter().enumerate() {
-        phf_map.entry(scope, i.to_string());
-    }
-
-    let output_path = "src/generated/scopes.rs";
-    let mut file = BufWriter::new(File::create(output_path)?);
-
-    writeln!(
-        file,
-        "// Auto-generated scope mappings - do not edit manually\n\
-        #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, serde::Serialize, serde::Deserialize)]\n\
-        pub struct ScopeId(pub u32);\n\n\
-        pub static SCOPE_MAP: ::phf::Map<&'static str, u32> = {};\n",
-        phf_map.build()
-    )?;
-
-    writeln!(
-        file,
-        "#[inline]\npub fn get_scope_id(scope: &str) -> Option<ScopeId> {{\n\
-        \x20   SCOPE_MAP.get(scope).map(|&id| ScopeId(id))\n\
-        }}"
-    )?;
-
-    println!("Generated scope map at {}", output_path);
-    Ok(())
 }
 
 // fn load_all_grammars() -> Result<HashMap<String, Value>, Box<dyn std::error::Error>> {

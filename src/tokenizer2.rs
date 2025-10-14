@@ -2,8 +2,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::grammars::{
-    CompiledGrammar, END_RULE_ID, PatternSet, PatternSetMatch, Regex, Rule, RuleId, ScopeId,
-    WHILE_RULE_ID,
+    CompiledGrammar, END_RULE_ID, PatternSet, PatternSetMatch, Regex, Rule, RuleId, WHILE_RULE_ID,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -12,9 +11,9 @@ pub struct Token {
     pub start: usize,
     /// End byte position in the input text (exclusive)
     pub end: usize,
-    /// Hierarchical scope IDs, ordered from outermost to innermost
+    /// Hierarchical scope names, ordered from outermost to innermost
     /// (e.g., source.js -> string.quoted.double -> punctuation.definition.string).
-    pub scopes: Vec<ScopeId>,
+    pub scopes: Vec<String>,
 }
 
 /// Keeps track of nested context as well as how to exit that context and the captures
@@ -31,10 +30,10 @@ struct StateStack {
     rule_id: RuleId,
     /// "name" scopes - applied to begin/end delimiters
     /// These scopes are active when matching the rule's boundaries
-    name_scopes: Vec<ScopeId>,
+    name_scopes: Vec<String>,
     /// "contentName" scopes - applied to content between delimiters
     /// These scopes are active for the rule's interior content
-    content_scopes: Vec<ScopeId>,
+    content_scopes: Vec<String>,
     /// Dynamic end/while pattern resolved with backreferences
     /// For BeginEnd rules: the end pattern with \1, \2, etc. resolved
     /// For BeginWhile rules: the while pattern with backreferences resolved
@@ -46,12 +45,12 @@ struct StateStack {
 }
 
 impl StateStack {
-    pub fn new(grammar_scope_id: ScopeId) -> Self {
+    pub fn new(grammar_scope_name: String) -> Self {
         Self {
             parent: None,
             rule_id: RuleId(0), // Root rule (always ID 0)
-            name_scopes: vec![grammar_scope_id],
-            content_scopes: vec![grammar_scope_id],
+            name_scopes: vec![grammar_scope_name.clone()],
+            content_scopes: vec![grammar_scope_name],
             end_pattern: None,
             begin_captures: Vec::new(),
         }
@@ -88,7 +87,7 @@ struct TokenAccumulator {
 }
 
 impl TokenAccumulator {
-    fn produce(&mut self, end_pos: usize, scopes: &[ScopeId]) {
+    fn produce(&mut self, end_pos: usize, scopes: &[String]) {
         // Ensure we don't move backward (can happen with zero-width matches)
         if self.last_end_pos >= end_pos {
             return;
@@ -123,7 +122,7 @@ impl<'g> Tokenizer<'g> {
     pub fn new(grammar: &'g CompiledGrammar) -> Self {
         Self {
             grammar,
-            state: StateStack::new(grammar.scope_id),
+            state: StateStack::new(grammar.scope_name.clone()),
             pattern_cache: HashMap::new(),
             end_regex_cache: HashMap::new(),
         }
@@ -255,6 +254,7 @@ impl<'g> Tokenizer<'g> {
 
     fn resolve_captures(
         &self,
+        line: &str,
         end_captures: &[Option<RuleId>],
         captures: &[(usize, usize)],
         accumulator: &mut TokenAccumulator,
@@ -263,10 +263,8 @@ impl<'g> Tokenizer<'g> {
             return;
         }
 
-        let mut local_stack: Vec<(Vec<ScopeId>, usize)> = vec![];
+        let mut local_stack: Vec<(Vec<String>, usize)> = vec![];
 
-        // Start with current context scopes
-        let mut scopes = self.state.content_scopes.clone();
         let max = std::cmp::max(end_captures.len(), captures.len());
 
         for i in 0..max {
@@ -278,6 +276,7 @@ impl<'g> Tokenizer<'g> {
 
             let (cap_start, cap_end) = captures[i];
 
+            // Pop local stack not in use anymore
             while local_stack.len() > 0
                 && let Some((scopes, end_pos)) = local_stack.last()
                 && *end_pos <= cap_start
@@ -294,8 +293,23 @@ impl<'g> Tokenizer<'g> {
 
             //  Check if it has captures. if it does we need to call tokenize string
             let rule = &self.grammar.rules[rule_id.id()];
+
+            let name = rule.name(line, captures);
             if rule.has_patterns() {
-                // TODO: retokenize the string
+                let content_name = rule.content_name(line, captures);
+                let new_input = &line[0..cap_end];
+                // We need to start a new tokenization
+                // TODO!
+                // export function _tokenizeString(
+                //     grammar: Grammar,
+                //     lineText: OnigString,
+                //     isFirstLine: boolean,
+                //     linePos: number,
+                //     stack: StateStackImpl,
+                //     lineTokens: LineTokens,
+                //     checkWhileConditions: boolean,
+                //     timeLimit: number
+                // ): TokenizeStringResult {
                 // if (captureRule.retokenizeCapturedWithRuleId) {
                 //     // the capture requires additional matching
                 //     const scopeName = captureRule.getName(lineTextContent, captureIndices);
@@ -309,7 +323,17 @@ impl<'g> Tokenizer<'g> {
                 //     disposeOnigString(onigSubStr);
                 //     continue;
                 // }
-            } else {
+                continue;
+            }
+
+            if let Some(n) = name {
+                let mut base = if let Some((scopes, _)) = local_stack.last() {
+                    scopes.clone()
+                } else {
+                    self.state.content_scopes.clone()
+                };
+                base.push(n);
+                local_stack.push((base, cap_end));
             }
         }
 
@@ -318,65 +342,26 @@ impl<'g> Tokenizer<'g> {
         }
     }
 
-    fn handle_match(&mut self, match_: PatternSetMatch, accumulator: &mut TokenAccumulator) {
+    fn handle_match(&mut self, line: &str, match_: PatternSetMatch, accumulator: &mut TokenAccumulator) {
         // Always generate a token for any text before this match
         accumulator.produce(match_.start, &self.state.content_scopes);
 
-        if match_.rule_id == END_RULE_ID {
-            if let Rule::BeginEnd(b) = &self.grammar.rules[self.state.rule_id.id()] {}
-
+        if match_.rule_id == END_RULE_ID && let Rule::BeginEnd(b) = &self.grammar.rules[self.state.rule_id.id()] {
+            accumulator.produce(match_.start, &self.state.content_scopes);
+            self.resolve_captures(line, &b.end_captures, &match_.capture_pos, accumulator);
+            accumulator.produce(match_.end, &self.state.content_scopes);
             // Pop back to the parent context
             if let Some(parent) = self.state.pop() {
                 self.state = parent;
             }
-
-            // // We matched the `end` for this rule => pop it
-            // const poppedRule = <BeginEndRule>stack.getRule(grammar);
-            //
-            // if (DebugFlags.InDebugMode) {
-            //     console.log(
-            //         "  popping " +
-            //             poppedRule.debugName +
-            //             " - " +
-            //             poppedRule.debugEndRegExp
-            //     );
-            // }
-            //
-            // lineTokens.produce(stack, captureIndices[0].start);
-            // stack = stack.withContentNameScopesList(stack.nameScopesList!);
-            // handleCaptures(
-            //     grammar,
-            //     lineText,
-            //     isFirstLine,
-            //     stack,
-            //     lineTokens,
-            //     poppedRule.endCaptures,
-            //     captureIndices
-            // );
-            // lineTokens.produce(stack, captureIndices[0].end);
-            //
-            // // pop
-            // const popped = stack;
-            // stack = stack.parent!;
-            // anchorPosition = popped.getAnchorPos();
-            //
-            // if (!hasAdvanced && popped.getEnterPos() === linePos) {
-            //     // Grammar pushed & popped a rule without advancing
-            //     if (DebugFlags.InDebugMode) {
-            //         console.error(
-            //             "[1] - Grammar is in an endless loop - Grammar pushed & popped a rule without advancing"
-            //         );
-            //     }
-            //
-            //     // See https://github.com/Microsoft/vscode-textmate/issues/12
-            //     // Let's assume this was a mistake by the grammar author and the intent was to continue in this state
-            //     stack = popped;
-            //
-            //     lineTokens.produce(stack, lineLength);
-            //     STOP = true;
-            //     return;
-            // }
+            return;
         }
+
+        // We got a match other than an end rule
+        let rule = &self.grammar.rules[self.state.rule_id.id()];
+        accumulator.produce(match_.start, &self.state.content_scopes);
+        let name = rule.name(line, &match_.capture_pos);
+
     }
 
     pub fn tokenize_line(&mut self, line: &str) -> Result<TokenAccumulator, TokenizeError> {
@@ -391,13 +376,14 @@ impl<'g> Tokenizer<'g> {
             let pattern_set = self.get_or_create_pattern_set();
             if let Some(m) = pattern_set.find_at(line, pos) {
                 pos = m.end;
+                // TODO: call handle_match here
             } else {
                 accumulator.produce(line.len(), &self.state.content_scopes);
                 return Ok(accumulator);
             }
         }
 
-        return Ok(accumulator);
+        Ok(accumulator)
     }
 
     pub fn tokenize_string(&mut self, text: &str) -> Result<Vec<Token>, TokenizeError> {
@@ -407,7 +393,7 @@ impl<'g> Tokenizer<'g> {
         }
 
         // we do that twice... once in new and here again. not a huge deal
-        self.state = StateStack::new(self.grammar.scope_id);
+        self.state = StateStack::new(self.grammar.scope_name.clone());
         let mut out = Vec::new();
         let mut pos = 0;
 

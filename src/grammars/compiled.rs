@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use crate::grammars::pattern_set::PatternSet;
 use crate::grammars::raw::{Captures, RawGrammar, RawRule};
 use crate::grammars::regex::Regex;
-use crate::grammars::{ScopeId, get_scope_id};
 
 // TODO: add name_is_capturing/content_name_is_capturing with regex test from vscode-textmate
 // TODO: how to handle scopes with optional captures?
@@ -22,7 +21,7 @@ fn has_captures(pat: Option<&str>) -> bool {
     }
 }
 
-fn replace_captures(original_name: &str, text: &str, captures_pos: Vec<(usize, usize)>) -> String {
+fn replace_captures(original_name: &str, text: &str, captures_pos: &[(usize, usize)]) -> String {
     CAPTURING_NAME_RE
         .replace_all(original_name, |caps: &onig::Captures| {
             let capture_num = caps
@@ -47,6 +46,19 @@ fn replace_captures(original_name: &str, text: &str, captures_pos: Vec<(usize, u
             }
         })
         .to_string()
+}
+
+fn process_scope_name(
+    name: &Option<String>,
+    is_capturing: bool,
+    input: &str,
+    captures_pos: &[(usize, usize)],
+) -> Option<String> {
+    match name {
+        Some(name) if is_capturing => Some(replace_captures(name, input, captures_pos)),
+        Some(name) => Some(name.clone()),
+        None => None,
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
@@ -153,8 +165,8 @@ pub enum Reference {
     Base,
     Local(String),
     // Below are still present at runtime
-    OtherComplete(ScopeId),
-    OtherSpecific(ScopeId, String),
+    OtherComplete(String),
+    OtherSpecific(String, String),
     // Pointing to something in the current grammar but we can't find it
     Unknown(String),
 }
@@ -167,32 +179,19 @@ impl From<&str> for Reference {
             s if s.starts_with('#') => Self::Local(s[1..].to_string()),
             s if s.contains('#') => {
                 let (scope, rule) = s.split_once('#').unwrap();
-                match get_scope_id(scope) {
-                    Some(scope_id) => Self::OtherSpecific(scope_id, rule.to_string()),
-                    None => Self::Unknown(value.to_string()),
-                }
+                Self::OtherSpecific(scope.to_string(), rule.to_string())
             }
             s if s.contains('.') => {
                 // Try parsing as scope.repository format (e.g., "source.js.regexp")
                 if let Some(dot_pos) = s.rfind('.') {
                     let (scope_part, rule_part) = s.split_at(dot_pos);
                     let rule_part = &rule_part[1..]; // Remove the '.'
-
-                    // Check if the scope part is a valid scope
-                    if let Some(scope_id) = get_scope_id(scope_part) {
-                        return Self::OtherSpecific(scope_id, rule_part.to_string());
-                    }
+                    return Self::OtherSpecific(scope_part.to_string(), rule_part.to_string());
                 }
-                // If not a valid scope.rule format, fall through to complete scope lookup
-                match get_scope_id(value) {
-                    Some(scope_id) => Self::OtherComplete(scope_id),
-                    None => Self::Unknown(value.to_string()),
-                }
+                // Complete scope lookup
+                Self::OtherComplete(value.to_string())
             }
-            _ => match get_scope_id(value) {
-                Some(scope_id) => Self::OtherComplete(scope_id),
-                None => Self::Unknown(value.to_string()),
-            },
+            _ => Self::OtherComplete(value.to_string()),
         };
 
         if matches!(r, Self::Unknown(_)) {
@@ -213,7 +212,8 @@ pub enum RuleIdOrReference {
 pub struct Match {
     pub id: RuleId,
     // some match only care about the captures
-    pub scope_id: Option<ScopeId>,
+    pub name: Option<String>,
+    pub name_is_capturing: bool,
     /// The regex ID for this match rule.
     /// None for scope-only rules (e.g., capture groups that only assign scopes like
     /// punctuation.definition.string.begin without their own pattern to match)
@@ -225,8 +225,10 @@ pub struct Match {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct IncludeOnly {
     pub id: RuleId,
-    pub scope_id: Option<ScopeId>,
-    pub content_scope_id: Option<ScopeId>,
+    pub name: Option<String>,
+    pub name_is_capturing: bool,
+    pub content_name: Option<String>,
+    pub content_name_is_capturing: bool,
     pub repository_stack: RepositoryStack,
     pub patterns: Vec<RuleIdOrReference>,
 }
@@ -234,8 +236,10 @@ pub struct IncludeOnly {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct BeginEnd {
     pub id: RuleId,
-    pub scope_id: Option<ScopeId>,
-    pub content_scope_id: Option<ScopeId>,
+    pub name: Option<String>,
+    pub name_is_capturing: bool,
+    pub content_name: Option<String>,
+    pub content_name_is_capturing: bool,
     pub begin: RegexId,
     pub begin_captures: Vec<Option<RuleId>>,
     pub end: RegexId,
@@ -249,8 +253,10 @@ pub struct BeginEnd {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct BeginWhile {
     pub id: RuleId,
-    pub scope_id: Option<ScopeId>,
-    pub content_scope_id: Option<ScopeId>,
+    pub name: Option<String>,
+    pub name_is_capturing: bool,
+    pub content_name: Option<String>,
+    pub content_name_is_capturing: bool,
     pub begin: RegexId,
     pub begin_captures: Vec<Option<RuleId>>,
     pub while_: RegexId,
@@ -270,6 +276,29 @@ pub enum Rule {
 }
 
 impl Rule {
+    pub fn name(&self, input: &str, captures_pos: &[(usize, usize)]) -> Option<String> {
+        let (name, is_capturing) = match self {
+            Rule::Match(m) => (&m.name, m.name_is_capturing),
+            Rule::IncludeOnly(i) => (&i.name, i.name_is_capturing),
+            Rule::BeginEnd(b) => (&b.name, b.name_is_capturing),
+            Rule::BeginWhile(b) => (&b.name, b.name_is_capturing),
+            Rule::Noop => return None,
+        };
+
+        process_scope_name(name, is_capturing, input, captures_pos)
+    }
+
+    pub fn content_name(&self, input: &str, captures_pos: &[(usize, usize)]) -> Option<String> {
+        let (content_name, is_capturing) = match self {
+            Rule::IncludeOnly(i) => (&i.content_name, i.content_name_is_capturing),
+            Rule::BeginEnd(b) => (&b.content_name, b.content_name_is_capturing),
+            Rule::BeginWhile(b) => (&b.content_name, b.content_name_is_capturing),
+            _ => return None,
+        };
+
+        process_scope_name(content_name, is_capturing, input, captures_pos)
+    }
+
     pub fn apply_end_pattern_last(&self) -> bool {
         match self {
             Rule::BeginEnd(b) => b.apply_end_pattern_last,
@@ -317,7 +346,6 @@ pub struct CompiledGrammar {
     pub name: String,
     pub display_name: Option<String>,
     pub scope_name: String,
-    pub scope_id: ScopeId,
     pub file_types: Vec<String>,
     pub regexes: Vec<Regex>,
     pub rules: Vec<Rule>,
@@ -326,16 +354,11 @@ pub struct CompiledGrammar {
 
 impl CompiledGrammar {
     pub fn from_raw_grammar(raw: RawGrammar) -> Result<Self, CompileError> {
-        let scope_id = get_scope_id(&raw.scope_name).ok_or_else(|| CompileError::UnknownScope {
-            scope: raw.scope_name.clone(),
-        })?;
-
         let mut grammar = Self {
             name: raw.name,
             display_name: raw.display_name,
             scope_name: raw.scope_name,
             file_types: raw.file_types,
-            scope_id,
             regexes: Vec::new(),
             rules: Vec::new(),
             repositories: Vec::new(),
@@ -364,27 +387,30 @@ impl CompiledGrammar {
 
         // push a no-op to reserve its spot
         self.rules.push(Rule::Noop);
-        let scope_id = raw_rule.name.map(|x| get_scope_id(&x).unwrap());
+        let name = raw_rule.name;
 
         // https://github.com/microsoft/vscode-textmate/blob/f03a6a8790af81372d0e81facae75554ec5e97ef/src/rule.ts#L389-L447
         let rule = if let Some(pat) = raw_rule.match_ {
             Rule::Match(Match {
                 id,
-                scope_id,
+                name_is_capturing: has_captures(name.as_deref()),
+                name,
                 regex_id: Some(self.compile_regex(pat).0),
                 captures: vec![],
                 repository_stack,
             })
         } else if let Some(begin_pat) = raw_rule.begin {
-            let content_scope_id = raw_rule.content_name.map(|x| get_scope_id(&x).unwrap());
+            let content_name = raw_rule.content_name;
             let apply_end_pattern_last = raw_rule.apply_end_pattern_last;
             if let Some(while_pat) = raw_rule.while_ {
                 let (while_, while_has_backrefs) = self.compile_regex(while_pat);
                 let patterns = self.compile_patterns(raw_rule.patterns, repository_stack)?;
                 Rule::BeginWhile(BeginWhile {
                     id,
-                    scope_id,
-                    content_scope_id,
+                    name_is_capturing: has_captures(name.as_deref()),
+                    name,
+                    content_name_is_capturing: has_captures(content_name.as_deref()),
+                    content_name,
                     begin: self.compile_regex(begin_pat).0,
                     begin_captures: self
                         .compile_captures(raw_rule.begin_captures, repository_stack)?,
@@ -400,8 +426,10 @@ impl CompiledGrammar {
                 let patterns = self.compile_patterns(raw_rule.patterns, repository_stack)?;
                 Rule::BeginEnd(BeginEnd {
                     id,
-                    scope_id,
-                    content_scope_id,
+                    name_is_capturing: has_captures(name.as_deref()),
+                    name,
+                    content_name_is_capturing: has_captures(content_name.as_deref()),
+                    content_name,
                     begin: self.compile_regex(begin_pat).0,
                     begin_captures: self
                         .compile_captures(raw_rule.begin_captures, repository_stack)?,
@@ -416,7 +444,8 @@ impl CompiledGrammar {
                 // a rule that has begin without while/end is just a match, probably a typo
                 Rule::Match(Match {
                     id,
-                    scope_id,
+                    name_is_capturing: has_captures(name.as_deref()),
+                    name,
                     regex_id: Some(self.compile_regex(begin_pat).0),
                     captures: vec![],
                     repository_stack,
@@ -431,12 +460,13 @@ impl CompiledGrammar {
             };
 
             // Check if this is a scope-only rule (like a capture with just a name)
-            if scope_id.is_some() && raw_rule.patterns.is_empty() && raw_rule.include.is_none() {
+            if name.is_some() && raw_rule.patterns.is_empty() && raw_rule.include.is_none() {
                 // This is a scope-only rule - create a Match rule with no regex
                 // This handles captures that only assign scopes
                 Rule::Match(Match {
                     id,
-                    scope_id,
+                    name_is_capturing: has_captures(name.as_deref()),
+                    name,
                     regex_id: None, // Scope-only rule (e.g., capture that only assigns scope)
                     captures: vec![],
                     repository_stack,
@@ -465,9 +495,11 @@ impl CompiledGrammar {
                     let compiled_patterns = self.compile_patterns(patterns, repository_stack)?;
                     Rule::IncludeOnly(IncludeOnly {
                         id,
-                        scope_id,
+                        name_is_capturing: has_captures(name.as_deref()),
+                        name,
+                        content_name_is_capturing: has_captures(raw_rule.content_name.as_deref()),
+                        content_name: raw_rule.content_name,
                         repository_stack,
-                        content_scope_id: raw_rule.content_name.map(|x| get_scope_id(&x).unwrap()),
                         patterns: compiled_patterns,
                     })
                 }
@@ -858,7 +890,7 @@ mod tests {
         ];
 
         for (original_name, text, captures_pos, expected) in test_cases {
-            let result = replace_captures(original_name, text, captures_pos);
+            let result = replace_captures(original_name, text, &captures_pos);
             assert_eq!(
                 result, expected,
                 "Failed for input: '{}' with text: '{}' - expected: '{}', got: '{}'",

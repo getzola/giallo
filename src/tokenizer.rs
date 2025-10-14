@@ -18,7 +18,7 @@
  * 5. Token Batching: Efficient processing of consecutive same-scope text
  */
 
-use crate::grammars::{CompiledGrammar, PatternSet, Rule, RuleId, ScopeId};
+use crate::grammars::{CompiledGrammar, PatternSet, Rule, RuleId};
 use onig::RegSet;
 use std::collections::HashMap;
 
@@ -33,34 +33,26 @@ pub struct Token {
     pub start: usize,
     /// End byte position in the input text (exclusive)
     pub end: usize,
-    /// Hierarchical scope IDs, ordered from outermost to innermost
-    /// Use `crate::grammars::scope_id_to_name()` to convert to strings when needed
-    pub scopes: Vec<ScopeId>,
+    /// Hierarchical scope names, ordered from outermost to innermost
+    pub scopes: Vec<String>,
 }
 
 impl Token {
     /// Get the scope names as strings.
     ///
-    /// This is a convenience method that converts all ScopeIds to their string
-    /// representations. Note that this is O(n*m) where n is the number of scopes
-    /// and m is the total number of scopes in the grammar, so use sparingly.
+    /// This is now just a direct clone since scopes are already strings.
     pub fn scope_names(&self) -> Vec<String> {
-        use crate::grammars::scope_id_to_name;
-        self.scopes
-            .iter()
-            .map(|&scope_id| scope_id_to_name(scope_id))
-            .collect()
+        self.scopes.clone()
     }
 
     /// Check if this token has a scope that contains the given substring.
     ///
-    /// This is useful for checking token types without converting all scopes to strings.
+    /// This is useful for checking token types without converting strings.
     /// For example: `token.has_scope_containing("invalid.illegal")`.
     pub fn has_scope_containing(&self, substring: &str) -> bool {
-        use crate::grammars::scope_id_to_name;
         self.scopes
             .iter()
-            .any(|&scope_id| scope_id_to_name(scope_id).contains(substring))
+            .any(|scope| scope.contains(substring))
     }
 }
 
@@ -103,8 +95,8 @@ impl TokenizerState {
             stack: StateStack {
                 parent: None,
                 rule_id: RuleId(0), // Root rule (always ID 0)
-                name_scopes: vec![grammar.scope_id],
-                content_scopes: vec![grammar.scope_id],
+                name_scopes: vec![grammar.scope_id.clone()],
+                content_scopes: vec![grammar.scope_id.clone()],
                 end_rule: None,
                 begin_captures: Vec::new(),
             },
@@ -145,12 +137,12 @@ struct StateStack {
 
     /// "name" scopes - applied to begin/end delimiters
     /// These scopes are active when matching the rule's boundaries
-    name_scopes: Vec<ScopeId>,
+    name_scopes: Vec<String>,
 
     /// "contentName" scopes - applied to content between delimiters
     /// These scopes are active for the rule's interior content
     /// This is what gets used for most token generation
-    content_scopes: Vec<ScopeId>,
+    content_scopes: Vec<String>,
 
     /// Dynamic end/while pattern resolved with backreferences
     /// For BeginEnd rules: the end pattern with \1, \2, etc. resolved
@@ -201,7 +193,7 @@ impl StateStack {
     ///
     /// Name scopes are applied to the begin/end delimiters of a rule.
     /// This is a builder pattern method for fluent configuration.
-    fn with_name_scope(mut self, scope: ScopeId) -> Self {
+    fn with_name_scope(mut self, scope: String) -> Self {
         self.name_scopes.push(scope);
         self
     }
@@ -210,7 +202,7 @@ impl StateStack {
     ///
     /// Content scopes are applied to the interior content of a rule.
     /// This is a builder pattern method for fluent configuration.
-    fn with_content_scope(mut self, scope: ScopeId) -> Self {
+    fn with_content_scope(mut self, scope: String) -> Self {
         self.content_scopes.push(scope);
         self
     }
@@ -381,7 +373,7 @@ impl TokenAccumulator {
     /// ## Error Detection:
     /// After tokenization, check that accumulator.last_end_pos == text.len().
     /// If not, there's a bug in position advancement or pattern processing.
-    fn produce(&mut self, end_pos: usize, scopes: &[ScopeId]) {
+    fn produce(&mut self, end_pos: usize, scopes: &[String]) {
         // Ensure we don't move backward (can happen with zero-width matches)
         if self.last_end_pos >= end_pos {
             return;
@@ -857,7 +849,7 @@ impl<'g> Tokenizer<'g> {
                         let delimiter_scopes = self.resolve_captures(
                             &begin_end.end_captures,
                             &match_result.captures,
-                            begin_end.scope_id, // fallback to rule's main scope
+                            begin_end.scope_id.clone(), // fallback to rule's main scope
                         );
                         accumulator.produce(match_result.end, &delimiter_scopes);
                     } else {
@@ -886,8 +878,8 @@ impl<'g> Tokenizer<'g> {
                 let mut temp_scopes = self.state.stack.content_scopes.clone();
                 if let Some(rule) = self.grammar.rules.get(*match_result.rule_id as usize) {
                     if let Rule::Match(match_rule) = rule {
-                        if let Some(scope_id) = match_rule.scope_id {
-                            temp_scopes.push(scope_id);
+                        if let Some(scope_id) = &match_rule.scope_id {
+                            temp_scopes.push(scope_id.clone());
                         }
                     }
                 }
@@ -907,8 +899,8 @@ impl<'g> Tokenizer<'g> {
                         // Configure scopes using helper
                         new_stack = self.configure_begin_context_scopes(
                             new_stack,
-                            begin_end.scope_id,
-                            begin_end.content_scope_id,
+                            begin_end.scope_id.clone(),
+                            begin_end.content_scope_id.clone(),
                         );
 
                         // Set up the end pattern using helper
@@ -925,7 +917,7 @@ impl<'g> Tokenizer<'g> {
                         let delimiter_scopes = self.resolve_captures(
                             &begin_end.begin_captures,
                             &match_result.captures,
-                            begin_end.scope_id, // fallback to rule's main scope
+                            begin_end.scope_id.clone(), // fallback to rule's main scope
                         );
                         accumulator.produce(match_result.end, &delimiter_scopes);
                     }
@@ -948,8 +940,8 @@ impl<'g> Tokenizer<'g> {
                         // Configure scopes using helper (same as BeginEnd)
                         new_stack = self.configure_begin_context_scopes(
                             new_stack,
-                            begin_while.scope_id,
-                            begin_while.content_scope_id,
+                            begin_while.scope_id.clone(),
+                            begin_while.content_scope_id.clone(),
                         );
 
                         // Set up the while pattern using helper
@@ -1070,8 +1062,8 @@ impl<'g> Tokenizer<'g> {
     fn configure_begin_context_scopes(
         &self,
         mut new_stack: StateStack,
-        scope_id: Option<ScopeId>,
-        content_scope_id: Option<ScopeId>,
+        scope_id: Option<String>,
+        content_scope_id: Option<String>,
     ) -> StateStack {
         // Add "name" scope (applied to begin/end delimiters)
         if let Some(scope_id) = scope_id {
@@ -1290,8 +1282,8 @@ impl<'g> Tokenizer<'g> {
         &self,
         captures_list: &[Option<RuleId>],
         _matched_captures: &[String],
-        fallback_scope: Option<ScopeId>,
-    ) -> Vec<ScopeId> {
+        fallback_scope: Option<String>,
+    ) -> Vec<String> {
         // Start with current context scopes
         let mut scopes = self.state.stack.content_scopes.clone();
 
@@ -1302,8 +1294,8 @@ impl<'g> Tokenizer<'g> {
                 if let Some(rule) = self.grammar.rules.get(**capture_rule_id as usize) {
                     if let Rule::Match(match_rule) = rule {
                         // Scope-only Match rule with the punctuation/delimiter scope
-                        if let Some(capture_scope) = match_rule.scope_id {
-                            scopes.push(capture_scope);
+                        if let Some(capture_scope) = &match_rule.scope_id {
+                            scopes.push(capture_scope.clone());
                             return scopes;
                         }
                     }

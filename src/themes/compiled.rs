@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::grammars::{ScopeId, get_scope_id};
+// Removed scope ID dependencies - now using strings directly
 use crate::themes::Color;
 use crate::themes::font_style::FontStyle;
 use crate::themes::raw::{RawTheme, TokenColorSettings};
@@ -95,8 +95,8 @@ impl ThemeType {
 /// Compiled theme rule for efficient matching
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledThemeRule {
-    /// Compiled scope patterns - each pattern is a sequence of scope IDs
-    pub scope_patterns: Vec<Vec<ScopeId>>,
+    /// Compiled scope patterns - each pattern is a sequence of scope names
+    pub scope_patterns: Vec<Vec<String>>,
     pub style_modifier: StyleModifier,
 }
 
@@ -142,18 +142,8 @@ impl CompiledTheme {
                     continue;
                 }
 
-                let mut out = Vec::new();
-
-                for s in scopes {
-                    if let Some(i) = get_scope_id(&s) {
-                        out.push(i);
-                    } else {
-                        println!("Missing scope pattern {s:?}");
-                    }
-                }
-
-                if !out.is_empty() {
-                    scope_patterns.push(out);
+                if !scopes.is_empty() {
+                    scope_patterns.push(scopes);
                 }
             }
 
@@ -178,7 +168,7 @@ impl CompiledTheme {
     ///
     /// This method finds the most specific theme rule that matches the scope stack
     /// and applies it to the default style.
-    pub fn get_style(&self, scope_stack: &[ScopeId]) -> Style {
+    pub fn get_style(&self, scope_stack: &[String]) -> Style {
         let mut style = self.default_style;
 
         // Find the most specific rule that matches
@@ -208,14 +198,14 @@ impl CompiledTheme {
     ///
     /// A scope pattern matches if all its scopes are contained in the scope stack
     /// in the same order (but not necessarily consecutively).
-    fn matches_scope_pattern(&self, scope_stack: &[ScopeId], pattern: &[ScopeId]) -> bool {
+    fn matches_scope_pattern(&self, scope_stack: &[String], pattern: &[String]) -> bool {
         if pattern.is_empty() {
             return false;
         }
 
         let mut pattern_idx = 0;
-        for &scope in scope_stack {
-            if pattern_idx < pattern.len() && scope == pattern[pattern_idx] {
+        for scope in scope_stack {
+            if pattern_idx < pattern.len() && scope == &pattern[pattern_idx] {
                 pattern_idx += 1;
             }
         }
