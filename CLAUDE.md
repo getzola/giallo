@@ -2,6 +2,8 @@
 
 Never modify anything in grammars-themes folder
 If you see an `assert!(false)` in a test, don't remove it.
+Always look at ../pulls/vscode-textmate if you have doubts on the algorithm
+Do not do temporary fixes/hacks if the issue is somewhere else.
 
 ## Grammar Statistics (Latest Analysis)
 

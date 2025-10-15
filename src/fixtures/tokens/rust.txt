@@ -1,0 +1,927 @@
+0: "//" [0-2] (line 0)
+  - source.rust
+  - comment.line.double-slash.rust
+  - punctuation.definition.comment.rust
+
+1: " Unlike C/C++, there's no restriction on the order of function definitions" [2-76] (line 0)
+  - source.rust
+  - comment.line.double-slash.rust
+
+0: "fn" [0-2] (line 1)
+  - source.rust
+  - meta.function.definition.rust
+  - keyword.other.fn.rust
+
+1: " " [2-3] (line 1)
+  - source.rust
+  - meta.function.definition.rust
+
+2: "main" [3-7] (line 1)
+  - source.rust
+  - meta.function.definition.rust
+  - entity.name.function.rust
+
+3: "(" [7-8] (line 1)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.round.rust
+
+4: ")" [8-9] (line 1)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.round.rust
+
+5: " " [9-10] (line 1)
+  - source.rust
+  - meta.function.definition.rust
+
+6: "{" [10-11] (line 1)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.curly.rust
+
+0: "    " [0-4] (line 2)
+  - source.rust
+
+1: "//" [4-6] (line 2)
+  - source.rust
+  - comment.line.double-slash.rust
+  - punctuation.definition.comment.rust
+
+2: " We can use this function here, and define it somewhere later" [6-67] (line 2)
+  - source.rust
+  - comment.line.double-slash.rust
+
+0: "    " [0-4] (line 3)
+  - source.rust
+
+1: "fizzbuzz_to" [4-15] (line 3)
+  - source.rust
+  - meta.function.call.rust
+  - entity.name.function.rust
+
+2: "(" [15-16] (line 3)
+  - source.rust
+  - meta.function.call.rust
+  - punctuation.brackets.round.rust
+
+3: "100" [16-19] (line 3)
+  - source.rust
+  - meta.function.call.rust
+  - constant.numeric.decimal.rust
+
+4: ")" [19-20] (line 3)
+  - source.rust
+  - meta.function.call.rust
+  - punctuation.brackets.round.rust
+
+5: ";" [20-21] (line 3)
+  - source.rust
+  - punctuation.semi.rust
+
+0: "}" [0-1] (line 4)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+0: "//" [0-2] (line 6)
+  - source.rust
+  - comment.line.double-slash.rust
+  - punctuation.definition.comment.rust
+
+1: " Function that returns a boolean value" [2-40] (line 6)
+  - source.rust
+  - comment.line.double-slash.rust
+
+0: "fn" [0-2] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - keyword.other.fn.rust
+
+1: " " [2-3] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+
+2: "is_divisible_by" [3-18] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - entity.name.function.rust
+
+3: "(" [18-19] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.round.rust
+
+4: "lhs" [19-22] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - variable.other.rust
+
+5: ":" [22-23] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - keyword.operator.key-value.rust
+
+6: " " [23-24] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+
+7: "u32" [24-27] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - entity.name.type.numeric.rust
+
+8: "," [27-28] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.comma.rust
+
+9: " " [28-29] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+
+10: "rhs" [29-32] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - variable.other.rust
+
+11: ":" [32-33] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - keyword.operator.key-value.rust
+
+12: " " [33-34] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+
+13: "u32" [34-37] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - entity.name.type.numeric.rust
+
+14: ")" [37-38] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.round.rust
+
+15: " " [38-39] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+
+16: "->" [39-41] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - keyword.operator.arrow.skinny.rust
+
+17: " " [41-42] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+
+18: "bool" [42-46] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - entity.name.type.primitive.rust
+
+19: " " [46-47] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+
+20: "{" [47-48] (line 7)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.curly.rust
+
+0: "    " [0-4] (line 8)
+  - source.rust
+
+1: "//" [4-6] (line 8)
+  - source.rust
+  - comment.line.double-slash.rust
+  - punctuation.definition.comment.rust
+
+2: " Corner case, early return" [6-32] (line 8)
+  - source.rust
+  - comment.line.double-slash.rust
+
+0: "    " [0-4] (line 9)
+  - source.rust
+
+1: "if" [4-6] (line 9)
+  - source.rust
+  - keyword.control.rust
+
+2: " " [6-7] (line 9)
+  - source.rust
+
+3: "rhs" [7-10] (line 9)
+  - source.rust
+  - variable.other.rust
+
+4: " " [10-11] (line 9)
+  - source.rust
+
+5: "==" [11-13] (line 9)
+  - source.rust
+  - keyword.operator.comparison.rust
+
+6: " " [13-14] (line 9)
+  - source.rust
+
+7: "0" [14-15] (line 9)
+  - source.rust
+  - constant.numeric.decimal.rust
+
+8: " " [15-16] (line 9)
+  - source.rust
+
+9: "{" [16-17] (line 9)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+0: "        " [0-8] (line 10)
+  - source.rust
+
+1: "return" [8-14] (line 10)
+  - source.rust
+  - keyword.control.rust
+
+2: " " [14-15] (line 10)
+  - source.rust
+
+3: "false" [15-20] (line 10)
+  - source.rust
+  - constant.language.bool.rust
+
+4: ";" [20-21] (line 10)
+  - source.rust
+  - punctuation.semi.rust
+
+0: "    " [0-4] (line 11)
+  - source.rust
+
+1: "}" [4-5] (line 11)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+0: "    " [0-4] (line 13)
+  - source.rust
+
+1: "//" [4-6] (line 13)
+  - source.rust
+  - comment.line.double-slash.rust
+  - punctuation.definition.comment.rust
+
+2: " This is an expression, the `return` keyword is not necessary here" [6-72] (line 13)
+  - source.rust
+  - comment.line.double-slash.rust
+
+0: "    " [0-4] (line 14)
+  - source.rust
+
+1: "lhs" [4-7] (line 14)
+  - source.rust
+  - variable.other.rust
+
+2: " " [7-8] (line 14)
+  - source.rust
+
+3: "%" [8-9] (line 14)
+  - source.rust
+  - keyword.operator.math.rust
+
+4: " " [9-10] (line 14)
+  - source.rust
+
+5: "rhs" [10-13] (line 14)
+  - source.rust
+  - variable.other.rust
+
+6: " " [13-14] (line 14)
+  - source.rust
+
+7: "==" [14-16] (line 14)
+  - source.rust
+  - keyword.operator.comparison.rust
+
+8: " " [16-17] (line 14)
+  - source.rust
+
+9: "0" [17-18] (line 14)
+  - source.rust
+  - constant.numeric.decimal.rust
+
+0: "}" [0-1] (line 15)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+0: "//" [0-2] (line 17)
+  - source.rust
+  - comment.line.double-slash.rust
+  - punctuation.definition.comment.rust
+
+1: " Functions that \"don't\" return a value, actually return the unit type `()`" [2-76] (line 17)
+  - source.rust
+  - comment.line.double-slash.rust
+
+0: "fn" [0-2] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+  - keyword.other.fn.rust
+
+1: " " [2-3] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+
+2: "fizzbuzz" [3-11] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+  - entity.name.function.rust
+
+3: "(" [11-12] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.round.rust
+
+4: "n" [12-13] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+  - variable.other.rust
+
+5: ":" [13-14] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+  - keyword.operator.key-value.rust
+
+6: " " [14-15] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+
+7: "u32" [15-18] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+  - entity.name.type.numeric.rust
+
+8: ")" [18-19] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.round.rust
+
+9: " " [19-20] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+
+10: "->" [20-22] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+  - keyword.operator.arrow.skinny.rust
+
+11: " " [22-23] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+
+12: "(" [23-24] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.round.rust
+
+13: ")" [24-25] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.round.rust
+
+14: " " [25-26] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+
+15: "{" [26-27] (line 18)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.curly.rust
+
+0: "    " [0-4] (line 19)
+  - source.rust
+
+1: "if" [4-6] (line 19)
+  - source.rust
+  - keyword.control.rust
+
+2: " " [6-7] (line 19)
+  - source.rust
+
+3: "is_divisible_by" [7-22] (line 19)
+  - source.rust
+  - meta.function.call.rust
+  - entity.name.function.rust
+
+4: "(" [22-23] (line 19)
+  - source.rust
+  - meta.function.call.rust
+  - punctuation.brackets.round.rust
+
+5: "n" [23-24] (line 19)
+  - source.rust
+  - meta.function.call.rust
+  - variable.other.rust
+
+6: "," [24-25] (line 19)
+  - source.rust
+  - meta.function.call.rust
+  - punctuation.comma.rust
+
+7: " " [25-26] (line 19)
+  - source.rust
+  - meta.function.call.rust
+
+8: "15" [26-28] (line 19)
+  - source.rust
+  - meta.function.call.rust
+  - constant.numeric.decimal.rust
+
+9: ")" [28-29] (line 19)
+  - source.rust
+  - meta.function.call.rust
+  - punctuation.brackets.round.rust
+
+10: " " [29-30] (line 19)
+  - source.rust
+
+11: "{" [30-31] (line 19)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+0: "        " [0-8] (line 20)
+  - source.rust
+
+1: "println!" [8-16] (line 20)
+  - source.rust
+  - meta.macro.rust
+  - entity.name.function.macro.rust
+
+2: "(" [16-17] (line 20)
+  - source.rust
+  - punctuation.brackets.round.rust
+
+3: "\"" [17-18] (line 20)
+  - source.rust
+  - string.quoted.double.rust
+  - punctuation.definition.string.rust
+
+4: "fizzbuzz" [18-26] (line 20)
+  - source.rust
+  - string.quoted.double.rust
+
+5: "\"" [26-27] (line 20)
+  - source.rust
+  - string.quoted.double.rust
+  - punctuation.definition.string.rust
+
+6: ")" [27-28] (line 20)
+  - source.rust
+  - punctuation.brackets.round.rust
+
+7: ";" [28-29] (line 20)
+  - source.rust
+  - punctuation.semi.rust
+
+0: "    " [0-4] (line 21)
+  - source.rust
+
+1: "}" [4-5] (line 21)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+2: " " [5-6] (line 21)
+  - source.rust
+
+3: "else" [6-10] (line 21)
+  - source.rust
+  - keyword.control.rust
+
+4: " " [10-11] (line 21)
+  - source.rust
+
+5: "if" [11-13] (line 21)
+  - source.rust
+  - keyword.control.rust
+
+6: " " [13-14] (line 21)
+  - source.rust
+
+7: "is_divisible_by" [14-29] (line 21)
+  - source.rust
+  - meta.function.call.rust
+  - entity.name.function.rust
+
+8: "(" [29-30] (line 21)
+  - source.rust
+  - meta.function.call.rust
+  - punctuation.brackets.round.rust
+
+9: "n" [30-31] (line 21)
+  - source.rust
+  - meta.function.call.rust
+  - variable.other.rust
+
+10: "," [31-32] (line 21)
+  - source.rust
+  - meta.function.call.rust
+  - punctuation.comma.rust
+
+11: " " [32-33] (line 21)
+  - source.rust
+  - meta.function.call.rust
+
+12: "3" [33-34] (line 21)
+  - source.rust
+  - meta.function.call.rust
+  - constant.numeric.decimal.rust
+
+13: ")" [34-35] (line 21)
+  - source.rust
+  - meta.function.call.rust
+  - punctuation.brackets.round.rust
+
+14: " " [35-36] (line 21)
+  - source.rust
+
+15: "{" [36-37] (line 21)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+0: "        " [0-8] (line 22)
+  - source.rust
+
+1: "println!" [8-16] (line 22)
+  - source.rust
+  - meta.macro.rust
+  - entity.name.function.macro.rust
+
+2: "(" [16-17] (line 22)
+  - source.rust
+  - punctuation.brackets.round.rust
+
+3: "\"" [17-18] (line 22)
+  - source.rust
+  - string.quoted.double.rust
+  - punctuation.definition.string.rust
+
+4: "fizz" [18-22] (line 22)
+  - source.rust
+  - string.quoted.double.rust
+
+5: "\"" [22-23] (line 22)
+  - source.rust
+  - string.quoted.double.rust
+  - punctuation.definition.string.rust
+
+6: ")" [23-24] (line 22)
+  - source.rust
+  - punctuation.brackets.round.rust
+
+7: ";" [24-25] (line 22)
+  - source.rust
+  - punctuation.semi.rust
+
+0: "    " [0-4] (line 23)
+  - source.rust
+
+1: "}" [4-5] (line 23)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+2: " " [5-6] (line 23)
+  - source.rust
+
+3: "else" [6-10] (line 23)
+  - source.rust
+  - keyword.control.rust
+
+4: " " [10-11] (line 23)
+  - source.rust
+
+5: "if" [11-13] (line 23)
+  - source.rust
+  - keyword.control.rust
+
+6: " " [13-14] (line 23)
+  - source.rust
+
+7: "is_divisible_by" [14-29] (line 23)
+  - source.rust
+  - meta.function.call.rust
+  - entity.name.function.rust
+
+8: "(" [29-30] (line 23)
+  - source.rust
+  - meta.function.call.rust
+  - punctuation.brackets.round.rust
+
+9: "n" [30-31] (line 23)
+  - source.rust
+  - meta.function.call.rust
+  - variable.other.rust
+
+10: "," [31-32] (line 23)
+  - source.rust
+  - meta.function.call.rust
+  - punctuation.comma.rust
+
+11: " " [32-33] (line 23)
+  - source.rust
+  - meta.function.call.rust
+
+12: "5" [33-34] (line 23)
+  - source.rust
+  - meta.function.call.rust
+  - constant.numeric.decimal.rust
+
+13: ")" [34-35] (line 23)
+  - source.rust
+  - meta.function.call.rust
+  - punctuation.brackets.round.rust
+
+14: " " [35-36] (line 23)
+  - source.rust
+
+15: "{" [36-37] (line 23)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+0: "        " [0-8] (line 24)
+  - source.rust
+
+1: "println!" [8-16] (line 24)
+  - source.rust
+  - meta.macro.rust
+  - entity.name.function.macro.rust
+
+2: "(" [16-17] (line 24)
+  - source.rust
+  - punctuation.brackets.round.rust
+
+3: "\"" [17-18] (line 24)
+  - source.rust
+  - string.quoted.double.rust
+  - punctuation.definition.string.rust
+
+4: "buzz" [18-22] (line 24)
+  - source.rust
+  - string.quoted.double.rust
+
+5: "\"" [22-23] (line 24)
+  - source.rust
+  - string.quoted.double.rust
+  - punctuation.definition.string.rust
+
+6: ")" [23-24] (line 24)
+  - source.rust
+  - punctuation.brackets.round.rust
+
+7: ";" [24-25] (line 24)
+  - source.rust
+  - punctuation.semi.rust
+
+0: "    " [0-4] (line 25)
+  - source.rust
+
+1: "}" [4-5] (line 25)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+2: " " [5-6] (line 25)
+  - source.rust
+
+3: "else" [6-10] (line 25)
+  - source.rust
+  - keyword.control.rust
+
+4: " " [10-11] (line 25)
+  - source.rust
+
+5: "{" [11-12] (line 25)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+0: "        " [0-8] (line 26)
+  - source.rust
+
+1: "println!" [8-16] (line 26)
+  - source.rust
+  - meta.macro.rust
+  - entity.name.function.macro.rust
+
+2: "(" [16-17] (line 26)
+  - source.rust
+  - punctuation.brackets.round.rust
+
+3: "\"" [17-18] (line 26)
+  - source.rust
+  - string.quoted.double.rust
+  - punctuation.definition.string.rust
+
+4: "{" [18-19] (line 26)
+  - source.rust
+  - string.quoted.double.rust
+  - meta.interpolation.rust
+  - punctuation.definition.interpolation.rust
+
+5: "}" [19-20] (line 26)
+  - source.rust
+  - string.quoted.double.rust
+  - meta.interpolation.rust
+  - punctuation.definition.interpolation.rust
+
+6: "\"" [20-21] (line 26)
+  - source.rust
+  - string.quoted.double.rust
+  - punctuation.definition.string.rust
+
+7: "," [21-22] (line 26)
+  - source.rust
+  - punctuation.comma.rust
+
+8: " " [22-23] (line 26)
+  - source.rust
+
+9: "n" [23-24] (line 26)
+  - source.rust
+  - variable.other.rust
+
+10: ")" [24-25] (line 26)
+  - source.rust
+  - punctuation.brackets.round.rust
+
+11: ";" [25-26] (line 26)
+  - source.rust
+  - punctuation.semi.rust
+
+0: "    " [0-4] (line 27)
+  - source.rust
+
+1: "}" [4-5] (line 27)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+0: "}" [0-1] (line 28)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+0: "//" [0-2] (line 30)
+  - source.rust
+  - comment.line.double-slash.rust
+  - punctuation.definition.comment.rust
+
+1: " When a function returns `()`, the return type can be omitted from the" [2-72] (line 30)
+  - source.rust
+  - comment.line.double-slash.rust
+
+0: "//" [0-2] (line 31)
+  - source.rust
+  - comment.line.double-slash.rust
+  - punctuation.definition.comment.rust
+
+1: " signature" [2-12] (line 31)
+  - source.rust
+  - comment.line.double-slash.rust
+
+0: "fn" [0-2] (line 32)
+  - source.rust
+  - meta.function.definition.rust
+  - keyword.other.fn.rust
+
+1: " " [2-3] (line 32)
+  - source.rust
+  - meta.function.definition.rust
+
+2: "fizzbuzz_to" [3-14] (line 32)
+  - source.rust
+  - meta.function.definition.rust
+  - entity.name.function.rust
+
+3: "(" [14-15] (line 32)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.round.rust
+
+4: "n" [15-16] (line 32)
+  - source.rust
+  - meta.function.definition.rust
+  - variable.other.rust
+
+5: ":" [16-17] (line 32)
+  - source.rust
+  - meta.function.definition.rust
+  - keyword.operator.key-value.rust
+
+6: " " [17-18] (line 32)
+  - source.rust
+  - meta.function.definition.rust
+
+7: "u32" [18-21] (line 32)
+  - source.rust
+  - meta.function.definition.rust
+  - entity.name.type.numeric.rust
+
+8: ")" [21-22] (line 32)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.round.rust
+
+9: " " [22-23] (line 32)
+  - source.rust
+  - meta.function.definition.rust
+
+10: "{" [23-24] (line 32)
+  - source.rust
+  - meta.function.definition.rust
+  - punctuation.brackets.curly.rust
+
+0: "    " [0-4] (line 33)
+  - source.rust
+
+1: "for" [4-7] (line 33)
+  - source.rust
+  - keyword.control.rust
+
+2: " " [7-8] (line 33)
+  - source.rust
+
+3: "n" [8-9] (line 33)
+  - source.rust
+  - variable.other.rust
+
+4: " " [9-10] (line 33)
+  - source.rust
+
+5: "in" [10-12] (line 33)
+  - source.rust
+  - keyword.other.rust
+
+6: " " [12-13] (line 33)
+  - source.rust
+
+7: "1" [13-14] (line 33)
+  - source.rust
+  - constant.numeric.decimal.rust
+
+8: "..=" [14-17] (line 33)
+  - source.rust
+  - keyword.operator.range.rust
+
+9: "n" [17-18] (line 33)
+  - source.rust
+  - variable.other.rust
+
+10: " " [18-19] (line 33)
+  - source.rust
+
+11: "{" [19-20] (line 33)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+0: "        " [0-8] (line 34)
+  - source.rust
+
+1: "fizzbuzz" [8-16] (line 34)
+  - source.rust
+  - meta.function.call.rust
+  - entity.name.function.rust
+
+2: "(" [16-17] (line 34)
+  - source.rust
+  - meta.function.call.rust
+  - punctuation.brackets.round.rust
+
+3: "n" [17-18] (line 34)
+  - source.rust
+  - meta.function.call.rust
+  - variable.other.rust
+
+4: ")" [18-19] (line 34)
+  - source.rust
+  - meta.function.call.rust
+  - punctuation.brackets.round.rust
+
+5: ";" [19-20] (line 34)
+  - source.rust
+  - punctuation.semi.rust
+
+0: "    " [0-4] (line 35)
+  - source.rust
+
+1: "}" [4-5] (line 35)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+0: "}" [0-1] (line 36)
+  - source.rust
+  - punctuation.brackets.curly.rust
+
+0: "//" [0-2] (line 38)
+  - source.rust
+  - comment.line.double-slash.rust
+  - punctuation.definition.comment.rust
+
+1: " From https://doc.rust-lang.org/rust-by-example/fn.html" [2-57] (line 38)
+  - source.rust
+  - comment.line.double-slash.rust
+

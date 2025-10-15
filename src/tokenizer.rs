@@ -16,9 +16,9 @@ fn parse_scope_names(name: &str) -> Result<Vec<Scope>, TokenizeError> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
-    /// Start byte position in the input text (inclusive)
+    /// Start byte position within the line (inclusive, 0-based)
     pub start: usize,
-    /// End byte position in the input text (exclusive)
+    /// End byte position within the line (exclusive)
     pub end: usize,
     /// Hierarchical scope names, ordered from outermost to innermost
     /// (e.g., source.js -> string.quoted.double -> punctuation.definition.string).
@@ -343,6 +343,8 @@ impl<'g> Tokenizer<'g> {
                 } else {
                     self.state.content_scopes.clone()
                 };
+
+
                 base.extend(parse_scope_names(&n)?);
                 local_stack.push((base, cap_end));
             }
@@ -482,15 +484,22 @@ impl<'g> Tokenizer<'g> {
             }
 
             Rule::Match(r) => {
-                // Handle captures with proper scoping - convert Vec<RuleId> to Vec<Option<RuleId>>
-                let captures: Vec<Option<RuleId>> = r.captures.iter().map(|&id| Some(id)).collect();
-                self.resolve_captures(line, &captures, &match_.capture_pos, accumulator)?;
+                // For Match rules, content_scopes should be the same as name_scopes
+                // This matches vscode-textmate behavior where both nameScopesList and contentNameScopesList
+                // are set to the same value for Match rules
+                new_state.content_scopes = new_state.name_scopes.clone();
+
+                // Temporarily update state to use new_state for correct base scopes
+                let old_state = std::mem::replace(&mut self.state, new_state.clone());
+
+                // Handle captures with correct base scopes
+                self.resolve_captures(line, &r.captures, &match_.capture_pos, accumulator)?;
 
                 // Produce match token with name_scopes
                 accumulator.produce(match_.end, &new_state.name_scopes);
 
-                // IMMEDIATE POP - don't keep the pushed state for match rules
-                // (new_state is discarded, self.state remains unchanged)
+                // Restore original state - Match rules don't stay on the stack
+                self.state = old_state;
             }
 
             _ => {
@@ -550,35 +559,26 @@ impl<'g> Tokenizer<'g> {
         Ok(accumulator)
     }
 
-    pub fn tokenize_string(&mut self, text: &str) -> Result<Vec<Token>, TokenizeError> {
+    pub fn tokenize_string(&mut self, text: &str) -> Result<Vec<Vec<Token>>, TokenizeError> {
         let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
         if normalized.is_empty() {
             return Ok(vec![]);
         }
 
         self.state = StateStack::new(Scope::new(&self.grammar.scope_name)?);
-        let mut out = Vec::new();
-        let mut pos = 0;
+        let mut lines_tokens = Vec::new();
 
-        // Use split to preserve information about trailing newlines
-        for (i, line) in normalized.split('\n').enumerate() {
-            if i > 0 {
-                pos += 1; // Account for the \n we split on (except first line)
-            }
-
+        // Split by lines and tokenize each line
+        for line in normalized.split('\n') {
             let acc = self.tokenize_line(line)?;
 
-            for mut token in acc.tokens {
-                token.start += pos;
-                token.end += pos;
-                out.push(token);
-            }
-
-            pos += line.len();
+            // Keep tokens with line-relative positions (no adjustment needed)
+            lines_tokens.push(acc.tokens);
         }
 
-        Ok(out)
+        Ok(lines_tokens)
     }
+
 }
 
 #[derive(Debug)]
@@ -617,125 +617,98 @@ impl From<ParseScopeError> for TokenizeError {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+    use std::fs;
+
     use super::*;
     use crate::grammars::RawGrammar;
+    use pretty_assertions::assert_eq;
 
-    #[test]
-    fn test_json_tokenization_all_types() {
-        // Load and compile the JSON grammar
-        let json_path = "grammars-themes/packages/tm-grammars/grammars/json.json";
-        let raw_grammar =
-            RawGrammar::load_from_file(json_path).expect("Failed to load JSON grammar");
-        let compiled_grammar = raw_grammar
-            .compile()
-            .expect("Failed to compile JSON grammar");
+    fn format_tokens(input: &str, lines_tokens: Vec<Vec<Token>>) -> String {
+        let normalized = input.replace("\r\n", "\n").replace('\r', "\n");
+        let lines: Vec<&str> = normalized.split('\n').collect();
 
-        // Create tokenizer
-        let mut tokenizer = Tokenizer::new(&compiled_grammar).expect("Failed to create tokenizer");
+        let mut out = String::new();
 
-        // Test JSON with all data types
-        let json_input = r#"{
-  "string": "hello world",
-  "number": 42,
-  "float": 3.14,
-  "boolean_true": true,
-  "boolean_false": false,
-  "null_value": null,
-  "array": [1, 2, "three"],
-  "object": {
-    "nested": "value"
-  }
-}"#;
+        for (line_idx, line_tokens) in lines_tokens.iter().enumerate() {
+            let line = lines.get(line_idx).unwrap_or(&"");
 
-        // Tokenize the JSON
-        let tokens = tokenizer
-            .tokenize_string(json_input)
-            .expect("Failed to tokenize JSON");
-
-        // Assert on number of tokens and print them
-        assert!(
-            tokens.len() > 20,
-            "Should produce many tokens for complex JSON"
-        );
-
-        println!("JSON Tokenization Results ({} tokens):", tokens.len());
-        for (i, token) in tokens.iter().enumerate() {
-            let text = &json_input[token.start..token.end];
-            println!(
-                "  {}: '{}' [{}-{}] scopes: {:?}",
-                i,
-                text,
-                token.start,
-                token.end,
-                token
-                    .scopes
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<_>>()
-            );
+            for (token_idx, token) in line_tokens.iter().enumerate() {
+                let text = &line[token.start..token.end];
+                out.push_str(&format!(
+                    "{}: {:?} [{}-{}] (line {})\n", // Match fixture format: [start-end] (line N)
+                    token_idx, text, token.start, token.end, line_idx
+                ));
+                for scope in &token.scopes {
+                    out.push_str(&format!("  - {}\n", scope.to_string()));
+                }
+                out.push('\n');
+            }
         }
+
+        out
     }
 
     #[test]
-    fn test_simple_json_object() {
-        // Load and compile the JSON grammar
-        let json_path = "grammars-themes/packages/tm-grammars/grammars/json.json";
-        let raw_grammar =
-            RawGrammar::load_from_file(json_path).expect("Failed to load JSON grammar");
-        let compiled_grammar = raw_grammar
-            .compile()
-            .expect("Failed to compile JSON grammar");
-
-        // Create tokenizer
-        let mut tokenizer = Tokenizer::new(&compiled_grammar).expect("Failed to create tokenizer");
-
-        // Test simple JSON
-        let json_input = r#"{"key": "value"}"#;
-
-        // Tokenize
-        let tokens = tokenizer
-            .tokenize_string(json_input)
-            .expect("Failed to tokenize simple JSON");
-
-        // Print tokens first
-        println!("Simple JSON Tokenization ({} tokens):", tokens.len());
-        for (i, token) in tokens.iter().enumerate() {
-            let text = &json_input[token.start..token.end];
-            println!(
-                "  {}: '{}' [{}-{}] scopes: {:?}",
-                i,
-                text,
-                token.start,
-                token.end,
-                token
-                    .scopes
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<_>>()
-            );
+    fn debug_rust_sample() {
+        let mut all_grammars = HashMap::new();
+        for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
+            let path = entry.unwrap().path();
+            let grammar_name = path.file_stem().unwrap().to_str().unwrap();
+            let raw_grammar = RawGrammar::load_from_file(&path).unwrap();
+            let compiled_grammar = raw_grammar.compile().unwrap();
+            all_grammars.insert(grammar_name.to_string(), compiled_grammar);
         }
 
-        // Assert on number of tokens
-        assert_eq!(
-            tokens.len(),
-            10,
-            "Should produce exactly 10 tokens for simple JSON"
-        );
+        let sample_content = fs::read_to_string("grammars-themes/samples/rust.sample").unwrap();
+        let first_line = sample_content.lines().next().unwrap();
+        println!("First line: {:?}", first_line);
 
-        // Check that we have separate tokens for key and value content
-        let token_texts: Vec<&str> = tokens.iter().map(|t| &json_input[t.start..t.end]).collect();
-        assert!(
-            token_texts.contains(&"key"),
-            "Should have separate token for key content"
-        );
-        assert!(
-            token_texts.contains(&"value"),
-            "Should have separate token for value content"
-        );
-        assert!(
-            token_texts.contains(&"}"),
-            "Should have closing brace token"
-        );
-        assert!(false);
+        let mut tokenizer = Tokenizer::new(&all_grammars["rust"]).unwrap();
+        let tokens = tokenizer.tokenize_string(&first_line).unwrap();
+        let out = format_tokens(&first_line, tokens);
+        println!("ACTUAL FIRST LINE OUTPUT:");
+        println!("{}", out);
+
+        // Now check first 3 lines
+        let first_three_lines: Vec<&str> = sample_content.lines().take(3).collect();
+        let three_line_text = first_three_lines.join("\n");
+        println!("First 3 lines: {:?}", three_line_text);
+
+        let mut tokenizer2 = Tokenizer::new(&all_grammars["rust"]).unwrap();
+        let tokens2 = tokenizer2.tokenize_string(&three_line_text).unwrap();
+        let out2 = format_tokens(&three_line_text, tokens2);
+        println!("ACTUAL THREE LINE OUTPUT:");
+        println!("{}", out2);
+    }
+
+    #[test]
+    fn can_tokenize_like_vscode_textmate() {
+        let mut all_grammars = HashMap::new();
+        for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
+            let path = entry.unwrap().path();
+            let grammar_name = path.file_stem().unwrap().to_str().unwrap();
+            let raw_grammar = RawGrammar::load_from_file(&path).unwrap();
+            let compiled_grammar = raw_grammar.compile().unwrap();
+            all_grammars.insert(grammar_name.to_string(), compiled_grammar);
+        }
+
+        let mut fixtures = Vec::new();
+        for entry in fs::read_dir("src/fixtures/tokens").unwrap() {
+            let path = entry.unwrap().path();
+            let grammar_name = path.file_stem().unwrap().to_str().unwrap().to_string();
+            let content = fs::read_to_string(&path).unwrap();
+            fixtures.push((grammar_name, content));
+        }
+
+        for (grammar, expected) in fixtures {
+            let sample_path = format!("grammars-themes/samples/{grammar}.sample");
+            println!("Checking {sample_path}");
+            let sample_content = fs::read_to_string(sample_path).unwrap();
+            let mut tokenizer = Tokenizer::new(&all_grammars[&grammar]).unwrap();
+            let tokens = tokenizer.tokenize_string(&sample_content).unwrap();
+            let out = format_tokens(&sample_content, tokens);
+            assert_eq!(expected.trim(), out.trim());
+        }
     }
 }

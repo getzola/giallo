@@ -37,7 +37,11 @@
       "Bash(xargs:*)",
       "Bash(sed:*)",
       "Bash(RUST_BACKTRACE=1 cargo test test_json_tokenization -- --nocapture)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(timeout 10 cargo test:*)",
+      "Bash(timeout 30 cargo test can_tokenize_like_vscode_textmate -- --nocapture)",
+      "Bash(echo:*)",
+      "Bash(RUST_BACKTRACE=0 cargo test:*)"
     ],
     "deny": [],
     "ask": []

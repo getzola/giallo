@@ -222,7 +222,7 @@ pub struct Match {
     /// None for scope-only rules (e.g., capture groups that only assign scopes like
     /// punctuation.definition.string.begin without their own pattern to match)
     pub regex_id: Option<RegexId>,
-    pub captures: Vec<RuleId>,
+    pub captures: Vec<Option<RuleId>>,
     pub repository_stack: RepositoryStack,
 }
 
@@ -400,7 +400,8 @@ impl CompiledGrammar {
                 name_is_capturing: has_captures(name.as_deref()),
                 name,
                 regex_id: Some(self.compile_regex(pat).0),
-                captures: vec![],
+                captures: self
+                .compile_captures(raw_rule.captures, repository_stack)?,
                 repository_stack,
             })
         } else if let Some(begin_pat) = raw_rule.begin {
