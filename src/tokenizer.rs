@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::grammars::{
-    CompiledGrammar, END_RULE_ID, PatternSet, PatternSetMatch, Regex, Rule, RuleId, WHILE_RULE_ID,
+    CompiledGrammar, END_RULE_ID, PatternSet, PatternSetMatch, Regex, RegexId, Rule, RuleId,
+    WHILE_RULE_ID,
 };
 use crate::scope::{ParseScopeError, Scope};
 
@@ -50,7 +51,8 @@ struct StateStack {
     /// Captured text from the begin pattern
     /// Used to resolve backreferences in end/while patterns
     /// Index 0 = full match, Index 1+ = capture groups
-    begin_captures: Vec<String>,
+    /// None values represent capture groups that didn't match (optional groups)
+    begin_captures: Vec<Option<String>>,
 }
 
 impl StateStack {
@@ -260,11 +262,12 @@ impl<'g> Tokenizer<'g> {
     }
 
     fn resolve_captures(
-        &self,
+        &mut self,
         line: &str,
         end_captures: &[Option<RuleId>],
-        captures: &[(usize, usize)],
+        captures: &[Option<(usize, usize)>],
         accumulator: &mut TokenAccumulator,
+        base_scopes: &[Scope],
     ) -> Result<(), TokenizeError> {
         if end_captures.is_empty() {
             return Ok(());
@@ -281,7 +284,7 @@ impl<'g> Tokenizer<'g> {
                 continue;
             };
 
-            let (cap_start, cap_end) = if let Some(&capture) = captures.get(i) {
+            let (cap_start, cap_end) = if let Some(&Some(capture)) = captures.get(i) {
                 capture
             } else {
                 continue;
@@ -299,7 +302,7 @@ impl<'g> Tokenizer<'g> {
             if let Some((scopes, _)) = local_stack.last() {
                 accumulator.produce(cap_start, scopes);
             } else {
-                accumulator.produce(cap_start, &self.state.content_scopes);
+                accumulator.produce(cap_start, base_scopes);
             }
 
             //  Check if it has captures. if it does we need to call tokenize string
@@ -308,45 +311,59 @@ impl<'g> Tokenizer<'g> {
             let name = rule.name(line, captures);
             if rule.has_patterns() {
                 let content_name = rule.content_name(line, captures);
-                let new_input = &line[0..cap_end];
-                // We need to start a new tokenization
-                // TODO!
-                // export function _tokenizeString(
-                //     grammar: Grammar,
-                //     lineText: OnigString,
-                //     isFirstLine: boolean,
-                //     linePos: number,
-                //     stack: StateStackImpl,
-                //     lineTokens: LineTokens,
-                //     checkWhileConditions: boolean,
-                //     timeLimit: number
-                // ): TokenizeStringResult {
-                // if (captureRule.retokenizeCapturedWithRuleId) {
-                //     // the capture requires additional matching
-                //     const scopeName = captureRule.getName(lineTextContent, captureIndices);
-                //     const nameScopesList = stack.contentNameScopesList!.pushAttributed(scopeName, grammar);
-                //     const contentName = captureRule.getContentName(lineTextContent, captureIndices);
-                //     const contentNameScopesList = nameScopesList.pushAttributed(contentName, grammar);
-                //
-                //     const stackClone = stack.push(captureRule.retokenizeCapturedWithRuleId, captureIndex.start, -1, false, null, nameScopesList, contentNameScopesList);
-                //     const onigSubStr = grammar.createOnigString(lineTextContent.substring(0, captureIndex.end));
-                //     _tokenizeString(grammar, onigSubStr, (isFirstLine && captureIndex.start === 0), captureIndex.start, stackClone, lineTokens, false, /* no time limit */0);
-                //     disposeOnigString(onigSubStr);
-                //     continue;
-                // }
+
+                // Save current state for restoration after retokenization
+                let original_state = self.state.clone();
+
+                // Create new state for retokenization (like stackClone in JS)
+                self.state = self.state.push(rule_id);
+
+                // Apply rule name scopes to the new state
+                if let Some(name_str) = name.as_ref() {
+                    self.state.name_scopes.extend(parse_scope_names(name_str)?);
+                }
+
+                // Apply contentName scopes to create proper scope hierarchy
+                if let Some(content) = content_name {
+                    self.state.content_scopes = self.state.name_scopes.clone();
+                    self.state
+                        .content_scopes
+                        .extend(parse_scope_names(&content)?);
+                } else {
+                    self.state.content_scopes = self.state.name_scopes.clone();
+                }
+
+                // Tokenize substring with modified state (following JS: substring(0, captureIndex.end))
+                let substring = &line[0..cap_end];
+                let retokenized_acc = self.tokenize_line(substring)?;
+
+                // Restore original state
+                self.state = original_state;
+
+                // Merge retokenized tokens back into accumulator with position adjustment
+                for token in retokenized_acc.tokens {
+                    // Adjust token positions to be relative to the capture start
+                    let _adjusted_start = cap_start + token.start;
+                    let adjusted_end = cap_start + token.end;
+
+                    // Only produce tokens that are within the capture bounds
+                    if adjusted_end <= cap_end {
+                        accumulator.produce(adjusted_end, &token.scopes);
+                    }
+                }
+
                 continue;
             }
 
             if let Some(n) = name {
-                let mut base = if let Some((scopes, _)) = local_stack.last() {
+                let mut scope_base = if let Some((scopes, _)) = local_stack.last() {
                     scopes.clone()
                 } else {
-                    self.state.content_scopes.clone()
+                    base_scopes.to_vec()
                 };
 
-
-                base.extend(parse_scope_names(&n)?);
-                local_stack.push((base, cap_end));
+                scope_base.extend(parse_scope_names(&n)?);
+                local_stack.push((scope_base, cap_end));
             }
         }
 
@@ -363,6 +380,7 @@ impl<'g> Tokenizer<'g> {
         match_: PatternSetMatch,
         accumulator: &mut TokenAccumulator,
     ) -> Result<(), TokenizeError> {
+        let has_advanced = match_.end > match_.start;
         // Always generate a token for any text before this match
         accumulator.produce(match_.start, &self.state.content_scopes);
 
@@ -373,7 +391,15 @@ impl<'g> Tokenizer<'g> {
 
             // Handle end captures based on current rule type
             if let Rule::BeginEnd(b) = &self.grammar.rules[self.state.rule_id.id()] {
-                self.resolve_captures(line, &b.end_captures, &match_.capture_pos, accumulator)?;
+                let content_scopes = self.state.content_scopes.clone();
+                let end_captures = b.end_captures.clone();
+                self.resolve_captures(
+                    line,
+                    &end_captures,
+                    &match_.capture_pos,
+                    accumulator,
+                    &content_scopes,
+                )?;
             }
 
             // Produce end token with name_scopes
@@ -401,85 +427,72 @@ impl<'g> Tokenizer<'g> {
         }
 
         match rule {
-            Rule::BeginEnd(r) => {
-                // Set up content_scopes from content_name
-                let content_name = rule.content_name(line, &match_.capture_pos);
-                new_state.content_scopes = new_state.name_scopes.clone();
-                if let Some(content) = content_name {
-                    new_state
-                        .content_scopes
-                        .extend(parse_scope_names(&content)?);
-                }
-
-                // Always set up the end pattern
-                let end_regex = &self.grammar.regexes[r.end.id()];
-                if r.end_has_backrefs {
-                    // Store captured text for backreference resolution
-                    new_state.begin_captures = match_
-                        .capture_pos
-                        .iter()
-                        .map(|(start, end)| line[*start..*end].to_string())
-                        .collect();
-
-                    // Resolve backreferences in end pattern
-                    let mut resolved = end_regex.pattern().to_string();
-                    for (i, capture) in new_state.begin_captures.iter().enumerate() {
-                        resolved = resolved.replace(&format!("\\{}", i), capture);
+            Rule::BeginEnd(_) | Rule::BeginWhile(_) => {
+                // Closure to handle common begin rule logic
+                let mut handle_begin_rule = |pattern_regex_id: RegexId,
+                                             has_backrefs: bool,
+                                             begin_captures: &[Option<RuleId>]|
+                 -> Result<(), TokenizeError> {
+                    // Set up content_scopes from content_name (including contentName scopes)
+                    let content_name = rule.content_name(line, &match_.capture_pos);
+                    new_state.content_scopes = new_state.name_scopes.clone();
+                    if let Some(content) = content_name {
+                        new_state
+                            .content_scopes
+                            .extend(parse_scope_names(&content)?);
                     }
-                    new_state.end_pattern = Some(resolved);
-                } else {
-                    // No backreferences, use pattern as-is
-                    new_state.end_pattern = Some(end_regex.pattern().to_string());
-                }
 
-                // Temporarily update state to use new_state for correct base scopes
-                let old_state = std::mem::replace(&mut self.state, new_state.clone());
+                    // Always set up the pattern
+                    let pattern_regex = &self.grammar.regexes[pattern_regex_id.id()];
+                    if has_backrefs {
+                        // Store captured text for backreference resolution
+                        new_state.begin_captures = match_
+                            .capture_pos
+                            .iter()
+                            .enumerate()
+                            .map(|(_i, capture_opt)| match capture_opt {
+                                Some((start, end)) => Some(line[*start..*end].to_string()),
+                                None => None,
+                            })
+                            .collect();
 
-                // Handle begin captures with correct base scopes
-                self.resolve_captures(line, &r.begin_captures, &match_.capture_pos, accumulator)?;
-
-                // Restore and keep the new state
-                self.state = new_state;
-            }
-
-            Rule::BeginWhile(r) => {
-                // Set up content_scopes from content_name
-                let content_name = rule.content_name(line, &match_.capture_pos);
-                new_state.content_scopes = new_state.name_scopes.clone();
-                if let Some(content) = content_name {
-                    new_state
-                        .content_scopes
-                        .extend(parse_scope_names(&content)?);
-                }
-
-                // Always set up the while pattern
-                let while_regex = &self.grammar.regexes[r.while_.id()];
-                if r.while_has_backrefs {
-                    // Store captured text for backreference resolution
-                    new_state.begin_captures = match_
-                        .capture_pos
-                        .iter()
-                        .map(|(start, end)| line[*start..*end].to_string())
-                        .collect();
-
-                    // Resolve backreferences in while pattern
-                    let mut resolved = while_regex.pattern().to_string();
-                    for (i, capture) in new_state.begin_captures.iter().enumerate() {
-                        resolved = resolved.replace(&format!("\\{}", i), capture);
+                        // Resolve backreferences in pattern
+                        let mut resolved = pattern_regex.pattern().to_string();
+                        for (i, capture_opt) in new_state.begin_captures.iter().enumerate() {
+                            let replacement = capture_opt.as_deref().unwrap_or("");
+                            resolved = resolved.replace(&format!("\\{}", i), replacement);
+                        }
+                        new_state.end_pattern = Some(resolved);
+                    } else {
+                        // No backreferences, use pattern as-is
+                        new_state.end_pattern = Some(pattern_regex.pattern().to_string());
                     }
-                    new_state.end_pattern = Some(resolved);
-                } else {
-                    // No backreferences, use pattern as-is
-                    new_state.end_pattern = Some(while_regex.pattern().to_string());
+
+                    // Handle begin captures with name scopes only (explicit base scopes)
+                    let name_scopes = new_state.name_scopes.clone();
+                    self.resolve_captures(
+                        line,
+                        begin_captures,
+                        &match_.capture_pos,
+                        accumulator,
+                        &name_scopes,
+                    )?;
+
+                    Ok(())
+                };
+
+                // Call with specific parameters for each rule type
+                match rule {
+                    Rule::BeginEnd(r) => {
+                        handle_begin_rule(r.end, r.end_has_backrefs, &r.begin_captures)?
+                    }
+                    Rule::BeginWhile(r) => {
+                        handle_begin_rule(r.while_, r.while_has_backrefs, &r.begin_captures)?
+                    }
+                    _ => unreachable!(),
                 }
 
-                // Temporarily update state to use new_state for correct base scopes
-                let old_state = std::mem::replace(&mut self.state, new_state.clone());
-
-                // Handle begin captures with correct base scopes
-                self.resolve_captures(line, &r.begin_captures, &match_.capture_pos, accumulator)?;
-
-                // Restore and keep the new state
+                // Set the final state with contentName scopes for future content
                 self.state = new_state;
             }
 
@@ -489,17 +502,29 @@ impl<'g> Tokenizer<'g> {
                 // are set to the same value for Match rules
                 new_state.content_scopes = new_state.name_scopes.clone();
 
-                // Temporarily update state to use new_state for correct base scopes
-                let old_state = std::mem::replace(&mut self.state, new_state.clone());
-
-                // Handle captures with correct base scopes
-                self.resolve_captures(line, &r.captures, &match_.capture_pos, accumulator)?;
+                // Handle captures with name scopes (explicit base scopes)
+                let name_scopes = new_state.name_scopes.clone();
+                self.resolve_captures(
+                    line,
+                    &r.captures,
+                    &match_.capture_pos,
+                    accumulator,
+                    &name_scopes,
+                )?;
 
                 // Produce match token with name_scopes
                 accumulator.produce(match_.end, &new_state.name_scopes);
 
-                // Restore original state - Match rules don't stay on the stack
-                self.state = old_state;
+                // Match rules don't stay on the stack - keep original state
+
+                // Infinite loop detection for Match rules (following vscode-textmate)
+                if !has_advanced {
+                    eprintln!("ERROR: Match rule didn't advance - breaking to avoid infinite loop");
+                    // We should end tokenization here to prevent infinite loops
+                    return Err(TokenizeError::GrammarError(
+                        "Grammar is not advancing, nor is it pushing/popping".to_string(),
+                    ));
+                }
             }
 
             _ => {
@@ -525,10 +550,12 @@ impl<'g> Tokenizer<'g> {
 
             let pattern_set = self.get_or_create_pattern_set();
 
-            if let Some(m) = pattern_set.find_at(line, pos) {
+            if let Some(m) = pattern_set.find_at(line, pos)? {
                 // Save match end and rule_id before moving m
                 let match_end = m.end;
-                let rule_id = m.rule_id;
+                let _rule_id = m.rule_id;
+
+                // Removed debug output for cleaner test
 
                 // Handle the match
                 self.handle_match(line, m, &mut accumulator)?;
@@ -536,18 +563,20 @@ impl<'g> Tokenizer<'g> {
                 // Update position using match end
                 pos = match_end;
 
-                // Infinite loop detection - but allow zero-width END_RULE_ID matches
-                if pos <= prev_pos && rule_id != END_RULE_ID {
-                    // Grammar didn't advance - prevent infinite loop
-                    if pos == prev_pos {
-                        // Zero-width match, force advance by one character
-                        pos = (prev_pos + 1).min(line.len());
-                    }
-                    // If still no progress, break to avoid infinite loop
-                    if pos <= prev_pos {
-                        accumulator.produce(line.len(), &self.state.content_scopes);
-                        break;
-                    }
+                // Follow vscode-textmate's approach: only treat specific cases as problematic
+                // Zero-width matches are legitimate in TextMate grammars (lookaheads, boundaries, etc.)
+                // We only break infinite loops for very specific problematic patterns
+
+                // Note: The sophisticated infinite loop detection is handled within handle_match
+                // for different rule types. Here we just need to ensure we make progress.
+                if pos < prev_pos {
+                    // This should never happen - position moved backward
+                    eprintln!(
+                        "ERROR: Position moved backward from {} to {}",
+                        prev_pos, pos
+                    );
+                    accumulator.produce(line.len(), &self.state.content_scopes);
+                    break;
                 }
             } else {
                 // No more matches - emit final token and stop
@@ -578,7 +607,6 @@ impl<'g> Tokenizer<'g> {
 
         Ok(lines_tokens)
     }
-
 }
 
 #[derive(Debug)]
@@ -650,36 +678,54 @@ mod tests {
     }
 
     #[test]
-    fn debug_rust_sample() {
-        let mut all_grammars = HashMap::new();
-        for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
-            let path = entry.unwrap().path();
-            let grammar_name = path.file_stem().unwrap().to_str().unwrap();
-            let raw_grammar = RawGrammar::load_from_file(&path).unwrap();
-            let compiled_grammar = raw_grammar.compile().unwrap();
-            all_grammars.insert(grammar_name.to_string(), compiled_grammar);
+    fn debug_ini_tokenization() {
+        // Load INI grammar
+        let ini_grammar_path = "grammars-themes/packages/tm-grammars/grammars/ini.json";
+        let raw_grammar = RawGrammar::load_from_file(ini_grammar_path).unwrap();
+        let compiled_grammar = raw_grammar.compile().unwrap();
+
+        // Test with just the first few lines
+        let test_input = "; last modified 1 April 2001 by John Doe\n[owner]\nname = John Doe";
+
+        let mut tokenizer = Tokenizer::new(&compiled_grammar).unwrap();
+        let tokens = tokenizer.tokenize_string(&test_input).unwrap();
+
+        println!("Input: {:?}", test_input);
+        println!("Lines: {:?}", test_input.split('\n').collect::<Vec<_>>());
+        println!("Token results:");
+
+        for (line_idx, line_tokens) in tokens.iter().enumerate() {
+            println!("Line {}: {} tokens", line_idx, line_tokens.len());
+            for (token_idx, token) in line_tokens.iter().enumerate() {
+                let line = test_input.split('\n').nth(line_idx).unwrap_or("");
+                let text = if token.end <= line.len() {
+                    &line[token.start..token.end]
+                } else {
+                    "<INVALID RANGE>"
+                };
+                println!(
+                    "  Token {}: {:?} [{}-{}] = {:?}",
+                    token_idx,
+                    text,
+                    token.start,
+                    token.end,
+                    token
+                        .scopes
+                        .iter()
+                        .map(|s| s.to_string())
+                        .collect::<Vec<_>>()
+                );
+            }
         }
 
-        let sample_content = fs::read_to_string("grammars-themes/samples/rust.sample").unwrap();
-        let first_line = sample_content.lines().next().unwrap();
-        println!("First line: {:?}", first_line);
+        // Simple assertion - we should have 3 lines of tokens
+        assert_eq!(tokens.len(), 3, "Should have exactly 3 lines of tokens");
 
-        let mut tokenizer = Tokenizer::new(&all_grammars["rust"]).unwrap();
-        let tokens = tokenizer.tokenize_string(&first_line).unwrap();
-        let out = format_tokens(&first_line, tokens);
-        println!("ACTUAL FIRST LINE OUTPUT:");
-        println!("{}", out);
+        // Line 0 should have at least 2 tokens (semicolon + comment)
+        assert!(tokens[0].len() >= 2, "Line 0 should have at least 2 tokens");
 
-        // Now check first 3 lines
-        let first_three_lines: Vec<&str> = sample_content.lines().take(3).collect();
-        let three_line_text = first_three_lines.join("\n");
-        println!("First 3 lines: {:?}", three_line_text);
-
-        let mut tokenizer2 = Tokenizer::new(&all_grammars["rust"]).unwrap();
-        let tokens2 = tokenizer2.tokenize_string(&three_line_text).unwrap();
-        let out2 = format_tokens(&three_line_text, tokens2);
-        println!("ACTUAL THREE LINE OUTPUT:");
-        println!("{}", out2);
+        // Line 1 should have at least 3 tokens ([, owner, ])
+        assert!(tokens[1].len() >= 3, "Line 1 should have at least 3 tokens");
     }
 
     #[test]

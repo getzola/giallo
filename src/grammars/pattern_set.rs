@@ -2,13 +2,14 @@ use onig::RegSet;
 use std::cell::RefCell;
 
 use crate::grammars::{END_RULE_ID, RuleId, WHILE_RULE_ID};
+use crate::tokenizer::TokenizeError;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PatternSetMatch {
     pub rule_id: RuleId,
     pub start: usize,
     pub end: usize,
-    pub capture_pos: Vec<(usize, usize)>,
+    pub capture_pos: Vec<Option<(usize, usize)>>,
 }
 
 impl PatternSetMatch {
@@ -90,45 +91,61 @@ impl PatternSet {
         self.regset.borrow_mut().take();
     }
 
-    // TODO: return an error there if we can't build the regset
-    pub fn find_at(&self, text: &str, pos: usize) -> Option<PatternSetMatch> {
+    pub fn find_at(
+        &self,
+        text: &str,
+        pos: usize,
+    ) -> Result<Option<PatternSetMatch>, TokenizeError> {
         if self.patterns.is_empty() {
-            return None;
+            return Ok(None);
         }
 
         if self.regset.borrow().is_none() {
             let pattern_strs: Vec<&str> = self.patterns.iter().map(|s| s.as_str()).collect();
-            let regset = RegSet::new(&pattern_strs).expect("Failed to create RegSet");
+            let regset = RegSet::new(&pattern_strs).map_err(|e| {
+                eprintln!(
+                    "ERROR: RegSet compilation failed with {} patterns",
+                    pattern_strs.len()
+                );
+                eprintln!("ERROR: Onig error: {:?}", e);
+                for (i, pattern) in pattern_strs.iter().enumerate() {
+                    eprintln!("ERROR: Pattern {}: {:?}", i, pattern);
+                }
+                TokenizeError::InvalidRegex(format!(
+                    "Failed to compile pattern set with {} patterns: {:?}",
+                    pattern_strs.len(),
+                    e
+                ))
+            })?;
             *self.regset.borrow_mut() = Some(regset);
         }
-
-        let search_text = text.get(pos..)?;
 
         let regset_ref = self.regset.borrow();
         let regset = regset_ref.as_ref().unwrap();
 
-        if let Some((pattern_index, captures)) = regset.captures(search_text) {
-            // Accept matches that start anywhere in the remaining text
+        // We need to specify pos/text.len() because some regex might do lookbehind
+        if let Some((pattern_index, captures)) = regset.captures_with_encoding(
+            text,       // Full text (not sliced)
+            pos,        // Start searching from this position
+            text.len(), // Search to end of text
+            onig::RegSetLead::Position,
+            onig::SearchOptions::SEARCH_OPTION_NONE,
+        ) {
             if let Some((match_start, match_end)) = captures.pos(0) {
-                let absolute_start = pos + match_start;
-                let absolute_end = pos + match_end;
+                // Convert all capture positions (they're already absolute from captures_with_encoding)
+                let capture_pos: Vec<Option<(usize, usize)>> =
+                    (0..captures.len()).map(|i| captures.pos(i)).collect();
 
-                // Convert relative capture positions to absolute positions
-                let capture_pos: Vec<(usize, usize)> = captures
-                    .iter_pos()
-                    .filter_map(|cap| cap.map(|(start, end)| (pos + start, pos + end)))
-                    .collect();
-
-                return Some(PatternSetMatch {
+                return Ok(Some(PatternSetMatch {
                     rule_id: self.rule_ids[pattern_index],
-                    start: absolute_start,
-                    end: absolute_end,
+                    start: match_start,
+                    end: match_end,
                     capture_pos,
-                });
+                }));
             }
         }
 
-        None
+        Ok(None)
     }
 
     pub fn patterns(&self) -> &[String] {

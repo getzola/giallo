@@ -1,0 +1,139 @@
+0: ";" [0-1] (line 0)
+  - source.ini
+  - comment.line.semicolon.ini
+  - punctuation.definition.comment.ini
+
+1: " last modified 1 April 2001 by John Doe" [1-40] (line 0)
+  - source.ini
+  - comment.line.semicolon.ini
+
+0: "[" [0-1] (line 1)
+  - source.ini
+  - entity.name.section.group-title.ini
+  - punctuation.definition.entity.ini
+
+1: "owner" [1-6] (line 1)
+  - source.ini
+  - entity.name.section.group-title.ini
+
+2: "]" [6-7] (line 1)
+  - source.ini
+  - entity.name.section.group-title.ini
+  - punctuation.definition.entity.ini
+
+0: "name" [0-4] (line 2)
+  - source.ini
+  - keyword.other.definition.ini
+
+1: " " [4-5] (line 2)
+  - source.ini
+
+2: "=" [5-6] (line 2)
+  - source.ini
+  - punctuation.separator.key-value.ini
+
+3: " John Doe" [6-16] (line 2)
+  - source.ini
+
+0: "organization" [0-12] (line 3)
+  - source.ini
+  - keyword.other.definition.ini
+
+1: " " [12-13] (line 3)
+  - source.ini
+
+2: "=" [13-14] (line 3)
+  - source.ini
+  - punctuation.separator.key-value.ini
+
+3: " Acme Widgets Inc." [14-33] (line 3)
+  - source.ini
+
+0: "[" [0-1] (line 5)
+  - source.ini
+  - entity.name.section.group-title.ini
+  - punctuation.definition.entity.ini
+
+1: "database" [1-9] (line 5)
+  - source.ini
+  - entity.name.section.group-title.ini
+
+2: "]" [9-10] (line 5)
+  - source.ini
+  - entity.name.section.group-title.ini
+  - punctuation.definition.entity.ini
+
+0: ";" [0-1] (line 6)
+  - source.ini
+  - comment.line.semicolon.ini
+  - punctuation.definition.comment.ini
+
+1: " use IP address in case network name resolution is not working" [1-63] (line 6)
+  - source.ini
+  - comment.line.semicolon.ini
+
+0: "server" [0-6] (line 7)
+  - source.ini
+  - keyword.other.definition.ini
+
+1: " " [6-7] (line 7)
+  - source.ini
+
+2: "=" [7-8] (line 7)
+  - source.ini
+  - punctuation.separator.key-value.ini
+
+3: " 192.0.2.62`" [8-21] (line 7)
+  - source.ini
+
+0: "port" [0-4] (line 8)
+  - source.ini
+  - keyword.other.definition.ini
+
+1: " " [4-5] (line 8)
+  - source.ini
+
+2: "=" [5-6] (line 8)
+  - source.ini
+  - punctuation.separator.key-value.ini
+
+3: " 143" [6-11] (line 8)
+  - source.ini
+
+0: "file" [0-4] (line 9)
+  - source.ini
+  - keyword.other.definition.ini
+
+1: " " [4-5] (line 9)
+  - source.ini
+
+2: "=" [5-6] (line 9)
+  - source.ini
+  - punctuation.separator.key-value.ini
+
+3: " " [6-7] (line 9)
+  - source.ini
+
+4: "\"" [7-8] (line 9)
+  - source.ini
+  - string.quoted.double.ini
+  - punctuation.definition.string.begin.ini
+
+5: "payroll.dat" [8-19] (line 9)
+  - source.ini
+  - string.quoted.double.ini
+
+6: "\"" [19-20] (line 9)
+  - source.ini
+  - string.quoted.double.ini
+  - punctuation.definition.string.end.ini
+
+0: ";" [0-1] (line 11)
+  - source.ini
+  - comment.line.semicolon.ini
+  - punctuation.definition.comment.ini
+
+1: " From https://en.wikipedia.org/wiki/INI_file" [1-45] (line 11)
+  - source.ini
+  - comment.line.semicolon.ini
+

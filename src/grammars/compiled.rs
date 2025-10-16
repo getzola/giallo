@@ -24,7 +24,7 @@ fn has_captures(pat: Option<&str>) -> bool {
 pub fn replace_captures(
     original_name: &str,
     text: &str,
-    captures_pos: &[(usize, usize)],
+    captures_pos: &[Option<(usize, usize)>],
 ) -> String {
     CAPTURING_NAME_RE
         .replace_all(original_name, |caps: &onig::Captures| {
@@ -36,7 +36,7 @@ pub fn replace_captures(
                 .unwrap_or(0);
             let command = caps.at(3);
 
-            if let Some((start, end)) = captures_pos.get(capture_num) {
+            if let Some(Some((start, end))) = captures_pos.get(capture_num) {
                 // Remove leading dots that would make the selector invalid
                 let result = text[*start..*end].trim_start_matches('.').to_string();
                 match command {
@@ -45,7 +45,7 @@ pub fn replace_captures(
                     _ => result,
                 }
             } else {
-                // Invalid capture bounds, return original match
+                // Invalid capture bounds or None capture, return original match
                 caps.at(0).unwrap().to_string()
             }
         })
@@ -56,7 +56,7 @@ fn process_scope_name(
     name: &Option<String>,
     is_capturing: bool,
     input: &str,
-    captures_pos: &[(usize, usize)],
+    captures_pos: &[Option<(usize, usize)>],
 ) -> Option<String> {
     match name {
         Some(name) if is_capturing => Some(replace_captures(name, input, captures_pos)),
@@ -280,7 +280,7 @@ pub enum Rule {
 }
 
 impl Rule {
-    pub fn name(&self, input: &str, captures_pos: &[(usize, usize)]) -> Option<String> {
+    pub fn name(&self, input: &str, captures_pos: &[Option<(usize, usize)>]) -> Option<String> {
         let (name, is_capturing) = match self {
             Rule::Match(m) => (&m.name, m.name_is_capturing),
             Rule::IncludeOnly(i) => (&i.name, i.name_is_capturing),
@@ -292,7 +292,11 @@ impl Rule {
         process_scope_name(name, is_capturing, input, captures_pos)
     }
 
-    pub fn content_name(&self, input: &str, captures_pos: &[(usize, usize)]) -> Option<String> {
+    pub fn content_name(
+        &self,
+        input: &str,
+        captures_pos: &[Option<(usize, usize)>],
+    ) -> Option<String> {
         let (content_name, is_capturing) = match self {
             Rule::IncludeOnly(i) => (&i.content_name, i.content_name_is_capturing),
             Rule::BeginEnd(b) => (&b.content_name, b.content_name_is_capturing),
@@ -400,8 +404,7 @@ impl CompiledGrammar {
                 name_is_capturing: has_captures(name.as_deref()),
                 name,
                 regex_id: Some(self.compile_regex(pat).0),
-                captures: self
-                .compile_captures(raw_rule.captures, repository_stack)?,
+                captures: self.compile_captures(raw_rule.captures, repository_stack)?,
                 repository_stack,
             })
         } else if let Some(begin_pat) = raw_rule.begin {
@@ -895,7 +898,10 @@ mod tests {
         ];
 
         for (original_name, text, captures_pos, expected) in test_cases {
-            let result = replace_captures(original_name, text, &captures_pos);
+            // Convert Vec<(usize, usize)> to Vec<Option<(usize, usize)>>
+            let option_captures: Vec<Option<(usize, usize)>> =
+                captures_pos.into_iter().map(Some).collect();
+            let result = replace_captures(original_name, text, &option_captures);
             assert_eq!(
                 result, expected,
                 "Failed for input: '{}' with text: '{}' - expected: '{}', got: '{}'",
