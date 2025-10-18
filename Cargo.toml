@@ -17,6 +17,7 @@ regex = "1.11.3"
 
 [features]
 tools = ["walkdir"]
+debug = []
 
 [dev-dependencies]
 insta = "1.39"

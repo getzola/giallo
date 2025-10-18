@@ -32,7 +32,7 @@
   - source.ini
   - punctuation.separator.key-value.ini
 
-3: " John Doe" [6-16] (line 2)
+3: " John Doe" [6-15] (line 2)
   - source.ini
 
 0: "organization" [0-12] (line 3)
@@ -46,7 +46,7 @@
   - source.ini
   - punctuation.separator.key-value.ini
 
-3: " Acme Widgets Inc." [14-33] (line 3)
+3: " Acme Widgets Inc." [14-32] (line 3)
   - source.ini
 
 0: "[" [0-1] (line 5)
@@ -83,7 +83,7 @@
   - source.ini
   - punctuation.separator.key-value.ini
 
-3: " 192.0.2.62`" [8-21] (line 7)
+3: " 192.0.2.62`" [8-20] (line 7)
   - source.ini
 
 0: "port" [0-4] (line 8)
@@ -97,7 +97,7 @@
   - source.ini
   - punctuation.separator.key-value.ini
 
-3: " 143" [6-11] (line 8)
+3: " 143" [6-10] (line 8)
   - source.ini
 
 0: "file" [0-4] (line 9)

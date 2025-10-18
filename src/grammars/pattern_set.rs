@@ -67,24 +67,33 @@ impl PatternSet {
         self.clear_regset();
     }
 
-    pub fn update_pat_front(&mut self, pat: &str) {
+    /// Updates the pattern at the front.
+    /// Returns true if the pattern was different and the regset invalidated
+    pub fn update_pat_front(&mut self, pat: &str) -> bool {
         debug_assert!(self.patterns.len() > 0);
         if &self.patterns[0] == pat {
-            return;
+            false
+        } else {
+            self.patterns[0] = pat.to_string();
+            self.clear_regset();
+            true
         }
-        self.patterns[0] = pat.to_string();
-        self.clear_regset();
     }
 
-    pub fn update_pat_back(&mut self, pat: &str) {
+    /// Updates the pattern at the back.
+    /// Returns true if the pattern was different and the regset invalidated
+    pub fn update_pat_back(&mut self, pat: &str) -> bool {
         debug_assert!(self.patterns.len() > 0);
         if let Some(last) = self.patterns.last_mut() {
             if last.as_str() == pat {
-                return;
+                return false;
             }
             *last = pat.to_string();
             self.clear_regset();
+            return true;
         }
+
+        unreachable!()
     }
 
     pub fn clear_regset(&mut self) {
@@ -119,6 +128,11 @@ impl PatternSet {
             })?;
             *self.regset.borrow_mut() = Some(regset);
         }
+        // println!("Searching {pos}: |{}|", &text[pos..]);
+        // println!("Patterns:");
+        // for p in &self.patterns {
+        //     println!("  - {}", p);
+        // }
 
         let regset_ref = self.regset.borrow();
         let regset = regset_ref.as_ref().unwrap();
