@@ -420,12 +420,25 @@ impl CompiledGrammar {
                     content_name_is_capturing: has_captures(content_name.as_deref()),
                     content_name,
                     begin: self.compile_regex(begin_pat).0,
-                    begin_captures: self
-                        .compile_captures(raw_rule.begin_captures, repository_stack)?,
+                    begin_captures: self.compile_captures(
+                        // Some grammars use "captures" instead of "beginCaptures" for BeginEnd/BeginWhile rules
+                        if !raw_rule.begin_captures.is_empty() {
+                            raw_rule.begin_captures
+                        } else {
+                            raw_rule.captures.clone()
+                        },
+                        repository_stack,
+                    )?,
                     while_,
                     while_has_backrefs,
-                    while_captures: self
-                        .compile_captures(raw_rule.while_captures, repository_stack)?,
+                    while_captures: self.compile_captures(
+                        if !raw_rule.while_captures.is_empty() {
+                            raw_rule.while_captures
+                        } else {
+                            raw_rule.captures
+                        },
+                        repository_stack,
+                    )?,
                     patterns,
                     repository_stack,
                 })
@@ -439,11 +452,25 @@ impl CompiledGrammar {
                     content_name_is_capturing: has_captures(content_name.as_deref()),
                     content_name,
                     begin: self.compile_regex(begin_pat).0,
-                    begin_captures: self
-                        .compile_captures(raw_rule.begin_captures, repository_stack)?,
+                    begin_captures: self.compile_captures(
+                        // Some grammars use "captures" instead of "beginCaptures" for BeginEnd/BeginWhile rules
+                        if !raw_rule.begin_captures.is_empty() {
+                            raw_rule.begin_captures
+                        } else {
+                            raw_rule.captures.clone()
+                        },
+                        repository_stack,
+                    )?,
                     end,
                     end_has_backrefs,
-                    end_captures: self.compile_captures(raw_rule.end_captures, repository_stack)?,
+                    end_captures: self.compile_captures(
+                        if !raw_rule.end_captures.is_empty() {
+                            raw_rule.end_captures
+                        } else {
+                            raw_rule.captures
+                        },
+                        repository_stack,
+                    )?,
                     patterns,
                     apply_end_pattern_last,
                     repository_stack,

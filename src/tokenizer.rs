@@ -1,9 +1,7 @@
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use crate::grammars::{
     CompiledGrammar, END_RULE_ID, PatternSet, PatternSetMatch, Regex, RegexId, Rule, RuleId,
-    WHILE_RULE_ID,
 };
 use crate::scope::{ParseScopeError, Scope};
 
@@ -138,6 +136,14 @@ impl TokenAccumulator {
                 self.tokens.pop();
             }
         }
+
+        // If we have a token that includes the trailing newline,
+        // decrement the end to not include it
+        if let Some(t) = self.tokens.last_mut() {
+            if t.end  == line_len {
+                t.end -= 1;
+            }
+        }
     }
 }
 
@@ -183,10 +189,10 @@ impl AnchorActiveRule {
 
     pub fn replace_anchors(&self, pat: &str) -> String {
         let replacement = match self {
-            AnchorActiveRule::A(_) => vec![("\\G", "(?!)")],
-            AnchorActiveRule::G(_) => vec![("\\A", "(?!)")],
+            AnchorActiveRule::A(_) => vec![("\\G", "\u{FFFF}")],
+            AnchorActiveRule::G(_) => vec![("\\A", "\u{FFFF}")],
             AnchorActiveRule::AG(_) => vec![],
-            AnchorActiveRule::None(_) => vec![("\\A", "(?!)"), ("\\G", "(?!)")],
+            AnchorActiveRule::None(_) => vec![("\\A", "\u{FFFF}"), ("\\G", "\u{FFFF}")],
         };
 
         let mut pat = pat.to_string();
@@ -256,25 +262,27 @@ impl<'g> Tokenizer<'g> {
     }
 
     /// Check if there is a while condition active and if it's still true
+    /// This follows VSCode TextMate's behavior: bottom-up processing from outermost to innermost
     fn check_while_conditions(
         &mut self,
         line: &str,
         pos: &mut usize,
         acc: &mut TokenAccumulator,
     ) -> Result<(), TokenizeError> {
-        let mut while_stack = Vec::new();
+        // Collect all BeginWhile rules from bottom to top of stack
+        let mut while_rules = Vec::new();
         let mut current = Some(&self.state);
 
         while let Some(stack_elem) = current {
             if let Some(Rule::BeginWhile(_)) = self.grammar.rules.get(*stack_elem.rule_id as usize)
             {
-                while_stack.push(stack_elem.clone());
+                while_rules.push(stack_elem.clone());
             }
             current = stack_elem.parent.as_deref();
         }
 
-        // Get all the while rules from last to first
-        for w in while_stack
+        // Process from outermost to innermost (bottom-up) - VSCode processes whileRules.pop()
+        for while_rule in while_rules
             .into_iter()
             .filter(|w| w.end_pattern.is_some())
             .rev()
@@ -282,8 +290,8 @@ impl<'g> Tokenizer<'g> {
             // We don't care about the rule here, we just want to compute which anchors should be active
             let active_anchor =
                 AnchorActiveRule::new(RuleId(0), self.is_first_line, self.anchor_position, *pos);
-            let while_pat = active_anchor.replace_anchors(w.end_pattern.as_ref().unwrap());
-            // we cache the regex since it will be checked on every line that the pattern is active
+            let while_pat = active_anchor.replace_anchors(while_rule.end_pattern.as_ref().unwrap());
+
             let re = if let Some(re) = self.end_regex_cache.get(&while_pat) {
                 re
             } else {
@@ -296,24 +304,70 @@ impl<'g> Tokenizer<'g> {
             let compiled_re = re.compiled().ok_or_else(|| {
                 TokenizeError::InvalidRegex(format!("While pattern {while_pat} was invalid"))
             })?;
+
             if let Some(cap) = compiled_re.captures(search_text)
                 && let Some((start, end)) = cap.pos(0)
-                && start == 0
+                && start == 0  // Must match at current position
             {
+                // While condition matches - handle captures and advance position
                 let absolute_start = *pos;
                 let absolute_end = *pos + end;
-                // Token for text before the while match
-                acc.produce(absolute_start, &self.state.content_scopes);
-                // Token for the while match itself (with captures if any)
+
+                // Produce token for text before the while match (if any)
+                if absolute_start < absolute_end {
+                    acc.produce(absolute_start, &self.state.content_scopes);
+                }
+
+                // Handle while captures if they exist
+                if let Some(Rule::BeginWhile(begin_while_rule)) =
+                    self.grammar.rules.get(*while_rule.rule_id as usize)
+                {
+                    if !begin_while_rule.while_captures.is_empty() {
+                        let captures_pos: Vec<Option<(usize, usize)>> = (0..cap.len())
+                            .map(|i| cap.pos(i).map(|(s, e)| (*pos + s, *pos + e)))
+                            .collect();
+
+                        // Extract content_scopes to avoid borrowing conflicts
+                        let content_scopes = self.state.content_scopes.clone();
+                        self.resolve_captures(
+                            line,
+                            &begin_while_rule.while_captures,
+                            &captures_pos,
+                            acc,
+                            &content_scopes,
+                        )?;
+                    }
+                }
+
+                // Produce token for the while match itself
                 acc.produce(absolute_end, &self.state.content_scopes);
-                *pos = absolute_end;
-                self.anchor_position = Some(*pos);
+
+                // Advance position and update anchor - matches VSCode behavior
+                if absolute_end > *pos {
+                    *pos = absolute_end;
+                    self.anchor_position = Some(*pos);
+                    // Update isFirstLine flag when position advances
+                    if self.is_first_line {
+                        self.is_first_line = false;
+                    }
+                }
             } else {
-                // While condition failed
-                if let Some(parent) = self.state.pop() {
+                // While condition failed - pop this rule and all above it (VSCode behavior)
+                // Find this while rule in the stack and pop to its parent
+                let mut current_state = self.state.clone();
+                while current_state.rule_id != while_rule.rule_id {
+                    if let Some(parent) = current_state.pop() {
+                        current_state = parent;
+                    } else {
+                        break;
+                    }
+                }
+
+                // Pop the failed while rule itself
+                if let Some(parent) = current_state.pop() {
                     self.state = parent;
                 }
-                break;
+                break; // Stop checking further while conditions
             }
         }
 
@@ -328,14 +382,15 @@ impl<'g> Tokenizer<'g> {
             AnchorActiveRule::new(rule_id, self.is_first_line, self.state.anchor_position, pos);
 
         if !self.pattern_cache.contains_key(&rule_w_anchor) {
-            let patterns = self
-                .grammar
-                .collect_patterns(rule_id)
+            let raw_patterns = self.grammar.collect_patterns(rule_id);
+
+            let patterns: Vec<(RuleId, String)> = raw_patterns
                 .into_iter()
-                .map(|(rule, mut pat)| (rule, rule_w_anchor.replace_anchors(&pat)))
+                .map(|(rule, pat)| {
+                    let replaced = rule_w_anchor.replace_anchors(&pat);
+                    (rule, replaced)
+                })
                 .collect();
-
-
 
             let mut p = PatternSet::new(patterns);
 
@@ -349,7 +404,8 @@ impl<'g> Tokenizer<'g> {
                         }
                     }
                     Rule::BeginWhile(_) => {
-                        p.push_front(WHILE_RULE_ID, &end_pat);
+                        // While patterns should NEVER be in the main pattern set
+                        // They are only checked in the separate pre-tokenization phase
                     }
                     _ => {}
                 };
@@ -364,17 +420,23 @@ impl<'g> Tokenizer<'g> {
             .as_deref()
             .unwrap_or_else(|| "")
             .to_string();
-        end_pat = rule_w_anchor.replace_anchors(&end_pat);
+        if !end_pat.is_empty() {
+            end_pat = rule_w_anchor.replace_anchors(&end_pat);
+        }
 
         let mut updated = false;
         if let Some(p) = self.pattern_cache.get_mut(&rule_w_anchor) {
             match rule {
-                Rule::BeginEnd(_) | Rule::BeginWhile(_) => {
+                Rule::BeginEnd(_) => {
                     if rule.apply_end_pattern_last() {
                         updated = p.update_pat_back(&end_pat);
                     } else {
                         updated = p.update_pat_front(&end_pat);
                     }
+                }
+                Rule::BeginWhile(_) => {
+                    // While patterns are not in the main pattern cache
+                    // No need to update patterns for BeginWhile rules
                 }
                 _ => {}
             }
@@ -511,7 +573,7 @@ impl<'g> Tokenizer<'g> {
         accumulator: &mut TokenAccumulator,
     ) -> Result<(), TokenizeError> {
         // TODO: add infinite loop detection?
-        let has_advanced = match_.end > pos;
+        let _has_advanced = match_.end > pos;
 
         // Always generate a token for any text before this match
         accumulator.produce(match_.start, &self.state.content_scopes);
@@ -602,7 +664,23 @@ impl<'g> Tokenizer<'g> {
                         let mut resolved = pattern_regex.pattern().to_string();
                         for (i, capture_opt) in new_state.begin_captures.iter().enumerate() {
                             let replacement = capture_opt.as_deref().unwrap_or("");
-                            resolved = resolved.replace(&format!("\\{}", i), replacement);
+                            // Escape regex metacharacters like VSCode TextMate does
+                            // Escapes: - \ { } * + ? | ^ $ . , [ ] ( ) # and whitespace
+                            let mut escaped_replacement = String::new();
+                            for ch in replacement.chars() {
+                                match ch {
+                                    '-' | '\\' | '{' | '}' | '*' | '+' | '?' | '|' | '^' | '$' | '.' | ',' | '[' | ']' | '(' | ')' | '#' => {
+                                        escaped_replacement.push('\\');
+                                        escaped_replacement.push(ch);
+                                    }
+                                    c if c.is_whitespace() => {
+                                        escaped_replacement.push('\\');
+                                        escaped_replacement.push(c);
+                                    }
+                                    _ => escaped_replacement.push(ch),
+                                }
+                            }
+                            resolved = resolved.replace(&format!("\\{}", i), &escaped_replacement);
                         }
                         new_state.end_pattern = Some(resolved);
                     } else {
@@ -632,6 +710,9 @@ impl<'g> Tokenizer<'g> {
                     }
                     _ => unreachable!(),
                 }
+
+                // Produce token for the begin match with name_scopes (like Match rules do)
+                accumulator.produce(match_.end, &new_state.name_scopes);
 
                 // Set the final state with contentName scopes for future content
                 self.state = new_state;
@@ -790,6 +871,28 @@ mod tests {
         }
 
         out
+    }
+
+    #[test]
+    fn test_markdown_inline_formatting() {
+        // Load markdown grammar
+        let raw_grammar = RawGrammar::load_from_file("grammars-themes/packages/tm-grammars/grammars/markdown.json").unwrap();
+        let compiled_grammar = raw_grammar.compile().unwrap();
+
+        // Test with simple markdown inline formatting
+        let test_input = "2nd paragraph. *Italic*, **bold**, and `monospace`";
+        let mut tokenizer = Tokenizer::new(&compiled_grammar).unwrap();
+        let tokens = tokenizer.tokenize_string(test_input).unwrap();
+
+        println!("=== MARKDOWN INLINE FORMATTING TEST ===");
+        println!("Input: {}", test_input);
+        println!("Tokens:");
+
+        let formatted = format_tokens(test_input, tokens);
+        println!("{}", formatted);
+
+        // Check if we have proper token separation for "*" and "Italic"
+        // This should help us see if the merging issue occurs with this simple case
     }
 
     #[test]

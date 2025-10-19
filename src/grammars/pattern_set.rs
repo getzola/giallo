@@ -111,14 +111,13 @@ impl PatternSet {
 
         if self.regset.borrow().is_none() {
             let pattern_strs: Vec<&str> = self.patterns.iter().map(|s| s.as_str()).collect();
+
             let regset = RegSet::new(&pattern_strs).map_err(|e| {
-                eprintln!(
-                    "ERROR: RegSet compilation failed with {} patterns",
-                    pattern_strs.len()
-                );
-                eprintln!("ERROR: Onig error: {:?}", e);
-                for (i, pattern) in pattern_strs.iter().enumerate() {
-                    eprintln!("ERROR: Pattern {}: {:?}", i, pattern);
+                eprintln!("RegSet compilation failed for pattern set with {} patterns", pattern_strs.len());
+                eprintln!("Onig error: {:?}", e);
+                eprintln!("Rule IDs and patterns in this set:");
+                for (i, (rule_id, pattern)) in self.rule_ids.iter().zip(self.patterns.iter()).enumerate() {
+                    eprintln!("  [{}] Rule ID {}: {:?}", i, rule_id.0, pattern);
                 }
                 TokenizeError::InvalidRegex(format!(
                     "Failed to compile pattern set with {} patterns: {:?}",

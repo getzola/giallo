@@ -60,7 +60,12 @@
       "Bash(timeout 30 cargo test -p giallo --lib -- --nocapture)",
       "Bash(timeout 30 cargo test test_javascript_simple -- --nocapture)",
       "Bash(timeout 30 cargo test:*)",
-      "Bash(timeout 15 cargo test can_tokenize_like_vscode_textmate)"
+      "Bash(timeout 15 cargo test can_tokenize_like_vscode_textmate)",
+      "Bash(timeout 5 cargo test test_json_tokenization -- --nocapture)",
+      "Bash(timeout 10s cargo test can_tokenize_like_vscode_textmate -- --nocapture)",
+      "Bash(timeout 20 cargo test --lib tokenizer::tests::can_tokenize_like_vscode_textmate -- --nocapture)",
+      "Bash(tree:*)",
+      "Bash(tee:*)"
     ],
     "deny": [],
     "ask": []
