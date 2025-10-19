@@ -56,6 +56,7 @@ struct StateStack {
     /// The state has entered and captured \n.
     /// This means that the next line should have an anchorPosition of 0.
     begin_rule_has_captured_eol: bool,
+    /// Current state anchor position
     anchor_position: Option<usize>,
 }
 
@@ -324,7 +325,7 @@ impl<'g> Tokenizer<'g> {
 
         let rule = &self.grammar.rules[rule_id.id()];
         let rule_w_anchor =
-            AnchorActiveRule::new(rule_id, self.is_first_line, self.anchor_position, pos);
+            AnchorActiveRule::new(rule_id, self.is_first_line, self.state.anchor_position, pos);
 
         if !self.pattern_cache.contains_key(&rule_w_anchor) {
             let patterns = self
@@ -333,6 +334,9 @@ impl<'g> Tokenizer<'g> {
                 .into_iter()
                 .map(|(rule, mut pat)| (rule, rule_w_anchor.replace_anchors(&pat)))
                 .collect();
+
+
+
             let mut p = PatternSet::new(patterns);
 
             if let Some(end_pat) = self.state.end_pattern.as_deref() {
@@ -506,8 +510,9 @@ impl<'g> Tokenizer<'g> {
         match_: PatternSetMatch,
         accumulator: &mut TokenAccumulator,
     ) -> Result<(), TokenizeError> {
-        // TODO: add infinite loop detection
+        // TODO: add infinite loop detection?
         let has_advanced = match_.end > pos;
+
         // Always generate a token for any text before this match
         accumulator.produce(match_.start, &self.state.content_scopes);
 
@@ -518,14 +523,15 @@ impl<'g> Tokenizer<'g> {
 
             // Handle end captures based on current rule type
             if let Rule::BeginEnd(b) = &self.grammar.rules[self.state.rule_id.id()] {
-                let content_scopes = self.state.content_scopes.clone();
                 let end_captures = b.end_captures.clone();
+                // Use name_scopes for end captures (excludes contentName)
+                // This matches VSCode TextMate behavior where contentName is removed before end processing
                 self.resolve_captures(
                     line,
                     &end_captures,
                     &match_.capture_pos,
                     accumulator,
-                    &content_scopes,
+                    &end_scopes, // Use name_scopes instead of content_scopes
                 )?;
             }
 
@@ -549,25 +555,33 @@ impl<'g> Tokenizer<'g> {
                 .push(match_.rule_id, Some(match_.end), line.len() == match_.end);
 
         if let Some(name) = rule.name(line, &match_.capture_pos) {
-            // TODO: that's weird, sounds like a bug/hack
-            new_state.name_scopes = new_state.content_scopes.clone();
+            // the content scopes start the same as name scopes
             new_state.name_scopes.extend(parse_scope_names(&name)?);
         }
+        new_state.content_scopes = self.state.name_scopes.clone();
+
 
         match rule {
             Rule::BeginEnd(_) | Rule::BeginWhile(_) => {
-                // Closure to handle common begin rule logic
                 let mut handle_begin_rule = |pattern_regex_id: RegexId,
                                              has_backrefs: bool,
                                              begin_captures: &[Option<RuleId>]|
                  -> Result<(), TokenizeError> {
-                    // Set up content_scopes from content_name (including contentName scopes)
+                    // Set up content_scopes following VSCode TextMate behavior:
+                    // - Initially both nameScopesList and contentNameScopesList point to rule's name scopes
+                    // - When contentName exists: contentNameScopesList = nameScopesList.pushAttributed(contentName)
+                    // - When contentName is None: contentNameScopesList remains same as nameScopesList
                     let content_name = rule.content_name(line, &match_.capture_pos);
-                    new_state.content_scopes = new_state.name_scopes.clone();
-                    if let Some(content) = content_name {
+                    if content_name.is_some() {
+                        // Rule has contentName - apply on top of rule's name scopes
+                        new_state.content_scopes = new_state.name_scopes.clone();
                         new_state
                             .content_scopes
-                            .extend(parse_scope_names(&content)?);
+                            .extend(parse_scope_names(&content_name.unwrap())?);
+                    } else {
+                        // Rule has no contentName - content uses same scopes as name (rule's name scopes)
+                        // This matches VSCode's initial state where both scope lists point to nameScopesList
+                        new_state.content_scopes = new_state.name_scopes.clone();
                     }
 
                     // Always set up the pattern
@@ -597,13 +611,12 @@ impl<'g> Tokenizer<'g> {
                     }
 
                     // Handle begin captures with name scopes only (explicit base scopes)
-                    let name_scopes = new_state.name_scopes.clone();
                     self.resolve_captures(
                         line,
                         begin_captures,
                         &match_.capture_pos,
                         accumulator,
-                        &name_scopes,
+                        &new_state.name_scopes,
                     )?;
 
                     Ok(())
@@ -631,13 +644,12 @@ impl<'g> Tokenizer<'g> {
                 new_state.content_scopes = new_state.name_scopes.clone();
 
                 // Handle captures with name scopes (explicit base scopes)
-                let name_scopes = new_state.name_scopes.clone();
                 self.resolve_captures(
                     line,
                     &r.captures,
                     &match_.capture_pos,
                     accumulator,
-                    &name_scopes,
+                    &new_state.name_scopes,
                 )?;
 
                 // Produce match token with name_scopes
