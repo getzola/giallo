@@ -2,9 +2,10 @@
 
 Never modify anything in grammars-themes folder
 If you see an `assert!(false)` in a test, don't remove it.
-Always look at ../pulls/vscode-textmate if you have doubts on the algorithm
+Always look at ../pulls/vscode-textmate if you have doubts on the algorithm or if I mention vscode-textmate
 Do not do temporary fixes/hacks if the issue is somewhere else.
 Do not create new files for tests, add them to existing ones.
+There is a debug feature that you can enable to get tracing debug for the tokenization
 
 ## Grammar Statistics (Latest Analysis)
 

@@ -280,6 +280,16 @@ pub enum Rule {
 }
 
 impl Rule {
+    fn original_name(&self) -> Option<&str> {
+        match self {
+            Rule::Match(m) => m.name.as_deref(),
+            Rule::IncludeOnly(m) => m.name.as_deref(),
+            Rule::BeginEnd(m) => m.name.as_deref(),
+            Rule::BeginWhile(m) => m.name.as_deref(),
+            Rule::Noop => None,
+        }
+    }
+
     pub fn name(&self, input: &str, captures_pos: &[Option<(usize, usize)>]) -> Option<String> {
         let (name, is_capturing) = match self {
             Rule::Match(m) => (&m.name, m.name_is_capturing),
@@ -781,6 +791,10 @@ impl CompiledGrammar {
         Some(PatternSet::new(
             self.get_pattern_set_data(patterns, &mut visited),
         ))
+    }
+
+    pub(crate) fn get_original_rule_name(&self, rule_id: RuleId) -> Option<&str> {
+        self.rules[rule_id.id()].original_name()
     }
 }
 

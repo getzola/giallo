@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-
 use crate::grammars::{
     CompiledGrammar, END_RULE_ID, PatternSet, PatternSetMatch, Regex, RegexId, Rule, RuleId,
 };
 use crate::scope::{ParseScopeError, Scope};
+use std::collections::HashMap;
+use std::fmt;
 
 /// Parse space-separated scope names into a vector of individual scopes
 /// e.g., "string.json support.type.property-name.json" -> [Scope("string.json"), Scope("support.type.property-name.json")]
@@ -117,6 +117,17 @@ impl TokenAccumulator {
         }
 
         // Create and store the token with scope IDs directly
+        if cfg!(feature = "debug") {
+            eprintln!(
+                "[produce]: [{}..{end_pos}]\n{}",
+                self.last_end_pos,
+                scopes
+                    .iter()
+                    .map(|s| format!(" * {s}"))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            )
+        }
         self.tokens.push(Token {
             start: self.last_end_pos,
             end: end_pos,
@@ -140,14 +151,14 @@ impl TokenAccumulator {
         // If we have a token that includes the trailing newline,
         // decrement the end to not include it
         if let Some(t) = self.tokens.last_mut() {
-            if t.end  == line_len {
+            if t.end == line_len {
                 t.end -= 1;
             }
         }
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Hash, Eq)]
+#[derive(Copy, Clone, PartialEq, Hash, Eq)]
 enum AnchorActiveRule {
     // Only \A is active
     A(RuleId),
@@ -229,14 +240,26 @@ impl AnchorActiveRule {
     }
 }
 
+impl fmt::Debug for AnchorActiveRule {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            AnchorActiveRule::A(_) => "allow_A=true, allow_G=false",
+            AnchorActiveRule::G(_) => "allow_A=false, allow_G=true",
+            AnchorActiveRule::AG(_) => "allow_A=true, allow_G=true",
+            AnchorActiveRule::None(_) => "allow_A=false, allow_G=false",
+        };
+        f.write_str(s)
+    }
+}
+
 #[derive(Debug)]
 pub struct Tokenizer<'g> {
     /// Reference to the main compiled grammar in use
     grammar: &'g CompiledGrammar,
     state: StateStack,
-    /// Runtime pattern cache by rule ID
+    /// Runtime pattern cache by rule ID + anchor state
     pattern_cache: HashMap<AnchorActiveRule, PatternSet>,
-    /// Used only end/while patterns
+    /// Used only for end/while patterns
     end_regex_cache: HashMap<String, Regex>,
     /// Whether to enable the \A flag. Starts at true and gets set to false
     /// on the first match of the first line that moves the position
@@ -281,15 +304,38 @@ impl<'g> Tokenizer<'g> {
             current = stack_elem.parent.as_deref();
         }
 
+        if cfg!(feature = "debug") {
+            if while_rules.is_empty() {
+                eprintln!(
+                    "[check_while_conditions] no while conditions active:\n  {:?}",
+                    self.state
+                );
+            } else {
+                eprintln!(
+                    "[check_while_conditions] going to check:\n  {:?}",
+                    while_rules
+                );
+            }
+        }
+
+        if while_rules.is_empty() {
+            return Ok(());
+        }
+
+        // We don't care about the rule here, we just want to compute which anchors should be active
+        let active_anchor =
+            AnchorActiveRule::new(RuleId(0), self.is_first_line, self.anchor_position, *pos);
+
+        if cfg!(feature = "debug") {
+            eprintln!("[check_while_conditions] Anchors: {active_anchor:?}");
+        }
+
         // Process from outermost to innermost (bottom-up) - VSCode processes whileRules.pop()
         for while_rule in while_rules
             .into_iter()
             .filter(|w| w.end_pattern.is_some())
             .rev()
         {
-            // We don't care about the rule here, we just want to compute which anchors should be active
-            let active_anchor =
-                AnchorActiveRule::new(RuleId(0), self.is_first_line, self.anchor_position, *pos);
             let while_pat = active_anchor.replace_anchors(while_rule.end_pattern.as_ref().unwrap());
 
             let re = if let Some(re) = self.end_regex_cache.get(&while_pat) {
@@ -307,7 +353,8 @@ impl<'g> Tokenizer<'g> {
 
             if let Some(cap) = compiled_re.captures(search_text)
                 && let Some((start, end)) = cap.pos(0)
-                && start == 0  // Must match at current position
+                && start == 0
+            // Must match at current position
             {
                 // While condition matches - handle captures and advance position
                 let absolute_start = *pos;
@@ -381,6 +428,14 @@ impl<'g> Tokenizer<'g> {
         let rule_w_anchor =
             AnchorActiveRule::new(rule_id, self.is_first_line, self.state.anchor_position, pos);
 
+        if cfg!(feature = "debug") {
+            eprintln!("[get_or_create_pattern_set] Anchors: {rule_w_anchor:?}");
+            eprintln!(
+                "[get_or_create_pattern_set] Scanning for: pos={pos}, anchor_position={:?}",
+                self.state.anchor_position
+            );
+        }
+
         if !self.pattern_cache.contains_key(&rule_w_anchor) {
             let raw_patterns = self.grammar.collect_patterns(rule_id);
 
@@ -393,6 +448,10 @@ impl<'g> Tokenizer<'g> {
                 .collect();
 
             let mut p = PatternSet::new(patterns);
+
+            if cfg!(feature = "debug") {
+                eprintln!("[get_or_create_pattern_set] Active patterns\n{p:?}");
+            }
 
             if let Some(end_pat) = self.state.end_pattern.as_deref() {
                 match rule {
@@ -573,8 +632,16 @@ impl<'g> Tokenizer<'g> {
         accumulator: &mut TokenAccumulator,
     ) -> Result<(), TokenizeError> {
         // TODO: add infinite loop detection?
-        let _has_advanced = match_.end > pos;
+        // let has_advanced = match_.end > pos;
 
+        if cfg!(feature = "debug") {
+            eprintln!(
+                "[handle_match] Matched rule: {} from pos {} to {}",
+                match_.rule_id.id(),
+                match_.start,
+                match_.end
+            );
+        }
         // Always generate a token for any text before this match
         accumulator.produce(match_.start, &self.state.content_scopes);
 
@@ -583,8 +650,13 @@ impl<'g> Tokenizer<'g> {
             // Use name_scopes for end tokens
             let end_scopes = self.state.name_scopes.clone();
 
-            // Handle end captures based on current rule type
             if let Rule::BeginEnd(b) = &self.grammar.rules[self.state.rule_id.id()] {
+                if cfg!(feature = "debug") {
+                    eprintln!(
+                        "[handle_match] Popping '{}'",
+                        b.name.clone().unwrap_or_default()
+                    );
+                }
                 let end_captures = b.end_captures.clone();
                 // Use name_scopes for end captures (excludes contentName)
                 // This matches VSCode TextMate behavior where contentName is removed before end processing
@@ -622,7 +694,6 @@ impl<'g> Tokenizer<'g> {
         }
         new_state.content_scopes = self.state.name_scopes.clone();
 
-
         match rule {
             Rule::BeginEnd(_) | Rule::BeginWhile(_) => {
                 let mut handle_begin_rule = |pattern_regex_id: RegexId,
@@ -648,6 +719,16 @@ impl<'g> Tokenizer<'g> {
 
                     // Always set up the pattern
                     let pattern_regex = &self.grammar.regexes[pattern_regex_id.id()];
+                    if cfg!(feature = "debug") {
+                        eprintln!(
+                            "[handle_match] Pushing '{}' - '{}'",
+                            self.grammar
+                                .get_original_rule_name(match_.rule_id)
+                                .unwrap_or_default(),
+                            pattern_regex.pattern()
+                        );
+                    }
+
                     if has_backrefs {
                         // Store captured text for backreference resolution
                         new_state.begin_captures = match_
@@ -669,7 +750,8 @@ impl<'g> Tokenizer<'g> {
                             let mut escaped_replacement = String::new();
                             for ch in replacement.chars() {
                                 match ch {
-                                    '-' | '\\' | '{' | '}' | '*' | '+' | '?' | '|' | '^' | '$' | '.' | ',' | '[' | ']' | '(' | ')' | '#' => {
+                                    '-' | '\\' | '{' | '}' | '*' | '+' | '?' | '|' | '^' | '$'
+                                    | '.' | ',' | '[' | ']' | '(' | ')' | '#' => {
                                         escaped_replacement.push('\\');
                                         escaped_replacement.push(ch);
                                     }
@@ -719,6 +801,14 @@ impl<'g> Tokenizer<'g> {
             }
 
             Rule::Match(r) => {
+                if cfg!(feature = "debug") {
+                    eprintln!(
+                        "[handle_match] Matched '{}'",
+                        self.grammar
+                            .get_original_rule_name(match_.rule_id)
+                            .unwrap_or_default()
+                    );
+                }
                 // For Match rules, content_scopes should be the same as name_scopes
                 // This matches vscode-textmate behavior where both nameScopesList and contentNameScopesList
                 // are set to the same value for Match rules
@@ -755,6 +845,11 @@ impl<'g> Tokenizer<'g> {
 
         // 2. We check for any matching patterns
         loop {
+            if cfg!(feature = "debug") {
+                eprintln!();
+                eprintln!("[tokenize_line] Scanning {pos}: |{:?}|", &line[pos..]);
+            }
+
             let pattern_set = self.get_or_create_pattern_set(pos);
 
             if let Some(m) = pattern_set.find_at(line, pos)? {
@@ -769,6 +864,9 @@ impl<'g> Tokenizer<'g> {
                     }
                 }
             } else {
+                if cfg!(feature = "debug") {
+                    eprintln!("[tokenize_line] no more tokens");
+                }
                 // No more matches - emit final token and stop
                 accumulator.produce(line.len() - 1, &self.state.content_scopes);
                 break;
@@ -791,6 +889,10 @@ impl<'g> Tokenizer<'g> {
         for line in normalized.split('\n') {
             // Always add a new line, some regex expect it
             let line = format!("{line}\n");
+            if cfg!(feature = "debug") {
+                eprintln!("Tokenizing {line:?}");
+                eprintln!();
+            }
             let mut acc = self.tokenize_line(&line)?;
             acc.finalize(line.len());
             lines_tokens.push(acc.tokens);
@@ -815,8 +917,8 @@ pub enum TokenizeError {
     ScopeParseError(ParseScopeError),
 }
 
-impl std::fmt::Display for TokenizeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for TokenizeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             TokenizeError::InvalidRegex(pattern) => {
                 write!(f, "Invalid regex pattern: {}", pattern)
@@ -876,7 +978,10 @@ mod tests {
     #[test]
     fn test_markdown_inline_formatting() {
         // Load markdown grammar
-        let raw_grammar = RawGrammar::load_from_file("grammars-themes/packages/tm-grammars/grammars/markdown.json").unwrap();
+        let raw_grammar = RawGrammar::load_from_file(
+            "grammars-themes/packages/tm-grammars/grammars/markdown.json",
+        )
+        .unwrap();
         let compiled_grammar = raw_grammar.compile().unwrap();
 
         // Test with simple markdown inline formatting
@@ -893,6 +998,7 @@ mod tests {
 
         // Check if we have proper token separation for "*" and "Italic"
         // This should help us see if the merging issue occurs with this simple case
+        assert!(false);
     }
 
     #[test]

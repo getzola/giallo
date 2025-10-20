@@ -65,7 +65,8 @@
       "Bash(timeout 10s cargo test can_tokenize_like_vscode_textmate -- --nocapture)",
       "Bash(timeout 20 cargo test --lib tokenizer::tests::can_tokenize_like_vscode_textmate -- --nocapture)",
       "Bash(tree:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(RUST_BACKTRACE=0 timeout 30 cargo test:*)"
     ],
     "deny": [],
     "ask": []

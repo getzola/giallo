@@ -1,8 +1,8 @@
-use onig::RegSet;
-use std::cell::RefCell;
-
 use crate::grammars::{END_RULE_ID, RuleId, WHILE_RULE_ID};
 use crate::tokenizer::TokenizeError;
+use onig::RegSet;
+use std::cell::RefCell;
+use std::fmt::{Debug, Formatter};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PatternSetMatch {
@@ -29,7 +29,6 @@ impl PatternSetMatch {
 /// A compiled pattern set for efficient batch regex matching using onig RegSet
 ///
 /// RegSet compilation is lazy - it's only created when first needed.
-#[derive(Debug)]
 pub struct PatternSet {
     rule_ids: Vec<RuleId>,
     patterns: Vec<String>,
@@ -113,10 +112,15 @@ impl PatternSet {
             let pattern_strs: Vec<&str> = self.patterns.iter().map(|s| s.as_str()).collect();
 
             let regset = RegSet::new(&pattern_strs).map_err(|e| {
-                eprintln!("RegSet compilation failed for pattern set with {} patterns", pattern_strs.len());
+                eprintln!(
+                    "RegSet compilation failed for pattern set with {} patterns",
+                    pattern_strs.len()
+                );
                 eprintln!("Onig error: {:?}", e);
                 eprintln!("Rule IDs and patterns in this set:");
-                for (i, (rule_id, pattern)) in self.rule_ids.iter().zip(self.patterns.iter()).enumerate() {
+                for (i, (rule_id, pattern)) in
+                    self.rule_ids.iter().zip(self.patterns.iter()).enumerate()
+                {
                     eprintln!("  [{}] Rule ID {}: {:?}", i, rule_id.0, pattern);
                 }
                 TokenizeError::InvalidRegex(format!(
@@ -161,11 +165,23 @@ impl PatternSet {
         Ok(None)
     }
 
-    pub fn patterns(&self) -> &[String] {
-        &self.patterns
+    fn patterns_and_rule_ids(&self) -> Vec<(&str, RuleId)> {
+        self.patterns
+            .iter()
+            .zip(self.rule_ids.iter())
+            .map(|(pat, rule_id)| (pat.as_str(), *rule_id))
+            .collect()
     }
+}
 
-    pub fn rule_ids(&self) -> &[RuleId] {
-        &self.rule_ids
+impl Debug for PatternSet {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let all: Vec<_> = self
+            .patterns
+            .iter()
+            .zip(self.rule_ids.iter())
+            .map(|(pat, rule_id)| format!("  - {}: {pat:?}", rule_id.id()))
+            .collect();
+        write!(f, "{}", all.join("\n"))
     }
 }
