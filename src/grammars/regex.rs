@@ -3,6 +3,23 @@ use std::sync::{Arc, OnceLock};
 
 use serde::{Deserialize, Serialize};
 
+/// Escapes regular expression characters in a given string
+pub fn escape_regexp_characters(value: &str) -> String {
+    value
+        .chars()
+        .map(|c| match c {
+            '-' | '\\' | '{' | '}' | '*' | '+' | '?' | '|' | '^' | '$' | '.' | ',' | '[' | ']'
+            | '(' | ')' | '#' => {
+                format!("\\{}", c)
+            }
+            c if c.is_whitespace() => {
+                format!("\\{}", c)
+            }
+            _ => c.to_string(),
+        })
+        .collect()
+}
+
 /// A regex wrapper that serializes as a string but compiles lazily at runtime
 pub struct Regex {
     pattern: String,
@@ -55,6 +72,56 @@ impl Regex {
             }
         }
         false
+    }
+
+    pub fn resolve_backreferences(
+        &self,
+        input: &str,
+        captures_pos: &[Option<(usize, usize)>],
+    ) -> String {
+        let captures: Vec<_> = captures_pos
+            .iter()
+            .map(|cap| match cap {
+                Some((start, end)) => &input[*start..*end],
+                None => "",
+            })
+            .collect();
+
+        let mut result = String::new();
+        let mut chars = self.pattern.chars().peekable();
+        while let Some(c) = chars.next() {
+            if c == '\\' {
+                // Collect all consecutive digits
+                let mut digits = String::new();
+                while let Some(&next_char) = chars.peek() {
+                    if next_char.is_ascii_digit() {
+                        digits.push(next_char);
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+
+                if !digits.is_empty() {
+                    // Parse the digits as an index
+                    if let Ok(index) = digits.parse::<usize>() {
+                        let captured = captures.get(index).unwrap_or(&"");
+                        result.push_str(&escape_regexp_characters(captured));
+                    } else {
+                        // Invalid number, keep original
+                        result.push('\\');
+                        result.push_str(&digits);
+                    }
+                } else {
+                    // No digits after backslash
+                    result.push(c);
+                }
+            } else {
+                result.push(c);
+            }
+        }
+
+        result
     }
 
     /// Try to find a match starting at the given position

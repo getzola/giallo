@@ -180,7 +180,7 @@ impl Debug for PatternSet {
             .patterns
             .iter()
             .zip(self.rule_ids.iter())
-            .map(|(pat, rule_id)| format!("  - {}: {pat:?}", rule_id.id()))
+            .map(|(pat, rule_id)| format!("  - {}: {pat}", rule_id.id()))
             .collect();
         write!(f, "{}", all.join("\n"))
     }

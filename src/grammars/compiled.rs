@@ -280,7 +280,7 @@ pub enum Rule {
 }
 
 impl Rule {
-    fn original_name(&self) -> Option<&str> {
+    pub fn original_name(&self) -> Option<&str> {
         match self {
             Rule::Match(m) => m.name.as_deref(),
             Rule::IncludeOnly(m) => m.name.as_deref(),
@@ -359,6 +359,8 @@ impl Rule {
     }
 }
 
+/// TODO: ignore rules from includes we can't find. See markdown fenced block for an example
+/// and _compilePatterns in rule.ts in vscode-textmate
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledGrammar {
     pub name: String,
@@ -627,7 +629,9 @@ impl CompiledGrammar {
                                     return Some(RuleIdOrReference::RuleId(*rule_id));
                                 }
                             }
-                            println!("Warning: Local reference '{}' not found", name);
+                            if cfg!(feature = "debug") {
+                                eprintln!("Warning: Local reference '{name}' not found");
+                            }
                             None
                         }
                         Reference::Self_ | Reference::Base => {
@@ -742,7 +746,8 @@ impl CompiledGrammar {
         for p in patterns {
             match p {
                 RuleIdOrReference::RuleId(rule_id) => {
-                    out.extend(self.get_rule_patterns(*rule_id, visited))
+                    let rule_patterns = self.get_rule_patterns(*rule_id, visited);
+                    out.extend(rule_patterns)
                 }
                 RuleIdOrReference::Reference(reference) => {
                     match reference {
@@ -772,7 +777,9 @@ impl CompiledGrammar {
         };
 
         let mut visited = HashSet::new();
-        self.get_pattern_set_data(patterns, &mut visited)
+        let result = self.get_pattern_set_data(patterns, &mut visited);
+
+        result
     }
 
     /// Get a pattern set for a rule.
