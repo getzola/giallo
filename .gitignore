@@ -5,3 +5,4 @@ Cargo.lock
 out.html
 out
 out-textmate
+builtin.msgpack

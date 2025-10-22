@@ -101,7 +101,7 @@ pub struct CompiledThemeRule {
 }
 
 /// Compiled theme optimized for fast lookups
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledTheme {
     pub name: String,
     /// Theme type ("light" or "dark")

@@ -1,4 +1,4 @@
-use crate::grammars::{END_RULE_ID, RuleId, WHILE_RULE_ID};
+use crate::grammars::{END_RULE_ID, RuleId};
 use crate::tokenizer::TokenizeError;
 use onig::RegSet;
 use std::cell::RefCell;
@@ -15,10 +15,6 @@ pub struct PatternSetMatch {
 impl PatternSetMatch {
     pub fn is_end_rule(&self) -> bool {
         self.rule_id == END_RULE_ID
-    }
-
-    pub fn is_while_rule(&self) -> bool {
-        self.rule_id == WHILE_RULE_ID
     }
 
     pub fn has_advanced(&self) -> bool {

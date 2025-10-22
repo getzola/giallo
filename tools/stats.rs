@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::fs;
 
 use serde_json::Value;
-use walkdir::WalkDir;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting grammar and scope analysis...");
@@ -65,11 +64,11 @@ fn extract_scopes_with_exclusions(
         );
     }
 
-    for entry in WalkDir::new(grammars_dir) {
+    for entry in fs::read_dir(grammars_dir)? {
         let entry = entry?;
-        if entry.file_type().is_file() && entry.path().extension() == Some("json".as_ref()) {
-            let grammar_name = entry
-                .path()
+        let path = entry.path();
+        if path.is_file() && path.extension() == Some("json".as_ref()) {
+            let grammar_name = path
                 .file_stem()
                 .and_then(|s| s.to_str())
                 .unwrap_or("unknown")
@@ -80,7 +79,7 @@ fn extract_scopes_with_exclusions(
                 continue;
             }
 
-            let content = fs::read_to_string(entry.path())?;
+            let content = fs::read_to_string(&path)?;
             let grammar: Value = serde_json::from_str(&content)?;
 
             extract_scopes_from_value(&grammar, &mut scopes, &mut scope_to_grammar, &grammar_name);

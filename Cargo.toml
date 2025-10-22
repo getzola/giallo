@@ -10,12 +10,15 @@ onig = { version = "6", default-features = false, path = "../pulls/rust-onig/oni
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 
-# Optional dependencies for the generator tool
-walkdir = { version = "2.0", optional = true }
+# Optional dependencies for serialization
+rmp-serde = { version = "1.1", optional = true }
+flate2 = { version = "1.0", optional = true }
 
 [features]
-tools = ["walkdir"]
+tools = ["dump"]
 debug = []
+builtins = []
+dump = ["dep:rmp-serde", "dep:flate2"]
 
 [dev-dependencies]
 insta = "1.39"
@@ -29,5 +32,10 @@ harness = false
 [[bin]]
 name = "tm-stats"
 path = "tools/stats.rs"
+required-features = ["tools"]
+
+[[bin]]
+name = "build-registry"
+path = "tools/build_registry.rs"
 required-features = ["tools"]
 

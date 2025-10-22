@@ -8,8 +8,6 @@ use crate::grammars::pattern_set::PatternSet;
 use crate::grammars::raw::{Captures, RawGrammar, RawRule};
 use crate::grammars::regex::Regex;
 
-// TODO: add name_is_capturing/content_name_is_capturing with regex test from vscode-textmate
-// TODO: how to handle scopes with optional captures?
 static CAPTURING_NAME_RE: LazyLock<onig::Regex> =
     LazyLock::new(|| onig::Regex::new(r"\$(\d+)|\${(\d+):\/(downcase|upcase)}").unwrap());
 
@@ -76,8 +74,6 @@ impl RuleId {
 }
 
 pub const END_RULE_ID: RuleId = RuleId(u16::MAX);
-// TODO: do we need that one?
-pub const WHILE_RULE_ID: RuleId = RuleId(u16::MAX - 1);
 
 impl Deref for RuleId {
     type Target = u16;
@@ -215,7 +211,7 @@ pub enum RuleIdOrReference {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Match {
     pub id: RuleId,
-    // some match only care about the captures
+    // some match only care about the captures and thus don't have a name themselves
     pub name: Option<String>,
     pub name_is_capturing: bool,
     /// The regex ID for this match rule.
