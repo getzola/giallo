@@ -1,11 +1,10 @@
 use std::collections::{HashMap, HashSet};
-use std::ops::Deref;
 use std::sync::LazyLock;
 
 use serde::{Deserialize, Serialize};
 
 use crate::grammars::pattern_set::PatternSet;
-use crate::grammars::raw::{Captures, RawGrammar, RawRule};
+use crate::grammars::raw::{Captures, RawGrammar, RawRule, Reference};
 use crate::grammars::regex::Regex;
 
 static CAPTURING_NAME_RE: LazyLock<onig::Regex> =
@@ -63,6 +62,15 @@ fn process_scope_name(
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct GrammarId(pub u16);
+
+impl GrammarId {
+    pub fn id(self) -> usize {
+        self.0 as usize
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct RuleId(pub u16);
@@ -73,15 +81,25 @@ impl RuleId {
     }
 }
 
-pub const END_RULE_ID: RuleId = RuleId(u16::MAX);
+/// A rule reference that works across the whole registry.
+/// We use that to be able to refer to multiple grammars while tokenizing (eg HTML -> JS)
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+pub struct RuleReference {
+    pub(crate) grammar: GrammarId,
+    pub(crate) rule: RuleId,
+}
 
-impl Deref for RuleId {
-    type Target = u16;
+impl RuleReference {
+    pub fn grammar(self) -> usize {
+        self.grammar.id()
+    }
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    pub fn rule(self) -> usize {
+        self.rule.id()
     }
 }
+
+pub const END_RULE_ID: RuleId = RuleId(u16::MAX);
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -92,27 +110,14 @@ impl RegexId {
         self.0 as usize
     }
 }
-impl Deref for RegexId {
-    type Target = u16;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct RepositoryId(u16);
+
 impl RepositoryId {
     pub fn id(self) -> usize {
         self.0 as usize
-    }
-}
-impl Deref for RepositoryId {
-    type Target = u16;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 
@@ -146,58 +151,6 @@ impl RepositoryStack {
         let popped = self.stack[self.len as usize - 1].take().unwrap();
         self.len -= 1;
         (popped, self)
-    }
-}
-
-/// per vscode-textmate:
-///  Allowed values:
-///  * Scope Name, e.g. `source.ts`
-///  * Top level scope reference, e.g. `source.ts#entity.name.class`
-///  * Relative scope reference, e.g. `#entity.name.class`
-///  * self, e.g. `$self`
-///  * base, e.g. `$base`
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub enum Reference {
-    // The 3 below are not present at runtime
-    Self_,
-    // TODO: not entirely how $base differs from $self and what it actually means
-    // seems like only injection, like calling the parent language when nesting
-    Base,
-    Local(String),
-    // Below are still present at runtime
-    OtherComplete(String),
-    OtherSpecific(String, String),
-    // Pointing to something in the current grammar but we can't find it
-    Unknown(String),
-}
-
-impl From<&str> for Reference {
-    fn from(value: &str) -> Self {
-        let r = match value.as_ref() {
-            "$self" => Self::Self_,
-            "$base" => Self::Base,
-            s if s.starts_with('#') => Self::Local(s[1..].to_string()),
-            s if s.contains('#') => {
-                let (scope, rule) = s.split_once('#').unwrap();
-                Self::OtherSpecific(scope.to_string(), rule.to_string())
-            }
-            s if s.contains('.') => {
-                // Try parsing as scope.repository format (e.g., "source.js.regexp")
-                if let Some(dot_pos) = s.rfind('.') {
-                    let (scope_part, rule_part) = s.split_at(dot_pos);
-                    let rule_part = &rule_part[1..]; // Remove the '.'
-                    return Self::OtherSpecific(scope_part.to_string(), rule_part.to_string());
-                }
-                // Complete scope lookup
-                Self::OtherComplete(value.to_string())
-            }
-            _ => Self::OtherComplete(value.to_string()),
-        };
-
-        if matches!(r, Self::Unknown(_)) {
-            println!("Scope {value} not found");
-        }
-        r
     }
 }
 
@@ -359,6 +312,7 @@ impl Rule {
 /// and _compilePatterns in rule.ts in vscode-textmate
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledGrammar {
+    pub id: GrammarId,
     pub name: String,
     pub display_name: Option<String>,
     pub scope_name: String,
@@ -369,8 +323,9 @@ pub struct CompiledGrammar {
 }
 
 impl CompiledGrammar {
-    pub fn from_raw_grammar(raw: RawGrammar) -> Result<Self, CompileError> {
+    pub fn from_raw_grammar(raw: RawGrammar, id: GrammarId) -> Result<Self, CompileError> {
         let mut grammar = Self {
+            id,
             name: raw.name,
             display_name: raw.display_name,
             scope_name: raw.scope_name,
@@ -386,7 +341,7 @@ impl CompiledGrammar {
             ..Default::default()
         };
         let root_rule_id = grammar.compile_rule(root_rule, RepositoryStack::default())?;
-        assert_eq!(*root_rule_id, 0);
+        assert_eq!(root_rule_id.id(), 0);
 
         // Resolve all Local references after compilation is complete
         grammar.resolve_local_references();
@@ -520,9 +475,9 @@ impl CompiledGrammar {
                 // - however, if patterns ARE present, includes are ignored
                 // https://github.com/microsoft/vscode-textmate/blob/f03a6a8790af81372d0e81facae75554ec5e97ef/src/rule.ts#L404
                 let patterns = if raw_rule.patterns.is_empty() {
-                    if let Some(include) = raw_rule.include {
+                    if let Some(reference) = raw_rule.include {
                         vec![RawRule {
-                            include: Some(include),
+                            include: Some(reference),
                             ..Default::default()
                         }]
                     } else {
@@ -549,7 +504,7 @@ impl CompiledGrammar {
             }
         };
 
-        self.rules[*id as usize] = rule;
+        self.rules[id.id()] = rule;
         Ok(id)
     }
 
@@ -578,7 +533,7 @@ impl CompiledGrammar {
             rules.insert(name, self.compile_rule(raw_rule, stack)?);
         }
 
-        self.repositories[*repo_id as usize] = Repository(rules);
+        self.repositories[repo_id.id()] = Repository(rules);
 
         Ok(repo_id)
     }
@@ -669,12 +624,11 @@ impl CompiledGrammar {
         let mut out = vec![];
 
         for r in rules {
-            if let Some(include) = r.include {
+            if let Some(reference) = r.include {
                 // vscode ignores other rule contents is there's an include
                 // https://github.com/microsoft/vscode-textmate/blob/f03a6a8790af81372d0e81facae75554ec5e97ef/src/rule.ts#L495
 
-                // Parse reference but defer Local resolution to post-compilation pass
-                let reference = Reference::from(include.as_str());
+                // Reference is already parsed during deserialization
                 match reference {
                     Reference::Self_ | Reference::Base => {
                         // Self/Base references always resolve to root rule
@@ -686,7 +640,6 @@ impl CompiledGrammar {
                         // Keep all other references for post-compilation resolution
                         out.push(RuleIdOrReference::Reference(reference));
                     }
-                    Reference::Unknown(_) => {}
                 }
             } else {
                 out.push(RuleIdOrReference::RuleId(
@@ -752,8 +705,6 @@ impl CompiledGrammar {
                         // TODO
                         Reference::OtherComplete(_) => {}
                         Reference::OtherSpecific(_, _) => {}
-                        // We skip those
-                        Reference::Unknown(_) => {}
                     }
                 }
             }
@@ -830,9 +781,9 @@ impl std::error::Error for CompileError {}
 #[cfg(test)]
 mod tests {
     use super::{has_captures, replace_captures};
-    use std::fs;
-
     use crate::grammars::raw::RawGrammar;
+    use crate::grammars::{CompiledGrammar, GrammarId};
+    use std::fs;
 
     #[test]
     fn can_find_captures() {
@@ -966,8 +917,7 @@ mod tests {
             let raw_grammar = RawGrammar::load_from_file(&path).unwrap();
 
             println!(">> {path:?}");
-            assert!(raw_grammar.compile().is_ok());
+            let _ = CompiledGrammar::from_raw_grammar(raw_grammar, GrammarId(0)).unwrap();
         }
-        // assert!(false); // Commented out - test was intentionally failing
     }
 }

@@ -18,10 +18,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let entry = entry?;
         let path = entry.path();
         if path.is_file() && path.extension() == Some("json".as_ref()) {
-            let grammar_name = path
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap();
+            let grammar_name = path.file_stem().and_then(|s| s.to_str()).unwrap();
 
             match registry.add_grammar_from_path(&path) {
                 Ok(_) => {
@@ -44,10 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let entry = entry?;
         let path = entry.path();
         if path.is_file() && path.extension() == Some("json".as_ref()) {
-            let theme_name = path
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap();
+            let theme_name = path.file_stem().and_then(|s| s.to_str()).unwrap();
 
             match registry.add_theme_from_path(theme_name, &path) {
                 Ok(_) => {
@@ -86,12 +80,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Calculate compression statistics
     let compression_ratio = uncompressed_size as f64 / compressed_size as f64;
-    let size_reduction = ((uncompressed_size as f64 - compressed_size as f64) / uncompressed_size as f64) * 100.0;
+    let size_reduction =
+        ((uncompressed_size as f64 - compressed_size as f64) / uncompressed_size as f64) * 100.0;
 
     println!("\n=== COMPRESSION RESULTS ===");
-    println!("Uncompressed MessagePack: {:.2} MB ({} bytes)", uncompressed_mb, uncompressed_size);
-    println!("Compressed file:          {:.2} MB ({} bytes)", compressed_mb, compressed_size);
-    println!("Compression ratio:        {:.2}x smaller", compression_ratio);
+    println!(
+        "Uncompressed MessagePack: {:.2} MB ({} bytes)",
+        uncompressed_mb, uncompressed_size
+    );
+    println!(
+        "Compressed file:          {:.2} MB ({} bytes)",
+        compressed_mb, compressed_size
+    );
+    println!(
+        "Compression ratio:        {:.2}x smaller",
+        compression_ratio
+    );
     println!("Size reduction:           {:.1}% smaller", size_reduction);
     println!("✓ Registry saved to builtin.msgpack");
 

@@ -1,15 +1,18 @@
-use crate::grammars::{CompiledGrammar, RawGrammar};
+use std::collections::HashMap;
+use std::path::Path;
+
+use serde::{Deserialize, Serialize};
+
+use crate::grammars::{CompiledGrammar, GrammarId, RawGrammar};
 use crate::themes::{CompiledTheme, RawTheme};
 use crate::tokenizer::Tokenizer;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fs;
-use std::path::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Registry {
-    // compiled_grammar.name -> compiled_grammar
-    grammars: HashMap<String, CompiledGrammar>,
+    // Vector of compiled grammars for ID-based access
+    grammars: Vec<CompiledGrammar>,
+    // grammar name -> grammar ID lookup for string-based access
+    grammar_names: HashMap<String, GrammarId>,
     // name given by user -> theme
     themes: HashMap<String, CompiledTheme>,
 }
@@ -20,9 +23,11 @@ impl Registry {
         grammar: &str,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let raw_grammar = RawGrammar::load_from_str(grammar)?;
-        let compiled_grammar = raw_grammar.compile()?;
-        self.grammars
-            .insert(compiled_grammar.name.clone(), compiled_grammar);
+        let grammar_id = GrammarId(self.grammars.len() as u16);
+        let grammar = CompiledGrammar::from_raw_grammar(raw_grammar, grammar_id)?;
+        let grammar_name = grammar.name.clone();
+        self.grammars.push(grammar);
+        self.grammar_names.insert(grammar_name, grammar_id);
         Ok(())
     }
 
@@ -31,9 +36,11 @@ impl Registry {
         path: impl AsRef<Path>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let raw_grammar = RawGrammar::load_from_file(path)?;
-        let compiled_grammar = raw_grammar.compile()?;
-        self.grammars
-            .insert(compiled_grammar.name.clone(), compiled_grammar);
+        let grammar_id = GrammarId(self.grammars.len() as u16);
+        let grammar = CompiledGrammar::from_raw_grammar(raw_grammar, grammar_id)?;
+        let grammar_name = grammar.name.clone();
+        self.grammars.push(grammar);
+        self.grammar_names.insert(grammar_name, grammar_id);
         Ok(())
     }
 
@@ -61,7 +68,7 @@ impl Registry {
 
     pub(crate) fn tokenize(&self, lang: &str, content: &str) {
         // 1. Get grammar by language name
-        if let Some(grammar) = self.grammars.get(lang) {
+        if let Some(grammar) = self.get_grammar_by_name(lang) {
             // 2. Create tokenizer with the grammar
             let mut tokenizer = Tokenizer::new(grammar);
 
@@ -80,10 +87,23 @@ impl Registry {
         }
     }
 
+    fn get_grammar_id(&self, name: &str) -> Option<GrammarId> {
+        self.grammar_names.get(name).cloned()
+    }
+
+    fn get_grammar_by_name(&self, name: &str) -> Option<&CompiledGrammar> {
+        let id = self.grammar_names.get(name)?;
+        self.grammars.get(id.id())
+    }
+
+    fn get_grammar_by_id(&self, id: GrammarId) -> Option<&CompiledGrammar> {
+        self.grammars.get(id.id())
+    }
+
     /// Dump the current Registry to compressed MessagePack format at the given file path
     #[cfg(feature = "dump")]
     pub fn dump_to_file(&self, path: impl AsRef<Path>) -> Result<(), Box<dyn std::error::Error>> {
-        use flate2::{write::GzEncoder, Compression};
+        use flate2::{Compression, write::GzEncoder};
         use std::io::Write;
 
         let msgpack_data = rmp_serde::to_vec(self)?;

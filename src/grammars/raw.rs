@@ -3,9 +3,61 @@ use std::fs::File;
 use std::ops::Deref;
 use std::path::Path;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-use super::compiled::{CompileError, CompiledGrammar};
+/// per vscode-textmate:
+///  Allowed values:
+///  * Scope Name, e.g. `source.ts`
+///  * Top level scope reference, e.g. `source.ts#entity.name.class`
+///  * Relative scope reference, e.g. `#entity.name.class`
+///  * self, e.g. `$self`
+///  * base, e.g. `$base`
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub enum Reference {
+    Self_,
+    // TODO: not entirely how $base differs from $self and what it actually means
+    // seems like only injection, like calling the parent language when nesting
+    Base,
+    Local(String),
+    OtherComplete(String),
+    OtherSpecific(String, String),
+}
+
+impl From<&str> for Reference {
+    fn from(value: &str) -> Self {
+        let r = match value.as_ref() {
+            "$self" => Self::Self_,
+            "$base" => Self::Base,
+            s if s.starts_with('#') => Self::Local(s[1..].to_string()),
+            s if s.contains('#') => {
+                let (scope, rule) = s.split_once('#').unwrap();
+                Self::OtherSpecific(scope.to_string(), rule.to_string())
+            }
+            s if s.contains('.') => {
+                // Try parsing as scope.repository format (e.g., "source.js.regexp")
+                if let Some(dot_pos) = s.rfind('.') {
+                    let (scope_part, rule_part) = s.split_at(dot_pos);
+                    let rule_part = &rule_part[1..]; // Remove the '.'
+                    return Self::OtherSpecific(scope_part.to_string(), rule_part.to_string());
+                }
+                // Complete scope lookup
+                Self::OtherComplete(value.to_string())
+            }
+            _ => Self::OtherComplete(value.to_string()),
+        };
+
+        r
+    }
+}
+
+/// Custom deserializer for the include field that parses string references into Reference enum
+fn deserialize_reference<'de, D>(deserializer: D) -> Result<Option<Reference>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt_string = Option::<String>::deserialize(deserializer)?;
+    Ok(opt_string.map(|s| Reference::from(s.as_str())))
+}
 
 /// applyEndPatternLast is sometimes an integer or a bool
 /// We only want them as bool
@@ -192,7 +244,8 @@ impl Deref for Captures {
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRule {
     // Include reference - for including other patterns by reference
-    pub include: Option<String>,
+    #[serde(deserialize_with = "deserialize_reference")]
+    pub include: Option<Reference>,
 
     pub name: Option<String>,
     pub content_name: Option<String>,
@@ -290,11 +343,6 @@ impl RawGrammar {
         let file = File::open(&path)?;
         let raw_grammar = serde_json::from_reader(&file)?;
         Ok(raw_grammar)
-    }
-
-    /// Compile this raw grammar into an optimized compiled grammar
-    pub fn compile(self) -> Result<CompiledGrammar, CompileError> {
-        CompiledGrammar::from_raw_grammar(self)
     }
 }
 

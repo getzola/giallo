@@ -304,8 +304,7 @@ impl<'g> Tokenizer<'g> {
         let mut current = Some(&stack);
 
         while let Some(stack_elem) = current {
-            if let Some(Rule::BeginWhile(_)) = self.grammar.rules.get(*stack_elem.rule_id as usize)
-            {
+            if let Some(Rule::BeginWhile(_)) = self.grammar.rules.get(stack_elem.rule_id.id()) {
                 while_stacks.push(stack_elem.clone());
             }
             current = stack_elem.parent.as_deref();
@@ -368,7 +367,7 @@ impl<'g> Tokenizer<'g> {
                 acc.produce(absolute_start, &while_stack.content_scopes);
                 // Handle while captures if they exist
                 if let Some(Rule::BeginWhile(begin_while_rule)) =
-                    self.grammar.rules.get(*while_stack.rule_id as usize)
+                    self.grammar.rules.get(while_stack.rule_id.id())
                 {
                     if !begin_while_rule.while_captures.is_empty() {
                         let captures_pos: Vec<Option<(usize, usize)>> = (0..cap.len())
@@ -401,7 +400,7 @@ impl<'g> Tokenizer<'g> {
                         "[check_while_conditions] No while match found, popping: {:?}",
                         self.grammar
                             .rules
-                            .get(*while_stack.rule_id as usize)
+                            .get(while_stack.rule_id.id())
                             .unwrap()
                             .original_name()
                     );
@@ -886,7 +885,7 @@ mod tests {
     use std::fs;
 
     use super::*;
-    use crate::grammars::RawGrammar;
+    use crate::grammars::{GrammarId, RawGrammar};
     use pretty_assertions::assert_eq;
 
     fn format_tokens(input: &str, lines_tokens: Vec<Vec<Token>>) -> String {
@@ -920,29 +919,29 @@ mod tests {
         out
     }
 
-    #[test]
-    fn test_md_tokenization() {
-        let mut all_grammars = HashMap::new();
-        for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
-            let path = entry.unwrap().path();
-            let grammar_name = path.file_stem().unwrap().to_str().unwrap();
-            let raw_grammar = RawGrammar::load_from_file(&path).unwrap();
-            let compiled_grammar = raw_grammar.compile().unwrap();
-            all_grammars.insert(grammar_name.to_string(), compiled_grammar);
-        }
-
-        let input = r#"
-~~~python
-import time
-~~~
-        "#;
-        println!("{input}");
-        let mut tokenizer = Tokenizer::new(&all_grammars["markdown"]);
-        let tokens = tokenizer.tokenize_string(&input).unwrap();
-        let out = format_tokens(&input, tokens);
-        println!("{out}");
-        assert!(false);
-    }
+    //     #[test]
+    //     fn test_md_tokenization() {
+    //         let mut all_grammars = HashMap::new();
+    //         for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
+    //             let path = entry.unwrap().path();
+    //             let grammar_name = path.file_stem().unwrap().to_str().unwrap();
+    //             let raw_grammar = RawGrammar::load_from_file(&path).unwrap();
+    //             let compiled_grammar = raw_grammar.compile().unwrap();
+    //             all_grammars.insert(grammar_name.to_string(), compiled_grammar);
+    //         }
+    //
+    //         let input = r#"
+    // ~~~python
+    // import time
+    // ~~~
+    //         "#;
+    //         println!("{input}");
+    //         let mut tokenizer = Tokenizer::new(&all_grammars["markdown"]);
+    //         let tokens = tokenizer.tokenize_string(&input).unwrap();
+    //         let out = format_tokens(&input, tokens);
+    //         println!("{out}");
+    //         assert!(false);
+    //     }
 
     #[test]
     fn can_tokenize_like_vscode_textmate() {
@@ -951,7 +950,8 @@ import time
             let path = entry.unwrap().path();
             let grammar_name = path.file_stem().unwrap().to_str().unwrap();
             let raw_grammar = RawGrammar::load_from_file(&path).unwrap();
-            let compiled_grammar = raw_grammar.compile().unwrap();
+            let compiled_grammar =
+                CompiledGrammar::from_raw_grammar(raw_grammar, GrammarId(0)).unwrap();
             all_grammars.insert(grammar_name.to_string(), compiled_grammar);
         }
 
