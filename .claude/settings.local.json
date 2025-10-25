@@ -67,7 +67,8 @@
       "Bash(tree:*)",
       "Bash(tee:*)",
       "Bash(RUST_BACKTRACE=0 timeout 30 cargo test:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

@@ -23,9 +23,22 @@ pub enum Reference {
     OtherSpecific(String, String),
 }
 
+impl Reference {
+    pub fn is_local(&self) -> bool {
+        matches!(self, Reference::Local(_))
+    }
+
+    pub fn is_other(&self) -> bool {
+        matches!(
+            self,
+            Reference::OtherComplete(_) | Reference::OtherSpecific(_, _)
+        )
+    }
+}
+
 impl From<&str> for Reference {
     fn from(value: &str) -> Self {
-        let r = match value.as_ref() {
+        match value {
             "$self" => Self::Self_,
             "$base" => Self::Base,
             s if s.starts_with('#') => Self::Local(s[1..].to_string()),
@@ -33,20 +46,8 @@ impl From<&str> for Reference {
                 let (scope, rule) = s.split_once('#').unwrap();
                 Self::OtherSpecific(scope.to_string(), rule.to_string())
             }
-            s if s.contains('.') => {
-                // Try parsing as scope.repository format (e.g., "source.js.regexp")
-                if let Some(dot_pos) = s.rfind('.') {
-                    let (scope_part, rule_part) = s.split_at(dot_pos);
-                    let rule_part = &rule_part[1..]; // Remove the '.'
-                    return Self::OtherSpecific(scope_part.to_string(), rule_part.to_string());
-                }
-                // Complete scope lookup
-                Self::OtherComplete(value.to_string())
-            }
             _ => Self::OtherComplete(value.to_string()),
-        };
-
-        r
+        }
     }
 }
 
@@ -361,6 +362,110 @@ mod tests {
             let entry = entry.expect("Failed to read directory entry");
             let path = entry.path();
             assert!(RawGrammar::load_from_file(&path).is_ok());
+        }
+    }
+
+    #[test]
+    fn test_reference_parsing_from_real_examples() {
+        let test_cases = vec![
+            // Local references - most common pattern
+            ("#value", Reference::Local("value".to_string())),
+            ("#expressions", Reference::Local("expressions".to_string())),
+            ("#comments", Reference::Local("comments".to_string())),
+            ("#objectkey", Reference::Local("objectkey".to_string())),
+            (
+                "#stringcontent",
+                Reference::Local("stringcontent".to_string()),
+            ),
+            // Local references with dots - found in applescript.json, lua.json
+            ("#blocks.tell", Reference::Local("blocks.tell".to_string())),
+            (
+                "#blocks.repeat",
+                Reference::Local("blocks.repeat".to_string()),
+            ),
+            (
+                "#emmydoc.type",
+                Reference::Local("emmydoc.type".to_string()),
+            ),
+            (
+                "#built-in.constant",
+                Reference::Local("built-in.constant".to_string()),
+            ),
+            (
+                "#attributes.considering-ignoring",
+                Reference::Local("attributes.considering-ignoring".to_string()),
+            ),
+            (
+                "#comments.nested",
+                Reference::Local("comments.nested".to_string()),
+            ),
+            // Self and base references
+            ("$self", Reference::Self_),
+            ("$base", Reference::Base),
+            // Complete scope references - should be OtherComplete
+            (
+                "source.js",
+                Reference::OtherComplete("source.js".to_string()),
+            ),
+            (
+                "source.java",
+                Reference::OtherComplete("source.java".to_string()),
+            ),
+            (
+                "source.json",
+                Reference::OtherComplete("source.json".to_string()),
+            ),
+            (
+                "text.html.basic",
+                Reference::OtherComplete("text.html.basic".to_string()),
+            ),
+            (
+                "source.tsx",
+                Reference::OtherComplete("source.tsx".to_string()),
+            ),
+            (
+                "source.css",
+                Reference::OtherComplete("source.css".to_string()),
+            ),
+            // Specific scope references - scope#rule pattern
+            (
+                "source.tsx#template-substitution-element",
+                Reference::OtherSpecific(
+                    "source.tsx".to_string(),
+                    "template-substitution-element".to_string(),
+                ),
+            ),
+            (
+                "source.ts#expression",
+                Reference::OtherSpecific("source.ts".to_string(), "expression".to_string()),
+            ),
+            (
+                "text.html.basic#core-minus-invalid",
+                Reference::OtherSpecific(
+                    "text.html.basic".to_string(),
+                    "core-minus-invalid".to_string(),
+                ),
+            ),
+            (
+                "source.css#property-names",
+                Reference::OtherSpecific("source.css".to_string(), "property-names".to_string()),
+            ),
+            (
+                "source.json#value",
+                Reference::OtherSpecific("source.json".to_string(), "value".to_string()),
+            ),
+            // Edge cases
+            ("", Reference::OtherComplete("".to_string())),
+            ("simple", Reference::OtherComplete("simple".to_string())),
+        ];
+
+        for (input, expected) in test_cases {
+            assert_eq!(
+                Reference::from(input),
+                expected,
+                "Failed to parse reference: {}",
+                input
+            );
         }
     }
 }

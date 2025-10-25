@@ -128,12 +128,9 @@ impl Regex {
     pub fn find_at(&self, text: &str, start: usize) -> Option<(usize, usize)> {
         let regex = self.compiled()?;
         let search_text = text.get(start..)?;
-        if let Some(pos) = regex.find(search_text) {
-            // Adjust match positions to be relative to original text
-            Some((pos.0 + start, pos.1 + start))
-        } else {
-            None
-        }
+        regex
+            .find(search_text)
+            .map(|pos| (pos.0 + start, pos.1 + start))
     }
 
     /// Try to get captures starting at the given position

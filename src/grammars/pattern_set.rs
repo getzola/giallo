@@ -1,4 +1,4 @@
-use crate::grammars::{END_RULE_ID, RuleId};
+use crate::grammars::{END_RULE_ID, GlobalRuleRef};
 use crate::tokenizer::TokenizeError;
 use onig::RegSet;
 use std::cell::RefCell;
@@ -6,7 +6,7 @@ use std::fmt::{Debug, Formatter};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PatternSetMatch {
-    pub rule_id: RuleId,
+    pub rule_ref: GlobalRuleRef,
     pub start: usize,
     pub end: usize,
     pub capture_pos: Vec<Option<(usize, usize)>>,
@@ -14,7 +14,7 @@ pub struct PatternSetMatch {
 
 impl PatternSetMatch {
     pub fn is_end_rule(&self) -> bool {
-        self.rule_id == END_RULE_ID
+        self.rule_ref.rule == END_RULE_ID
     }
 
     pub fn has_advanced(&self) -> bool {
@@ -26,38 +26,38 @@ impl PatternSetMatch {
 ///
 /// RegSet compilation is lazy - it's only created when first needed.
 pub struct PatternSet {
-    rule_ids: Vec<RuleId>,
+    rule_refs: Vec<GlobalRuleRef>,
     patterns: Vec<String>,
     regset: RefCell<Option<RegSet>>,
 }
 
 impl PartialEq for PatternSet {
     fn eq(&self, other: &Self) -> bool {
-        self.patterns == other.patterns && self.rule_ids == other.rule_ids
+        self.patterns == other.patterns && self.rule_refs == other.rule_refs
     }
 }
 
 impl Eq for PatternSet {}
 
 impl PatternSet {
-    pub fn new(items: Vec<(RuleId, String)>) -> Self {
-        let (rule_ids, patterns): (Vec<_>, Vec<_>) = items.into_iter().unzip();
+    pub fn new(items: Vec<(GlobalRuleRef, String)>) -> Self {
+        let (rule_refs, patterns): (Vec<_>, Vec<_>) = items.into_iter().unzip();
 
         Self {
-            rule_ids,
+            rule_refs,
             patterns,
             regset: RefCell::new(None),
         }
     }
 
-    pub fn push_back(&mut self, rule_id: RuleId, pat: &str) {
-        self.rule_ids.push(rule_id);
+    pub fn push_back(&mut self, rule_ref: GlobalRuleRef, pat: &str) {
+        self.rule_refs.push(rule_ref);
         self.patterns.push(pat.to_string());
         self.clear_regset();
     }
 
-    pub fn push_front(&mut self, rule_id: RuleId, pat: &str) {
-        self.rule_ids.insert(0, rule_id);
+    pub fn push_front(&mut self, rule_ref: GlobalRuleRef, pat: &str) {
+        self.rule_refs.insert(0, rule_ref);
         self.patterns.insert(0, pat.to_string());
         self.clear_regset();
     }
@@ -65,8 +65,8 @@ impl PatternSet {
     /// Updates the pattern at the front.
     /// Returns true if the pattern was different and the regset invalidated
     pub fn update_pat_front(&mut self, pat: &str) -> bool {
-        debug_assert!(self.patterns.len() > 0);
-        if &self.patterns[0] == pat {
+        debug_assert!(!self.patterns.is_empty());
+        if self.patterns[0] == pat {
             false
         } else {
             self.patterns[0] = pat.to_string();
@@ -78,7 +78,7 @@ impl PatternSet {
     /// Updates the pattern at the back.
     /// Returns true if the pattern was different and the regset invalidated
     pub fn update_pat_back(&mut self, pat: &str) -> bool {
-        debug_assert!(self.patterns.len() > 0);
+        debug_assert!(!self.patterns.is_empty());
         if let Some(last) = self.patterns.last_mut() {
             if last.as_str() == pat {
                 return false;
@@ -114,10 +114,16 @@ impl PatternSet {
                 );
                 eprintln!("Onig error: {:?}", e);
                 eprintln!("Rule IDs and patterns in this set:");
-                for (i, (rule_id, pattern)) in
-                    self.rule_ids.iter().zip(self.patterns.iter()).enumerate()
+                for (i, (rule_ref, pattern)) in
+                    self.rule_refs.iter().zip(self.patterns.iter()).enumerate()
                 {
-                    eprintln!("  [{}] Rule ID {}: {:?}", i, rule_id.0, pattern);
+                    eprintln!(
+                        "  [{}] Rule ID {} of grammar {}: {:?}",
+                        i,
+                        rule_ref.rule.id(),
+                        rule_ref.grammar.id(),
+                        pattern
+                    );
                 }
                 TokenizeError::InvalidRegex(format!(
                     "Failed to compile pattern set with {} patterns: {:?}",
@@ -127,12 +133,6 @@ impl PatternSet {
             })?;
             *self.regset.borrow_mut() = Some(regset);
         }
-        // println!("Searching {pos}: |{}|", &text[pos..]);
-        // println!("Patterns:");
-        // for p in &self.patterns {
-        //     println!("  - {}", p);
-        // }
-
         let regset_ref = self.regset.borrow();
         let regset = regset_ref.as_ref().unwrap();
 
@@ -143,31 +143,31 @@ impl PatternSet {
             text.len(), // Search to end of text
             onig::RegSetLead::Position,
             onig::SearchOptions::SEARCH_OPTION_NONE,
-        ) {
-            if let Some((match_start, match_end)) = captures.pos(0) {
-                // Convert all capture positions (they're already absolute from captures_with_encoding)
-                let capture_pos: Vec<Option<(usize, usize)>> =
-                    (0..captures.len()).map(|i| captures.pos(i)).collect();
+        ) && let Some((match_start, match_end)) = captures.pos(0)
+        {
+            // Convert all capture positions (they're already absolute from captures_with_encoding)
+            let capture_pos: Vec<Option<(usize, usize)>> =
+                (0..captures.len()).map(|i| captures.pos(i)).collect();
 
-                return Ok(Some(PatternSetMatch {
-                    rule_id: self.rule_ids[pattern_index],
-                    start: match_start,
-                    end: match_end,
-                    capture_pos,
-                }));
-            }
+            return Ok(Some(PatternSetMatch {
+                rule_ref: self.rule_refs[pattern_index],
+                start: match_start,
+                end: match_end,
+                capture_pos,
+            }));
         }
 
         Ok(None)
     }
 
-    fn patterns_and_rule_ids(&self) -> Vec<(&str, RuleId)> {
-        self.patterns
-            .iter()
-            .zip(self.rule_ids.iter())
-            .map(|(pat, rule_id)| (pat.as_str(), *rule_id))
-            .collect()
-    }
+    // TODO: unused?
+    // fn patterns_and_rule_ids(&self) -> Vec<(&str, RuleId)> {
+    //     self.patterns
+    //         .iter()
+    //         .zip(self.rule_refs.iter())
+    //         .map(|(pat, rule_id)| (pat.as_str(), *rule_id))
+    //         .collect()
+    // }
 }
 
 impl Debug for PatternSet {
@@ -175,8 +175,8 @@ impl Debug for PatternSet {
         let all: Vec<_> = self
             .patterns
             .iter()
-            .zip(self.rule_ids.iter())
-            .map(|(pat, rule_id)| format!("  - {}: {pat}", rule_id.id()))
+            .zip(self.rule_refs.iter())
+            .map(|(pat, rule_ref)| format!("  - {}: {pat}", rule_ref.rule()))
             .collect();
         write!(f, "{}", all.join("\n"))
     }

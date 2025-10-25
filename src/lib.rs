@@ -3,3 +3,5 @@ pub mod registry;
 pub mod scope;
 pub mod themes;
 mod tokenizer;
+
+pub use registry::Registry;

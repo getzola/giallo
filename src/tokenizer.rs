@@ -2,7 +2,10 @@ use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
 
-use crate::grammars::{CompiledGrammar, END_RULE_ID, PatternSet, Regex, RegexId, Rule, RuleId};
+use crate::grammars::{
+    CompiledGrammar, END_RULE_ID, GlobalRuleRef, GrammarId, PatternSet, Regex, RegexId, Rule,
+    RuleId,
+};
 use crate::scope::{ParseScopeError, Scope};
 
 /// Parse space-separated scope names into a vector of individual scopes
@@ -30,8 +33,8 @@ pub struct Token {
 struct StateStack {
     /// Parent stack element (None for root)
     parent: Option<Rc<StateStack>>,
-    /// Rule ID that created this stack element
-    rule_id: RuleId,
+    /// Global rule ref that created this stack element
+    rule_ref: GlobalRuleRef,
     /// "name" scopes - applied to begin/end delimiters
     /// These scopes are active when matching the rule's boundaries
     name_scopes: Vec<Scope>,
@@ -50,10 +53,13 @@ struct StateStack {
 }
 
 impl StateStack {
-    pub fn new(grammar_scope: Scope) -> Self {
+    pub fn new(grammar_id: GrammarId, grammar_scope: Scope) -> Self {
         Self {
             parent: None,
-            rule_id: RuleId(0), // Root rule (always ID 0)
+            rule_ref: GlobalRuleRef {
+                grammar: grammar_id,
+                rule: RuleId(0),
+            }, // Root rule (always ID 0)
             name_scopes: vec![grammar_scope],
             content_scopes: vec![grammar_scope],
             end_pattern: None,
@@ -65,13 +71,13 @@ impl StateStack {
     /// Called when entering a nested context: when a BeginEnd or BeginWhile begin pattern matches
     fn push(
         &self,
-        rule_id: RuleId,
+        rule_ref: GlobalRuleRef,
         anchor_position: Option<usize>,
         begin_rule_has_captured_eol: bool,
     ) -> StateStack {
         StateStack {
             parent: Some(Rc::new(self.clone())),
-            rule_id,
+            rule_ref,
             // Start with the same scope they will diverge later
             name_scopes: self.content_scopes.clone(),
             content_scopes: self.content_scopes.clone(),
@@ -143,18 +149,18 @@ impl TokenAccumulator {
     /// tokens for empty lines
     fn finalize(&mut self, line_len: usize) {
         // Pop the token for the added newline if there is one
-        if let Some(tok) = self.tokens.last() {
-            if tok.start == line_len - 1 {
-                self.tokens.pop();
-            }
+        if let Some(tok) = self.tokens.last()
+            && tok.start == line_len - 1
+        {
+            self.tokens.pop();
         }
 
         // If we have a token that includes the trailing newline,
         // decrement the end to not include it
-        if let Some(t) = self.tokens.last_mut() {
-            if t.end == line_len {
-                t.end -= 1;
-            }
+        if let Some(t) = self.tokens.last_mut()
+            && t.end == line_len
+        {
+            t.end -= 1;
         }
     }
 }
@@ -164,18 +170,18 @@ impl TokenAccumulator {
 #[derive(Copy, Clone, PartialEq, Hash, Eq)]
 enum AnchorActiveRule {
     // Only \A is active
-    A(RuleId),
+    A(GlobalRuleRef),
     // Only \G is active
-    G(RuleId),
+    G(GlobalRuleRef),
     // Both \A and \G are active
-    AG(RuleId),
+    AG(GlobalRuleRef),
     // Neither \A nor \G are active
-    None(RuleId),
+    None(GlobalRuleRef),
 }
 
 impl AnchorActiveRule {
     pub fn new(
-        rule_id: RuleId,
+        rule_ref: GlobalRuleRef,
         is_first_line: bool,
         anchor_position: Option<usize>,
         current_pos: usize,
@@ -188,16 +194,14 @@ impl AnchorActiveRule {
 
         if is_first_line {
             if g_active {
-                AnchorActiveRule::AG(rule_id)
+                AnchorActiveRule::AG(rule_ref)
             } else {
-                AnchorActiveRule::A(rule_id)
+                AnchorActiveRule::A(rule_ref)
             }
+        } else if g_active {
+            AnchorActiveRule::G(rule_ref)
         } else {
-            if g_active {
-                AnchorActiveRule::G(rule_id)
-            } else {
-                AnchorActiveRule::None(rule_id)
-            }
+            AnchorActiveRule::None(rule_ref)
         }
     }
 
@@ -223,24 +227,24 @@ impl AnchorActiveRule {
     pub fn others(&self) -> Vec<AnchorActiveRule> {
         match self {
             AnchorActiveRule::A(g) => vec![
-                AnchorActiveRule::G(g.clone()),
-                AnchorActiveRule::AG(g.clone()),
-                AnchorActiveRule::None(g.clone()),
+                AnchorActiveRule::G(*g),
+                AnchorActiveRule::AG(*g),
+                AnchorActiveRule::None(*g),
             ],
             AnchorActiveRule::G(g) => vec![
-                AnchorActiveRule::A(g.clone()),
-                AnchorActiveRule::AG(g.clone()),
-                AnchorActiveRule::None(g.clone()),
+                AnchorActiveRule::A(*g),
+                AnchorActiveRule::AG(*g),
+                AnchorActiveRule::None(*g),
             ],
             AnchorActiveRule::AG(g) => vec![
-                AnchorActiveRule::A(g.clone()),
-                AnchorActiveRule::G(g.clone()),
-                AnchorActiveRule::None(g.clone()),
+                AnchorActiveRule::A(*g),
+                AnchorActiveRule::G(*g),
+                AnchorActiveRule::None(*g),
             ],
             AnchorActiveRule::None(g) => vec![
-                AnchorActiveRule::A(g.clone()),
-                AnchorActiveRule::G(g.clone()),
-                AnchorActiveRule::AG(g.clone()),
+                AnchorActiveRule::A(*g),
+                AnchorActiveRule::G(*g),
+                AnchorActiveRule::AG(*g),
             ],
         }
     }
@@ -260,20 +264,24 @@ impl fmt::Debug for AnchorActiveRule {
 
 #[derive(Debug)]
 pub struct Tokenizer<'g> {
-    /// Reference to the main compiled grammar in use
-    grammar: &'g CompiledGrammar,
+    /// The index in the grammars vec below we will use to start the process
+    base_grammar_id: GrammarId,
+    /// All the grammars in the registry
+    grammars: &'g [CompiledGrammar],
     /// Runtime pattern cache by rule ID + anchor state
     pattern_cache: HashMap<AnchorActiveRule, PatternSet>,
     /// Used only for end/while patterns
     /// Some end patterns will change depending on backrefs so we might have multiple
     /// versions of the same regex in there
+    /// Some regex content use backref so they are essentially dynamic patterns
     end_regex_cache: HashMap<String, Regex>,
 }
 
 impl<'g> Tokenizer<'g> {
-    pub fn new(grammar: &'g CompiledGrammar) -> Self {
+    pub fn new(base_grammar_id: GrammarId, grammars: &'g [CompiledGrammar]) -> Self {
         Self {
-            grammar,
+            base_grammar_id,
+            grammars,
             pattern_cache: HashMap::new(),
             end_regex_cache: HashMap::new(),
         }
@@ -304,7 +312,10 @@ impl<'g> Tokenizer<'g> {
         let mut current = Some(&stack);
 
         while let Some(stack_elem) = current {
-            if let Some(Rule::BeginWhile(_)) = self.grammar.rules.get(stack_elem.rule_id.id()) {
+            if let Some(Rule::BeginWhile(_)) = self.grammars[stack_elem.rule_ref.grammar()]
+                .rules
+                .get(stack_elem.rule_ref.rule())
+            {
                 while_stacks.push(stack_elem.clone());
             }
             current = stack_elem.parent.as_deref();
@@ -325,7 +336,16 @@ impl<'g> Tokenizer<'g> {
         }
 
         // We don't care about the rule here, we just want to compute which anchors should be active
-        let active_anchor = AnchorActiveRule::new(RuleId(0), is_first_line, anchor_position, *pos);
+        // TODO: it should probably a standalone fn then
+        let active_anchor = AnchorActiveRule::new(
+            GlobalRuleRef {
+                grammar: GrammarId(0),
+                rule: RuleId(0),
+            },
+            is_first_line,
+            anchor_position,
+            *pos,
+        );
 
         if cfg!(feature = "debug") {
             eprintln!("[check_while_conditions] Anchors: {active_anchor:?}");
@@ -334,8 +354,10 @@ impl<'g> Tokenizer<'g> {
         for while_stack in while_stacks.into_iter().rev() {
             let initial_pat = if let Some(end_pat) = &while_stack.end_pattern {
                 end_pat.as_str()
-            } else if let Rule::BeginWhile(b) = &self.grammar.rules[while_stack.rule_id.id()] {
-                let re = &self.grammar.regexes[b.while_.id()];
+            } else if let Rule::BeginWhile(b) =
+                &self.grammars[while_stack.rule_ref.grammar()].rules[while_stack.rule_ref.rule()]
+            {
+                let re = &self.grammars[while_stack.rule_ref.grammar()].regexes[b.while_.id()];
                 re.pattern()
             } else {
                 unreachable!()
@@ -366,23 +388,24 @@ impl<'g> Tokenizer<'g> {
 
                 acc.produce(absolute_start, &while_stack.content_scopes);
                 // Handle while captures if they exist
-                if let Some(Rule::BeginWhile(begin_while_rule)) =
-                    self.grammar.rules.get(while_stack.rule_id.id())
+                if let Some(Rule::BeginWhile(begin_while_rule)) = self.grammars
+                    [while_stack.rule_ref.grammar()]
+                .rules
+                .get(while_stack.rule_ref.rule())
+                    && !begin_while_rule.while_captures.is_empty()
                 {
-                    if !begin_while_rule.while_captures.is_empty() {
-                        let captures_pos: Vec<Option<(usize, usize)>> = (0..cap.len())
-                            .map(|i| cap.pos(i).map(|(s, e)| (*pos + s, *pos + e)))
-                            .collect();
+                    let captures_pos: Vec<Option<(usize, usize)>> = (0..cap.len())
+                        .map(|i| cap.pos(i).map(|(s, e)| (*pos + s, *pos + e)))
+                        .collect();
 
-                        self.resolve_captures(
-                            &while_stack,
-                            line,
-                            &begin_while_rule.while_captures,
-                            &captures_pos,
-                            acc,
-                            is_first_line,
-                        )?;
-                    }
+                    self.resolve_captures(
+                        &while_stack,
+                        line,
+                        &begin_while_rule.while_captures,
+                        &captures_pos,
+                        acc,
+                        is_first_line,
+                    )?;
                 }
 
                 // Produce token for the while match itself
@@ -398,9 +421,9 @@ impl<'g> Tokenizer<'g> {
                 if cfg!(feature = "debug") {
                     eprintln!(
                         "[check_while_conditions] No while match found, popping: {:?}",
-                        self.grammar
+                        self.grammars[while_stack.rule_ref.grammar()]
                             .rules
-                            .get(while_stack.rule_id.id())
+                            .get(while_stack.rule_ref.rule())
                             .unwrap()
                             .original_name()
                     );
@@ -422,15 +445,15 @@ impl<'g> Tokenizer<'g> {
         is_first_line: bool,
         anchor_position: Option<usize>,
     ) -> &PatternSet {
-        let rule_id = stack.rule_id;
+        let rule_ref = stack.rule_ref;
 
-        let rule = &self.grammar.rules[rule_id.id()];
-        let rule_w_anchor = AnchorActiveRule::new(rule_id, is_first_line, anchor_position, pos);
+        let rule = &self.grammars[rule_ref.grammar()].rules[rule_ref.rule()];
+        let rule_w_anchor = AnchorActiveRule::new(rule_ref, is_first_line, anchor_position, pos);
 
         if cfg!(feature = "debug") {
             eprintln!(
                 "[get_or_create_pattern_set] Rule ID: {} Anchors: {rule_w_anchor:?}",
-                rule_id.id()
+                rule_ref.rule()
             );
             eprintln!(
                 "[get_or_create_pattern_set] Scanning for: pos={pos}, anchor_position={:?}",
@@ -438,16 +461,16 @@ impl<'g> Tokenizer<'g> {
             );
         }
 
-        let mut end_pattern = stack.end_pattern.as_ref().map(|s| s.as_str());
+        let mut end_pattern = stack.end_pattern.as_deref();
 
         if end_pattern.is_none() {
             match rule {
                 Rule::BeginEnd(b) => {
-                    let re = &self.grammar.regexes[b.end.id()];
+                    let re = &self.grammars[rule_ref.grammar()].regexes[b.end.id()];
                     end_pattern = Some(re.pattern());
                 }
                 Rule::BeginWhile(b) => {
-                    let re = &self.grammar.regexes[b.while_.id()];
+                    let re = &self.grammars[rule_ref.grammar()].regexes[b.while_.id()];
                     end_pattern = Some(re.pattern());
                 }
                 _ => (),
@@ -455,13 +478,13 @@ impl<'g> Tokenizer<'g> {
         }
 
         if !self.pattern_cache.contains_key(&rule_w_anchor) {
-            let raw_patterns = self.grammar.collect_patterns(rule_id);
+            let raw_patterns = self.grammars[rule_ref.grammar()].collect_patterns(rule_ref.rule);
 
             if cfg!(feature = "debug") {
                 eprintln!("[get_or_create_pattern_set] Creating new ps with stack: {stack:#?}");
             }
 
-            let patterns: Vec<(RuleId, String)> = raw_patterns
+            let patterns: Vec<_> = raw_patterns
                 .into_iter()
                 .map(|(rule, pat)| {
                     let replaced = rule_w_anchor.replace_anchors(&pat);
@@ -477,9 +500,21 @@ impl<'g> Tokenizer<'g> {
                 && let Rule::BeginEnd(_) = rule
             {
                 if rule.apply_end_pattern_last() {
-                    p.push_back(END_RULE_ID, &pat)
+                    p.push_back(
+                        GlobalRuleRef {
+                            grammar: rule_ref.grammar,
+                            rule: END_RULE_ID,
+                        },
+                        pat,
+                    )
                 } else {
-                    p.push_front(END_RULE_ID, &pat)
+                    p.push_front(
+                        GlobalRuleRef {
+                            grammar: rule_ref.grammar,
+                            rule: END_RULE_ID,
+                        },
+                        pat,
+                    )
                 }
             }
 
@@ -511,7 +546,7 @@ impl<'g> Tokenizer<'g> {
         let p = &self.pattern_cache[&rule_w_anchor];
 
         if cfg!(feature = "debug") {
-            let rule = &self.grammar.rules[rule_id.id()];
+            let rule = &self.grammars[rule_ref.grammar()].rules[rule_ref.rule()];
             eprintln!(
                 "[get_or_create_pattern_set] Active patterns for rule {:?}.\n{p:?}",
                 rule.original_name()
@@ -525,7 +560,7 @@ impl<'g> Tokenizer<'g> {
         &mut self,
         stack: &StateStack,
         line: &str,
-        rule_captures: &[Option<RuleId>],
+        rule_captures: &[Option<GlobalRuleRef>],
         captures: &[Option<(usize, usize)>],
         accumulator: &mut TokenAccumulator,
         is_first_line: bool,
@@ -540,7 +575,7 @@ impl<'g> Tokenizer<'g> {
         let min = std::cmp::min(rule_captures.len(), captures.len());
 
         for i in 0..min {
-            let rule_id = if let Some(&Some(r)) = rule_captures.get(i) {
+            let rule_ref = if let Some(&Some(r)) = rule_captures.get(i) {
                 r
             } else {
                 continue;
@@ -555,7 +590,7 @@ impl<'g> Tokenizer<'g> {
             }
 
             // pop captures while needed
-            while local_stack.len() > 0
+            while !local_stack.is_empty()
                 && let Some((scopes, end_pos)) = local_stack.last()
                 && *end_pos <= cap_start
             {
@@ -570,19 +605,19 @@ impl<'g> Tokenizer<'g> {
             }
 
             //  Check if it has captures. If it does we need to call tokenize_string
-            let rule = &self.grammar.rules[rule_id.id()];
+            let rule = &self.grammars[rule_ref.grammar()].rules[rule_ref.rule()];
             let name = rule.name(line, captures);
 
             if rule.has_patterns() {
                 let content_name = rule.content_name(line, captures);
-                let mut retokenization_stack = stack.push(rule_id, None, false);
+                let mut retokenization_stack = stack.push(rule_ref, None, false);
                 // Apply rule name scopes to the new state
                 if let Some(name_str) = name.as_ref() {
                     retokenization_stack
                         .name_scopes
                         .extend(parse_scope_names(name_str)?);
                 }
-                // Start with name + content scopes for content scpoes
+                // Start with name + content scopes for content scopes
                 retokenization_stack.content_scopes = retokenization_stack.name_scopes.clone();
                 if let Some(content) = content_name {
                     retokenization_stack
@@ -676,15 +711,19 @@ impl<'g> Tokenizer<'g> {
                 if cfg!(feature = "debug") {
                     eprintln!(
                         "[tokenize_line] Matched rule: {} from pos {} to {}",
-                        m.rule_id.id(),
+                        m.rule_ref.rule(),
                         m.start,
                         m.end
                     );
                 }
 
                 // We matched the `end` for this rule, can only happen for BeginEnd rules
-                if m.rule_id == END_RULE_ID
-                    && let Rule::BeginEnd(b) = &self.grammar.rules[stack.rule_id.id()]
+                if m.rule_ref.rule == END_RULE_ID {
+                    println!("{m:?}");
+                }
+                if m.rule_ref.rule == END_RULE_ID
+                    && let Rule::BeginEnd(b) =
+                        &self.grammars[stack.rule_ref.grammar()].rules[stack.rule_ref.rule()]
                 {
                     if cfg!(feature = "debug") {
                         eprintln!(
@@ -708,7 +747,7 @@ impl<'g> Tokenizer<'g> {
                     anchor_position = stack.anchor_position;
                     stack = stack.pop().expect("to have a parent stack");
                 } else {
-                    let rule = &self.grammar.rules[m.rule_id.id()];
+                    let rule = &self.grammars[m.rule_ref.grammar()].rules[m.rule_ref.rule()];
                     accumulator.produce(m.start, &stack.content_scopes);
                     let new_scopes = if let Some(n) = rule.name(line, &m.capture_pos) {
                         let mut s = stack.content_scopes.clone();
@@ -718,21 +757,21 @@ impl<'g> Tokenizer<'g> {
                         stack.content_scopes.clone()
                     };
                     // TODO: improve that push?
-                    stack = stack.push(m.rule_id, anchor_position, m.end == line.len());
+                    stack = stack.push(m.rule_ref, anchor_position, m.end == line.len());
                     stack.name_scopes = new_scopes.clone();
                     stack.content_scopes = new_scopes;
                     stack.end_pattern = None;
 
                     let mut handle_begin_rule = |re_id: RegexId,
                                                  end_has_backrefs: bool,
-                                                 begin_captures: &[Option<RuleId>]|
+                                                 begin_captures: &[Option<GlobalRuleRef>]|
                      -> Result<(), TokenizeError> {
-                        let re = &self.grammar.regexes[re_id.id()];
+                        let re = &self.grammars[m.rule_ref.grammar()].regexes[re_id.id()];
                         if cfg!(feature = "debug") {
                             eprintln!(
                                 "[tokenize_line] Pushing '{}' - '{}'",
-                                self.grammar
-                                    .get_original_rule_name(m.rule_id)
+                                self.grammars[m.rule_ref.grammar()]
+                                    .get_original_rule_name(m.rule_ref.rule)
                                     .unwrap_or_default(),
                                 re.pattern()
                             );
@@ -777,8 +816,8 @@ impl<'g> Tokenizer<'g> {
                             if cfg!(feature = "debug") {
                                 eprintln!(
                                     "[handle_match] Matched '{}'",
-                                    self.grammar
-                                        .get_original_rule_name(m.rule_id)
+                                    self.grammars[m.rule_ref.grammar()]
+                                        .get_original_rule_name(m.rule_ref.rule)
                                         .unwrap_or_default()
                                 );
                             }
@@ -822,7 +861,10 @@ impl<'g> Tokenizer<'g> {
             return Ok(vec![]);
         }
 
-        let mut stack = StateStack::new(Scope::new(&self.grammar.scope_name)?);
+        let mut stack = StateStack::new(
+            self.base_grammar_id,
+            Scope::new(&self.grammars[self.base_grammar_id.id()].scope_name)?,
+        );
         let mut lines_tokens = Vec::new();
         let mut is_first_line = true;
 
@@ -881,12 +923,23 @@ impl From<ParseScopeError> for TokenizeError {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use std::fs;
 
     use super::*;
-    use crate::grammars::{GrammarId, RawGrammar};
     use pretty_assertions::assert_eq;
+
+    use crate::Registry;
+
+    fn get_registry() -> Registry {
+        let mut registry = Registry::default();
+        for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
+            let path = entry.unwrap().path();
+            let grammar_name = path.file_stem().unwrap().to_str().unwrap();
+            registry.add_grammar_from_path(path).unwrap();
+        }
+        registry.link_grammars();
+        registry
+    }
 
     fn format_tokens(input: &str, lines_tokens: Vec<Vec<Token>>) -> String {
         let normalized = input.replace("\r\n", "\n").replace('\r', "\n");
@@ -919,41 +972,23 @@ mod tests {
         out
     }
 
-    //     #[test]
-    //     fn test_md_tokenization() {
-    //         let mut all_grammars = HashMap::new();
-    //         for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
-    //             let path = entry.unwrap().path();
-    //             let grammar_name = path.file_stem().unwrap().to_str().unwrap();
-    //             let raw_grammar = RawGrammar::load_from_file(&path).unwrap();
-    //             let compiled_grammar = raw_grammar.compile().unwrap();
-    //             all_grammars.insert(grammar_name.to_string(), compiled_grammar);
-    //         }
-    //
-    //         let input = r#"
-    // ~~~python
-    // import time
-    // ~~~
-    //         "#;
-    //         println!("{input}");
-    //         let mut tokenizer = Tokenizer::new(&all_grammars["markdown"]);
-    //         let tokens = tokenizer.tokenize_string(&input).unwrap();
-    //         let out = format_tokens(&input, tokens);
-    //         println!("{out}");
-    //         assert!(false);
-    //     }
+    #[test]
+    fn test_md_tokenization() {
+        let registry = get_registry();
+
+        let input = r#"
+~~~python
+import time
+~~~"#;
+        let tokens = registry.tokenize("markdown", input).unwrap();
+        let out = format_tokens(&input, tokens);
+        println!("{out}");
+        assert!(false);
+    }
 
     #[test]
     fn can_tokenize_like_vscode_textmate() {
-        let mut all_grammars = HashMap::new();
-        for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
-            let path = entry.unwrap().path();
-            let grammar_name = path.file_stem().unwrap().to_str().unwrap();
-            let raw_grammar = RawGrammar::load_from_file(&path).unwrap();
-            let compiled_grammar =
-                CompiledGrammar::from_raw_grammar(raw_grammar, GrammarId(0)).unwrap();
-            all_grammars.insert(grammar_name.to_string(), compiled_grammar);
-        }
+        let registry = get_registry();
 
         let mut fixtures = Vec::new();
         for entry in fs::read_dir("src/fixtures/tokens").unwrap() {
@@ -967,8 +1002,7 @@ mod tests {
             let sample_path = format!("grammars-themes/samples/{grammar}.sample");
             println!("Checking {sample_path}");
             let sample_content = fs::read_to_string(sample_path).unwrap();
-            let mut tokenizer = Tokenizer::new(&all_grammars[&grammar]);
-            let tokens = tokenizer.tokenize_string(&sample_content).unwrap();
+            let tokens = registry.tokenize(&grammar, &sample_content).unwrap();
             let out = format_tokens(&sample_content, tokens);
             assert_eq!(expected.trim(), out.trim());
         }

@@ -3,7 +3,6 @@ use std::sync::LazyLock;
 
 use serde::{Deserialize, Serialize};
 
-use crate::grammars::pattern_set::PatternSet;
 use crate::grammars::raw::{Captures, RawGrammar, RawRule, Reference};
 use crate::grammars::regex::Regex;
 
@@ -81,15 +80,24 @@ impl RuleId {
     }
 }
 
+pub const ROOT_RULE_ID: RuleId = RuleId(0);
+pub const END_RULE_ID: RuleId = RuleId(u16::MAX);
+const TEMP_RULE_ID: RuleId = RuleId(u16::MAX - 1);
+
 /// A rule reference that works across the whole registry.
 /// We use that to be able to refer to multiple grammars while tokenizing (eg HTML -> JS)
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub struct RuleReference {
+pub struct GlobalRuleRef {
     pub(crate) grammar: GrammarId,
     pub(crate) rule: RuleId,
 }
 
-impl RuleReference {
+const NO_OP_GLOBAL_RULE_REF: GlobalRuleRef = GlobalRuleRef {
+    grammar: GrammarId(u16::MAX - 1),
+    rule: TEMP_RULE_ID,
+};
+
+impl GlobalRuleRef {
     pub fn grammar(self) -> usize {
         self.grammar.id()
     }
@@ -98,8 +106,6 @@ impl RuleReference {
         self.rule.id()
     }
 }
-
-pub const END_RULE_ID: RuleId = RuleId(u16::MAX);
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -155,15 +161,8 @@ impl RepositoryStack {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum RuleIdOrReference {
-    RuleId(RuleId),
-    Reference(Reference),
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Match {
-    pub id: RuleId,
+    pub id: GlobalRuleRef,
     // some match only care about the captures and thus don't have a name themselves
     pub name: Option<String>,
     pub name_is_capturing: bool,
@@ -171,51 +170,51 @@ pub struct Match {
     /// None for scope-only rules (e.g., capture groups that only assign scopes like
     /// punctuation.definition.string.begin without their own pattern to match)
     pub regex_id: Option<RegexId>,
-    pub captures: Vec<Option<RuleId>>,
+    pub captures: Vec<Option<GlobalRuleRef>>,
     pub repository_stack: RepositoryStack,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct IncludeOnly {
-    pub id: RuleId,
+    pub id: GlobalRuleRef,
     pub name: Option<String>,
     pub name_is_capturing: bool,
     pub content_name: Option<String>,
     pub content_name_is_capturing: bool,
     pub repository_stack: RepositoryStack,
-    pub patterns: Vec<RuleIdOrReference>,
+    pub patterns: Vec<GlobalRuleRef>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct BeginEnd {
-    pub id: RuleId,
+    pub id: GlobalRuleRef,
     pub name: Option<String>,
     pub name_is_capturing: bool,
     pub content_name: Option<String>,
     pub content_name_is_capturing: bool,
     pub begin: RegexId,
-    pub begin_captures: Vec<Option<RuleId>>,
+    pub begin_captures: Vec<Option<GlobalRuleRef>>,
     pub end: RegexId,
     pub end_has_backrefs: bool,
-    pub end_captures: Vec<Option<RuleId>>,
+    pub end_captures: Vec<Option<GlobalRuleRef>>,
     pub apply_end_pattern_last: bool,
-    pub patterns: Vec<RuleIdOrReference>,
+    pub patterns: Vec<GlobalRuleRef>,
     pub repository_stack: RepositoryStack,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct BeginWhile {
-    pub id: RuleId,
+    pub id: GlobalRuleRef,
     pub name: Option<String>,
     pub name_is_capturing: bool,
     pub content_name: Option<String>,
     pub content_name_is_capturing: bool,
     pub begin: RegexId,
-    pub begin_captures: Vec<Option<RuleId>>,
+    pub begin_captures: Vec<Option<GlobalRuleRef>>,
     pub while_: RegexId,
     pub while_has_backrefs: bool,
-    pub while_captures: Vec<Option<RuleId>>,
-    pub patterns: Vec<RuleIdOrReference>,
+    pub while_captures: Vec<Option<GlobalRuleRef>>,
+    pub patterns: Vec<GlobalRuleRef>,
     pub repository_stack: RepositoryStack,
 }
 
@@ -225,6 +224,7 @@ pub enum Rule {
     IncludeOnly(IncludeOnly),
     BeginEnd(BeginEnd),
     BeginWhile(BeginWhile),
+    /// Used at compile time to indicate rules that were removed because not found
     Noop,
 }
 
@@ -284,9 +284,29 @@ impl Rule {
     pub fn has_patterns(&self) -> bool {
         match self {
             Rule::Match(_) | Rule::Noop => false,
-            Rule::IncludeOnly(b) => b.patterns.len() > 0,
-            Rule::BeginEnd(b) => b.patterns.len() > 0,
-            Rule::BeginWhile(b) => b.patterns.len() > 0,
+            Rule::IncludeOnly(b) => !b.patterns.is_empty(),
+            Rule::BeginEnd(b) => !b.patterns.is_empty(),
+            Rule::BeginWhile(b) => !b.patterns.is_empty(),
+        }
+    }
+
+    fn repository_stack(&self) -> RepositoryStack {
+        match self {
+            Rule::BeginEnd(b) => b.repository_stack,
+            Rule::BeginWhile(b) => b.repository_stack,
+            Rule::IncludeOnly(i) => i.repository_stack,
+            Rule::Match(b) => b.repository_stack,
+            Rule::Noop => RepositoryStack::default(),
+        }
+    }
+
+    fn replace_pattern(&mut self, position: usize, rule_ref: GlobalRuleRef) {
+        match self {
+            Rule::BeginEnd(b) => b.patterns[position] = rule_ref,
+            Rule::BeginWhile(b) => b.patterns[position] = rule_ref,
+            Rule::IncludeOnly(b) => b.patterns[position] = rule_ref,
+            Rule::Match(_) => (),
+            Rule::Noop => (),
         }
     }
 
@@ -308,8 +328,13 @@ impl Rule {
     }
 }
 
-/// TODO: ignore rules from includes we can't find. See markdown fenced block for an example
-/// and _compilePatterns in rule.ts in vscode-textmate
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+struct RefToReplace {
+    rule_id: RuleId,
+    index: usize,
+    reference: Reference,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledGrammar {
     pub id: GrammarId,
@@ -320,6 +345,7 @@ pub struct CompiledGrammar {
     pub regexes: Vec<Regex>,
     pub rules: Vec<Rule>,
     pub repositories: Vec<Repository>,
+    references: Vec<RefToReplace>,
 }
 
 impl CompiledGrammar {
@@ -333,6 +359,7 @@ impl CompiledGrammar {
             regexes: Vec::new(),
             rules: Vec::new(),
             repositories: Vec::new(),
+            references: Vec::new(),
         };
 
         let root_rule = RawRule {
@@ -354,7 +381,11 @@ impl CompiledGrammar {
         raw_rule: RawRule,
         repository_stack: RepositoryStack,
     ) -> Result<RuleId, CompileError> {
-        let id = RuleId(self.rules.len() as u16);
+        let local_id = RuleId(self.rules.len() as u16);
+        let global_id = GlobalRuleRef {
+            grammar: self.id,
+            rule: local_id,
+        };
 
         // push a no-op to reserve its spot
         self.rules.push(Rule::Noop);
@@ -363,7 +394,7 @@ impl CompiledGrammar {
         // https://github.com/microsoft/vscode-textmate/blob/f03a6a8790af81372d0e81facae75554ec5e97ef/src/rule.ts#L389-L447
         let rule = if let Some(pat) = raw_rule.match_ {
             Rule::Match(Match {
-                id,
+                id: global_id,
                 name_is_capturing: has_captures(name.as_deref()),
                 name,
                 regex_id: Some(self.compile_regex(pat).0),
@@ -375,9 +406,10 @@ impl CompiledGrammar {
             let apply_end_pattern_last = raw_rule.apply_end_pattern_last;
             if let Some(while_pat) = raw_rule.while_ {
                 let (while_, while_has_backrefs) = self.compile_regex(while_pat);
-                let patterns = self.compile_patterns(raw_rule.patterns, repository_stack)?;
+                let patterns =
+                    self.compile_patterns(local_id, raw_rule.patterns, repository_stack)?;
                 Rule::BeginWhile(BeginWhile {
-                    id,
+                    id: global_id,
                     name_is_capturing: has_captures(name.as_deref()),
                     name,
                     content_name_is_capturing: has_captures(content_name.as_deref()),
@@ -407,9 +439,10 @@ impl CompiledGrammar {
                 })
             } else if let Some(end_pat) = raw_rule.end {
                 let (end, end_has_backrefs) = self.compile_regex(end_pat);
-                let patterns = self.compile_patterns(raw_rule.patterns, repository_stack)?;
+                let patterns =
+                    self.compile_patterns(local_id, raw_rule.patterns, repository_stack)?;
                 Rule::BeginEnd(BeginEnd {
-                    id,
+                    id: global_id,
                     name_is_capturing: has_captures(name.as_deref()),
                     name,
                     content_name_is_capturing: has_captures(content_name.as_deref()),
@@ -441,7 +474,7 @@ impl CompiledGrammar {
             } else {
                 // a rule that has begin without while/end is just a match, probably a typo
                 Rule::Match(Match {
-                    id,
+                    id: global_id,
                     name_is_capturing: has_captures(name.as_deref()),
                     name,
                     regex_id: Some(self.compile_regex(begin_pat).0),
@@ -462,7 +495,7 @@ impl CompiledGrammar {
                 // This is a scope-only rule - create a Match rule with no regex
                 // This handles captures that only assign scopes
                 Rule::Match(Match {
-                    id,
+                    id: global_id,
                     name_is_capturing: has_captures(name.as_deref()),
                     name,
                     regex_id: None, // Scope-only rule (e.g., capture that only assigns scope)
@@ -490,9 +523,10 @@ impl CompiledGrammar {
                 if patterns.is_empty() {
                     Rule::Noop
                 } else {
-                    let compiled_patterns = self.compile_patterns(patterns, repository_stack)?;
+                    let compiled_patterns =
+                        self.compile_patterns(local_id, patterns, repository_stack)?;
                     Rule::IncludeOnly(IncludeOnly {
-                        id,
+                        id: global_id,
                         name_is_capturing: has_captures(name.as_deref()),
                         name,
                         content_name_is_capturing: has_captures(raw_rule.content_name.as_deref()),
@@ -504,8 +538,8 @@ impl CompiledGrammar {
             }
         };
 
-        self.rules[id.id()] = rule;
-        Ok(id)
+        self.rules[local_id.id()] = rule;
+        Ok(local_id)
     }
 
     fn compile_regex(&mut self, pattern: String) -> (RegexId, bool) {
@@ -542,109 +576,209 @@ impl CompiledGrammar {
         &mut self,
         captures: Captures,
         repository_stack: RepositoryStack,
-    ) -> Result<Vec<Option<RuleId>>, CompileError> {
+    ) -> Result<Vec<Option<GlobalRuleRef>>, CompileError> {
         if captures.is_empty() {
             return Ok(Vec::new());
         }
 
         // mdc.json syntax has actually a 912 backref
         let max_capture = captures.keys().max().copied().unwrap_or_default();
-        let mut out: Vec<Option<RuleId>> = vec![None; max_capture + 1];
+        let mut out: Vec<_> = vec![None; max_capture + 1];
 
         for (key, rule) in captures.0 {
-            out[key] = Some(self.compile_rule(rule, repository_stack)?);
+            let local_id = self.compile_rule(rule, repository_stack)?;
+            let global_id = GlobalRuleRef {
+                grammar: self.id,
+                rule: local_id,
+            };
+            out[key] = Some(global_id);
         }
 
         Ok(out)
     }
 
-    /// Resolve all Local references after compilation is complete.
+    /// Resolve all Local references after self compilation is complete.
     /// This must be called after all repositories are fully compiled.
     fn resolve_local_references(&mut self) {
-        let convert_local_references = |patterns: &[RuleIdOrReference],
-                                        repository_stack: RepositoryStack|
-         -> Vec<RuleIdOrReference> {
-            patterns
-                .iter()
-                .filter_map(|pattern| match pattern {
-                    RuleIdOrReference::RuleId(rule_id) => Some(RuleIdOrReference::RuleId(*rule_id)),
-                    RuleIdOrReference::Reference(reference) => match reference {
-                        Reference::Local(name) => {
-                            // Walks the repository stack from most recent (top) to oldest (bottom)
-                            // and returns the first matching rule ID found.
-                            for repo_id in
-                                repository_stack.stack.iter().filter(|x| x.is_some()).rev()
-                            {
-                                let repo = &self.repositories[repo_id.unwrap().id()];
-                                if let Some(rule_id) = repo.get(name) {
-                                    return Some(RuleIdOrReference::RuleId(*rule_id));
-                                }
-                            }
-                            if cfg!(feature = "debug") {
-                                eprintln!("Warning: Local reference '{name}' not found");
-                            }
-                            None
-                        }
-                        Reference::Self_ | Reference::Base => {
-                            Some(RuleIdOrReference::RuleId(RuleId(0)))
-                        }
-                        _ => Some(pattern.clone()),
-                    },
-                })
-                .collect()
-        };
+        let references = std::mem::take(&mut self.references);
+        let (local, external) = references.into_iter().partition(|x| x.reference.is_local());
+        self.references = external;
 
-        for rule in self.rules.iter_mut() {
-            match rule {
-                Rule::IncludeOnly(x) => {
-                    let resolved_patterns =
-                        convert_local_references(&x.patterns, x.repository_stack);
-                    x.patterns = resolved_patterns;
+        for rep in local {
+            let rule = &mut self.rules[rep.rule_id.id()];
+            let stack = rule.repository_stack();
+            let mut found = false;
+            for repo_id in stack.stack.iter().filter(|x| x.is_some()).rev() {
+                let repo = &self.repositories[repo_id.unwrap().id()];
+                if let Reference::Local(name) = &rep.reference {
+                    if let Some(rule_id) = repo.get(name) {
+                        found = true;
+                        let global_ref = GlobalRuleRef {
+                            grammar: self.id,
+                            rule: *rule_id,
+                        };
+                        rule.replace_pattern(rep.index, global_ref);
+                    }
                 }
-                Rule::BeginEnd(x) => {
-                    let resolved_patterns =
-                        convert_local_references(&x.patterns, x.repository_stack);
-                    x.patterns = resolved_patterns;
-                }
-                Rule::BeginWhile(x) => {
-                    let resolved_patterns =
-                        convert_local_references(&x.patterns, x.repository_stack);
-                    x.patterns = resolved_patterns;
-                }
-                _ => (),
             }
+
+            if !found {
+                if cfg!(feature = "debug") {
+                    eprintln!(
+                        "Local reference '{:?}' not found in grammar {}",
+                        rep.reference, self.name
+                    );
+                }
+                rule.replace_pattern(rep.index, NO_OP_GLOBAL_RULE_REF);
+            }
+        }
+
+        self.remove_empty_rules();
+    }
+
+    /// Resolves external references after all grammar compilations are complete
+    /// This is called by the registry, not by the grammar itself.
+    pub(crate) fn resolve_external_references(
+        &mut self,
+        grammar_mapping: &HashMap<String, GrammarId>,
+        grammars: &[CompiledGrammar],
+    ) {
+        // This is called after local are resolved so there should be only external refs here
+        let references = std::mem::take(&mut self.references);
+
+        for rep in references {
+            let rule = &mut self.rules[rep.rule_id.id()];
+
+            let (grammar_name, repo_name) = match &rep.reference {
+                Reference::OtherComplete(f) => (f, None),
+                Reference::OtherSpecific(f, s) => (f, Some(s)),
+                _ => unreachable!(),
+            };
+
+            if let Some(g_id) = grammar_mapping.get(grammar_name)
+                && let Some(grammar) = grammars.get(g_id.id())
+            {
+                if let Some(repo_name) = repo_name {
+                    let mut found = false;
+                    for repo in &grammar.repositories {
+                        if let Some(r_id) = repo.get(&repo_name) {
+                            found = true;
+                            rule.replace_pattern(
+                                rep.index,
+                                GlobalRuleRef {
+                                    grammar: *g_id,
+                                    rule: *r_id,
+                                },
+                            );
+                            break;
+                        }
+                    }
+                    if !found {
+                        if cfg!(feature = "debug") {
+                            eprintln!(
+                                "External grammar '{grammar_name}' found in registry but repository {repo_name} not found in it."
+                            );
+                        }
+                        rule.replace_pattern(rep.index, NO_OP_GLOBAL_RULE_REF);
+                    }
+                } else {
+                    rule.replace_pattern(
+                        rep.index,
+                        GlobalRuleRef {
+                            grammar: *g_id,
+                            rule: RuleId(0),
+                        },
+                    );
+                }
+            } else {
+                if cfg!(feature = "debug") {
+                    eprintln!("External grammar '{grammar_name}' not found in registry.");
+                }
+                rule.replace_pattern(rep.index, NO_OP_GLOBAL_RULE_REF);
+            }
+        }
+
+        self.remove_empty_rules();
+    }
+
+    /// We match the logic from
+    pub(crate) fn remove_empty_rules(&mut self) {
+        let mut empty_rules = Vec::new();
+
+        for (i, rule) in self.rules.iter().enumerate() {
+            let patterns = match rule {
+                Rule::IncludeOnly(b) => &b.patterns,
+                Rule::BeginEnd(b) => &b.patterns,
+                Rule::BeginWhile(b) => &b.patterns,
+                Rule::Noop | Rule::Match(_) => continue,
+            };
+            if patterns.is_empty() {
+                continue;
+            }
+
+            let has_only_missing = patterns
+                .iter()
+                .filter(|p| *p == &NO_OP_GLOBAL_RULE_REF)
+                .count()
+                == patterns.len();
+            if has_only_missing {
+                if cfg!(feature = "debug") {
+                    eprintln!(
+                        "Rule '{:?}' in grammar '{}' has only missing patterns, making it a no-op",
+                        rule.original_name(),
+                        self.name
+                    );
+                }
+                empty_rules.push(i);
+            }
+        }
+
+        for i in empty_rules {
+            self.rules[i] = Rule::Noop;
         }
     }
 
     fn compile_patterns(
         &mut self,
+        rule_id: RuleId,
         rules: Vec<RawRule>,
         repository_stack: RepositoryStack,
-    ) -> Result<Vec<RuleIdOrReference>, CompileError> {
+    ) -> Result<Vec<GlobalRuleRef>, CompileError> {
         let mut out = vec![];
 
-        for r in rules {
+        for (index, r) in rules.into_iter().enumerate() {
             if let Some(reference) = r.include {
                 // vscode ignores other rule contents is there's an include
                 // https://github.com/microsoft/vscode-textmate/blob/f03a6a8790af81372d0e81facae75554ec5e97ef/src/rule.ts#L495
 
-                // Reference is already parsed during deserialization
                 match reference {
                     Reference::Self_ | Reference::Base => {
                         // Self/Base references always resolve to root rule
-                        out.push(RuleIdOrReference::RuleId(RuleId(0)));
+                        out.push(GlobalRuleRef {
+                            grammar: self.id,
+                            rule: RuleId(0),
+                        });
                     }
                     Reference::Local(_)
                     | Reference::OtherComplete(_)
                     | Reference::OtherSpecific(_, _) => {
-                        // Keep all other references for post-compilation resolution
-                        out.push(RuleIdOrReference::Reference(reference));
+                        out.push(GlobalRuleRef {
+                            grammar: self.id,
+                            rule: TEMP_RULE_ID,
+                        });
+                        self.references.push(RefToReplace {
+                            rule_id,
+                            index,
+                            reference,
+                        });
                     }
                 }
             } else {
-                out.push(RuleIdOrReference::RuleId(
-                    self.compile_rule(r, repository_stack)?,
-                ));
+                let local_id = self.compile_rule(r, repository_stack)?;
+                out.push(GlobalRuleRef {
+                    grammar: self.id,
+                    rule: local_id,
+                });
             }
         }
 
@@ -655,7 +789,7 @@ impl CompiledGrammar {
         &self,
         rule_id: RuleId,
         visited: &mut HashSet<RuleId>,
-    ) -> Vec<(RuleId, String)> {
+    ) -> Vec<(RuleId, &str)> {
         let mut out = vec![];
         if visited.contains(&rule_id) {
             return out;
@@ -667,18 +801,14 @@ impl CompiledGrammar {
         match rule {
             Rule::Match(Match { regex_id, .. }) => {
                 if let Some(re) = regex_id.and_then(|x| self.regexes.get(x.id())) {
-                    out.push((rule_id, re.pattern().to_string()));
+                    out.push((rule_id, re.pattern()));
                 }
             }
             Rule::IncludeOnly(i) => {
                 out.extend(self.get_pattern_set_data(&i.patterns, visited));
             }
-            Rule::BeginEnd(b) => {
-                out.push((rule_id, self.regexes[b.begin.id()].pattern().to_string()))
-            }
-            Rule::BeginWhile(b) => {
-                out.push((rule_id, self.regexes[b.begin.id()].pattern().to_string()))
-            }
+            Rule::BeginEnd(b) => out.push((rule_id, self.regexes[b.begin.id()].pattern())),
+            Rule::BeginWhile(b) => out.push((rule_id, self.regexes[b.begin.id()].pattern())),
             Rule::Noop => {}
         }
 
@@ -687,33 +817,20 @@ impl CompiledGrammar {
 
     fn get_pattern_set_data(
         &self,
-        patterns: &[RuleIdOrReference],
+        patterns: &[GlobalRuleRef],
         visited: &mut HashSet<RuleId>,
-    ) -> Vec<(RuleId, String)> {
+    ) -> Vec<(RuleId, &str)> {
         let mut out = vec![];
 
         for p in patterns {
-            match p {
-                RuleIdOrReference::RuleId(rule_id) => {
-                    let rule_patterns = self.get_rule_patterns(*rule_id, visited);
-                    out.extend(rule_patterns)
-                }
-                RuleIdOrReference::Reference(reference) => {
-                    match reference {
-                        // Handled at compile time
-                        Reference::Base | Reference::Self_ | Reference::Local(_) => {}
-                        // TODO
-                        Reference::OtherComplete(_) => {}
-                        Reference::OtherSpecific(_, _) => {}
-                    }
-                }
-            }
+            let rule_patterns = self.get_rule_patterns(p.rule, visited);
+            out.extend(rule_patterns);
         }
 
         out
     }
 
-    pub fn collect_patterns(&self, rule_id: RuleId) -> Vec<(RuleId, String)> {
+    pub fn collect_patterns(&self, rule_id: RuleId) -> Vec<(GlobalRuleRef, &str)> {
         // If we have a RuleId, we should have it in our self.rules unless we called the wrong
         // grammar
         let patterns = match &self.rules[rule_id.id()] {
@@ -724,27 +841,19 @@ impl CompiledGrammar {
         };
 
         let mut visited = HashSet::new();
-        let result = self.get_pattern_set_data(patterns, &mut visited);
 
-        result
-    }
-
-    /// Get a pattern set for a rule.
-    /// Only IncludeOnly/BeginEnd/BeginWhile have patterns, it will return None for Match/Noop
-    pub fn get_pattern_set(&self, rule_id: RuleId) -> Option<PatternSet> {
-        // If we have a RuleId, we should have it in our self.rules unless we called the wrong
-        // grammar
-        let patterns = match &self.rules[rule_id.id()] {
-            Rule::Match(_) | Rule::Noop => return None,
-            Rule::IncludeOnly(a) => &a.patterns,
-            Rule::BeginEnd(a) => &a.patterns,
-            Rule::BeginWhile(a) => &a.patterns,
-        };
-
-        let mut visited = HashSet::new();
-        Some(PatternSet::new(
-            self.get_pattern_set_data(patterns, &mut visited),
-        ))
+        self.get_pattern_set_data(patterns, &mut visited)
+            .into_iter()
+            .map(|(rule_id, x)| {
+                (
+                    GlobalRuleRef {
+                        grammar: self.id,
+                        rule: rule_id,
+                    },
+                    x,
+                )
+            })
+            .collect()
     }
 
     pub(crate) fn get_original_rule_name(&self, rule_id: RuleId) -> Option<&str> {

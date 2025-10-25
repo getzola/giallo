@@ -42,21 +42,17 @@ impl TryFrom<TokenColorSettings> for StyleModifier {
 
     fn try_from(settings: TokenColorSettings) -> Result<Self, Self::Error> {
         let foreground = if let Some(s) = settings.foreground() {
-            Some(Color::from_hex(&s)?)
+            Some(Color::from_hex(s)?)
         } else {
             None
         };
         let background = if let Some(s) = settings.background() {
-            Some(Color::from_hex(&s)?)
+            Some(Color::from_hex(s)?)
         } else {
             None
         };
 
-        let font_style = if let Some(s) = settings.font_style {
-            Some(FontStyle::from_str(&s))
-        } else {
-            None
-        };
+        let font_style = settings.font_style.map(|s| FontStyle::from_str(&s));
 
         Ok(Self {
             foreground,
@@ -116,7 +112,7 @@ impl CompiledTheme {
     pub fn from_raw_theme(raw_theme: RawTheme) -> Result<Self, Box<dyn std::error::Error>> {
         let theme_type = raw_theme
             .type_
-            .and_then(|s| Some(ThemeType::from_str(&s)))
+            .map(|s| ThemeType::from_str(&s))
             .unwrap_or_default();
 
         let foreground = Color::from_hex(&raw_theme.colors.foreground)?;

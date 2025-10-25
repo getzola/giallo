@@ -1,10 +1,7 @@
 TODO:
 
-- organise and simplify theming
-- ✅ ~~look into tokenization~~ - COMPLETED: Fixed coarse tokenization bug, now produces fine-grained tokens
-- add HTML highlighter
-- add benchmark from syntect (the jquery one)
-
+- debug why the python rules are not loading for md example
+- figure out how vscode-textmate loads External grammar 'source.js.regexp' not found in registry.
 
 List of issues in grammar:
 
