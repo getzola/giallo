@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::ops::Deref;
 use std::path::Path;
@@ -105,13 +105,13 @@ where
 /// ```
 ///
 #[derive(Debug, Clone, Default)]
-pub struct Captures(pub(crate) HashMap<usize, RawRule>);
+pub struct Captures(pub(crate) BTreeMap<usize, RawRule>);
 
 /// Helper enum for deserializing captures in both object and array formats
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum CapturesFormat {
-    Object(HashMap<String, RawRule>),
+    Object(BTreeMap<String, RawRule>),
     Array(Vec<RawRule>),
 }
 
@@ -123,7 +123,7 @@ impl<'de> Deserialize<'de> for Captures {
         // Try to deserialize as our supported formats, but handle the case where it might be empty/null
         match CapturesFormat::deserialize(deserializer) {
             Ok(captures_format) => {
-                let mut usize_map = HashMap::new();
+                let mut usize_map = BTreeMap::new();
 
                 match captures_format {
                     CapturesFormat::Object(string_map) => {
@@ -147,7 +147,7 @@ impl<'de> Deserialize<'de> for Captures {
             Err(_) => {
                 // If deserialization fails, just return an empty Captures
                 // This handles cases like null, empty strings, or unexpected formats
-                Ok(Captures(HashMap::new()))
+                Ok(Captures(BTreeMap::new()))
             }
         }
     }
@@ -161,12 +161,14 @@ enum RawRuleValue {
 }
 
 /// Custom deserializer for repository HashMap that handles values that might be single rules or arrays of rules
-fn deserialize_repository_map<'de, D>(deserializer: D) -> Result<HashMap<String, RawRule>, D::Error>
+fn deserialize_repository_map<'de, D>(
+    deserializer: D,
+) -> Result<BTreeMap<String, RawRule>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
-    let raw_map = HashMap::<String, RawRuleValue>::deserialize(deserializer)?;
-    let mut result = HashMap::new();
+    let raw_map = BTreeMap::<String, RawRuleValue>::deserialize(deserializer)?;
+    let mut result = BTreeMap::new();
 
     for (key, val) in raw_map {
         let rule = match val {
@@ -183,7 +185,7 @@ where
 }
 
 impl Deref for Captures {
-    type Target = HashMap<usize, RawRule>;
+    type Target = BTreeMap<usize, RawRule>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -267,7 +269,7 @@ pub struct RawRule {
 
     pub patterns: Vec<RawRule>,
     #[serde(deserialize_with = "deserialize_repository_map")]
-    pub repository: HashMap<String, RawRule>,
+    pub repository: BTreeMap<String, RawRule>,
 
     #[serde(deserialize_with = "bool_or_number")]
     pub apply_end_pattern_last: bool,
@@ -319,7 +321,7 @@ pub struct RawGrammar {
     /// Named pattern definitions that can be referenced by includes
     /// Key is the repository name, value is the pattern(s)
     #[serde(default, deserialize_with = "deserialize_repository_map")]
-    pub repository: HashMap<String, RawRule>,
+    pub repository: BTreeMap<String, RawRule>,
     /// Root patterns that define the top-level structure
     /// These patterns are applied first when tokenizing
     #[serde(default)]
@@ -327,7 +329,7 @@ pub struct RawGrammar {
     /// Language injection patterns for embedding languages
     /// Maps selectors to patterns for injecting this grammar into others
     #[serde(default)]
-    pub injections: HashMap<String, RawRule>,
+    pub injections: BTreeMap<String, RawRule>,
     /// CSS selector defining where injections should occur
     /// Example: "source.js meta.embedded.block.sql"
     #[serde(default)]

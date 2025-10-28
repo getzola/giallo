@@ -1,16 +1,16 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::grammars::{CompiledGrammar, GrammarId, RawGrammar};
+use crate::grammars::{CompiledGrammar, GlobalRuleRef, GrammarId, Match, RawGrammar, Rule};
 use crate::themes::{CompiledTheme, RawTheme};
 use crate::tokenizer::{Token, Tokenizer};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Registry {
     // Vector of compiled grammars for ID-based access
-    grammars: Vec<CompiledGrammar>,
+    pub(crate) grammars: Vec<CompiledGrammar>,
     // grammar scope name -> grammar ID lookup for string-based access
     // this is used internally only
     grammar_id_by_scope_name: HashMap<String, GrammarId>,
@@ -84,7 +84,7 @@ impl Registry {
         // 1. Get grammar ID by language name
         if let Some(grammar_id) = self.get_grammar_id(lang) {
             // 2. Create tokenizer with the grammar ID and all grammars
-            let mut tokenizer = Tokenizer::new(grammar_id, &self.grammars);
+            let mut tokenizer = Tokenizer::new(grammar_id, &self);
             Ok(tokenizer.tokenize_string(content).unwrap())
         } else {
             Err("Grammar not found".into())
@@ -102,17 +102,69 @@ impl Registry {
         }
     }
 
+    fn get_rule_patterns(
+        &self,
+        rule_ref: GlobalRuleRef,
+        visited: &mut HashSet<GlobalRuleRef>,
+    ) -> Vec<(GlobalRuleRef, &str)> {
+        let mut out = vec![];
+        if visited.contains(&rule_ref) {
+            return out;
+        }
+        visited.insert(rule_ref);
+
+        let grammar = &self.grammars[rule_ref.grammar];
+        let rule = &grammar.rules[rule_ref.rule];
+        match rule {
+            Rule::Match(Match { regex_id, .. }) => {
+                if let Some(regex_id) = regex_id {
+                    let re = &grammar.regexes[*regex_id];
+                    out.push((rule_ref, re.pattern()));
+                }
+            }
+            Rule::IncludeOnly(i) => {
+                out.extend(self.get_pattern_set_data(&i.patterns, visited));
+            }
+            Rule::BeginEnd(b) => out.push((rule_ref, grammar.regexes[b.begin].pattern())),
+            Rule::BeginWhile(b) => out.push((rule_ref, grammar.regexes[b.begin].pattern())),
+            Rule::Noop => {}
+        }
+        out
+    }
+
+    fn get_pattern_set_data(
+        &self,
+        rule_refs: &[GlobalRuleRef],
+        visited: &mut HashSet<GlobalRuleRef>,
+    ) -> Vec<(GlobalRuleRef, &str)> {
+        let mut out = Vec::new();
+
+        for r in rule_refs {
+            let rule_patterns = self.get_rule_patterns(*r, visited);
+            out.extend(rule_patterns);
+        }
+
+        out
+    }
+
+    pub(crate) fn collect_patterns(&self, rule_ref: GlobalRuleRef) -> Vec<(GlobalRuleRef, &str)> {
+        let grammar = &self.grammars[rule_ref.grammar];
+        let base_patterns: &[GlobalRuleRef] = match &grammar.rules[rule_ref.rule] {
+            Rule::IncludeOnly(a) => &a.patterns,
+            Rule::BeginEnd(a) => &a.patterns,
+            Rule::BeginWhile(a) => &a.patterns,
+            Rule::Match(_) | Rule::Noop => &[],
+        };
+        let mut visited = HashSet::new();
+        self.get_pattern_set_data(&base_patterns, &mut visited)
+    }
+
     fn get_grammar_id(&self, name: &str) -> Option<GrammarId> {
         self.grammar_id_by_scope_name.get(name).cloned()
     }
 
-    fn get_grammar_by_name(&self, name: &str) -> Option<&CompiledGrammar> {
-        let id = self.grammar_id_by_scope_name.get(name)?;
-        self.grammars.get(id.id())
-    }
-
     fn get_grammar_by_id(&self, id: GrammarId) -> Option<&CompiledGrammar> {
-        self.grammars.get(id.id())
+        self.grammars.get(id.as_index())
     }
 
     /// Dump the current Registry to compressed MessagePack format at the given file path

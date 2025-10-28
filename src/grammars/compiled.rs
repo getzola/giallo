@@ -1,4 +1,5 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
+use std::ops::{Index, IndexMut};
 use std::sync::LazyLock;
 
 use serde::{Deserialize, Serialize};
@@ -65,7 +66,7 @@ fn process_scope_name(
 pub struct GrammarId(pub u16);
 
 impl GrammarId {
-    pub fn id(self) -> usize {
+    pub(crate) fn as_index(self) -> usize {
         self.0 as usize
     }
 }
@@ -75,7 +76,7 @@ impl GrammarId {
 pub struct RuleId(pub u16);
 
 impl RuleId {
-    pub fn id(self) -> usize {
+    pub(crate) fn as_index(self) -> usize {
         self.0 as usize
     }
 }
@@ -97,22 +98,12 @@ const NO_OP_GLOBAL_RULE_REF: GlobalRuleRef = GlobalRuleRef {
     rule: TEMP_RULE_ID,
 };
 
-impl GlobalRuleRef {
-    pub fn grammar(self) -> usize {
-        self.grammar.id()
-    }
-
-    pub fn rule(self) -> usize {
-        self.rule.id()
-    }
-}
-
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct RegexId(u16);
 
 impl RegexId {
-    pub fn id(self) -> usize {
+    pub(crate) fn as_index(self) -> usize {
         self.0 as usize
     }
 }
@@ -122,7 +113,7 @@ impl RegexId {
 pub struct RepositoryId(u16);
 
 impl RepositoryId {
-    pub fn id(self) -> usize {
+    pub(crate) fn as_index(self) -> usize {
         self.0 as usize
     }
 }
@@ -130,7 +121,7 @@ impl RepositoryId {
 // TODO optimise the String here
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[serde(transparent)]
-pub struct Repository(HashMap<String, RuleId>);
+pub struct Repository(BTreeMap<String, RuleId>);
 
 impl Repository {
     /// Look up a rule by name in this repository
@@ -309,23 +300,6 @@ impl Rule {
             Rule::Noop => (),
         }
     }
-
-    pub fn collect_patterns(&self) -> Vec<RegexId> {
-        let mut out = Vec::new();
-        match self {
-            Rule::Match(m) => {
-                if let Some(r) = m.regex_id {
-                    out.push(r)
-                }
-            }
-            Rule::IncludeOnly(_) => {}
-            Rule::BeginEnd(_) => {}
-            Rule::BeginWhile(_) => {}
-            Rule::Noop => {}
-        }
-
-        out
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -368,7 +342,7 @@ impl CompiledGrammar {
             ..Default::default()
         };
         let root_rule_id = grammar.compile_rule(root_rule, RepositoryStack::default())?;
-        assert_eq!(root_rule_id.id(), 0);
+        assert_eq!(root_rule_id.as_index(), 0);
 
         // Resolve all Local references after compilation is complete
         grammar.resolve_local_references();
@@ -538,7 +512,7 @@ impl CompiledGrammar {
             }
         };
 
-        self.rules[local_id.id()] = rule;
+        self.rules[local_id] = rule;
         Ok(local_id)
     }
 
@@ -553,7 +527,7 @@ impl CompiledGrammar {
 
     fn compile_repository(
         &mut self,
-        raw_repository: HashMap<String, RawRule>,
+        raw_repository: BTreeMap<String, RawRule>,
         repository_stack: RepositoryStack,
     ) -> Result<RepositoryId, CompileError> {
         let repo_id = RepositoryId(self.repositories.len() as u16);
@@ -561,13 +535,13 @@ impl CompiledGrammar {
         self.repositories.push(Repository::default());
         let stack = repository_stack.push(repo_id);
 
-        let mut rules = HashMap::new();
+        let mut rules = BTreeMap::new();
 
         for (name, raw_rule) in raw_repository {
             rules.insert(name, self.compile_rule(raw_rule, stack)?);
         }
 
-        self.repositories[repo_id.id()] = Repository(rules);
+        self.repositories[repo_id] = Repository(rules);
 
         Ok(repo_id)
     }
@@ -605,11 +579,11 @@ impl CompiledGrammar {
         self.references = external;
 
         for rep in local {
-            let rule = &mut self.rules[rep.rule_id.id()];
+            let rule = &mut self.rules[rep.rule_id];
             let stack = rule.repository_stack();
             let mut found = false;
             for repo_id in stack.stack.iter().filter(|x| x.is_some()).rev() {
-                let repo = &self.repositories[repo_id.unwrap().id()];
+                let repo = &self.repositories[repo_id.unwrap()];
                 if let Reference::Local(name) = &rep.reference {
                     if let Some(rule_id) = repo.get(name) {
                         found = true;
@@ -647,7 +621,7 @@ impl CompiledGrammar {
         let references = std::mem::take(&mut self.references);
 
         for rep in references {
-            let rule = &mut self.rules[rep.rule_id.id()];
+            let rule = &mut self.rules[rep.rule_id];
 
             let (grammar_name, repo_name) = match &rep.reference {
                 Reference::OtherComplete(f) => (f, None),
@@ -656,7 +630,7 @@ impl CompiledGrammar {
             };
 
             if let Some(g_id) = grammar_mapping.get(grammar_name)
-                && let Some(grammar) = grammars.get(g_id.id())
+                && let Some(grammar) = grammars.get(g_id.as_index())
             {
                 if let Some(repo_name) = repo_name {
                     let mut found = false;
@@ -785,79 +759,65 @@ impl CompiledGrammar {
         Ok(out)
     }
 
-    fn get_rule_patterns(
-        &self,
-        rule_id: RuleId,
-        visited: &mut HashSet<RuleId>,
-    ) -> Vec<(RuleId, &str)> {
-        let mut out = vec![];
-        if visited.contains(&rule_id) {
-            return out;
-        }
-        visited.insert(rule_id);
-
-        let rule = &self.rules[rule_id.id()];
-
-        match rule {
-            Rule::Match(Match { regex_id, .. }) => {
-                if let Some(re) = regex_id.and_then(|x| self.regexes.get(x.id())) {
-                    out.push((rule_id, re.pattern()));
-                }
-            }
-            Rule::IncludeOnly(i) => {
-                out.extend(self.get_pattern_set_data(&i.patterns, visited));
-            }
-            Rule::BeginEnd(b) => out.push((rule_id, self.regexes[b.begin.id()].pattern())),
-            Rule::BeginWhile(b) => out.push((rule_id, self.regexes[b.begin.id()].pattern())),
-            Rule::Noop => {}
-        }
-
-        out
-    }
-
-    fn get_pattern_set_data(
-        &self,
-        patterns: &[GlobalRuleRef],
-        visited: &mut HashSet<RuleId>,
-    ) -> Vec<(RuleId, &str)> {
-        let mut out = vec![];
-
-        for p in patterns {
-            let rule_patterns = self.get_rule_patterns(p.rule, visited);
-            out.extend(rule_patterns);
-        }
-
-        out
-    }
-
-    pub fn collect_patterns(&self, rule_id: RuleId) -> Vec<(GlobalRuleRef, &str)> {
-        // If we have a RuleId, we should have it in our self.rules unless we called the wrong
-        // grammar
-        let patterns = match &self.rules[rule_id.id()] {
-            Rule::Match(_) | Rule::Noop => return vec![],
-            Rule::IncludeOnly(a) => &a.patterns,
-            Rule::BeginEnd(a) => &a.patterns,
-            Rule::BeginWhile(a) => &a.patterns,
-        };
-
-        let mut visited = HashSet::new();
-
-        self.get_pattern_set_data(patterns, &mut visited)
-            .into_iter()
-            .map(|(rule_id, x)| {
-                (
-                    GlobalRuleRef {
-                        grammar: self.id,
-                        rule: rule_id,
-                    },
-                    x,
-                )
-            })
-            .collect()
-    }
-
     pub(crate) fn get_original_rule_name(&self, rule_id: RuleId) -> Option<&str> {
-        self.rules[rule_id.id()].original_name()
+        self.rules[rule_id.as_index()].original_name()
+    }
+}
+
+// Index trait implementations for type-safe array access
+impl Index<GrammarId> for Vec<CompiledGrammar> {
+    type Output = CompiledGrammar;
+
+    fn index(&self, index: GrammarId) -> &Self::Output {
+        &self[index.as_index()]
+    }
+}
+
+impl IndexMut<GrammarId> for Vec<CompiledGrammar> {
+    fn index_mut(&mut self, index: GrammarId) -> &mut Self::Output {
+        &mut self[index.as_index()]
+    }
+}
+
+impl Index<RuleId> for Vec<Rule> {
+    type Output = Rule;
+
+    fn index(&self, index: RuleId) -> &Self::Output {
+        &self[index.as_index()]
+    }
+}
+
+impl IndexMut<RuleId> for Vec<Rule> {
+    fn index_mut(&mut self, index: RuleId) -> &mut Self::Output {
+        &mut self[index.as_index()]
+    }
+}
+
+impl Index<RegexId> for Vec<Regex> {
+    type Output = Regex;
+
+    fn index(&self, index: RegexId) -> &Self::Output {
+        &self[index.as_index()]
+    }
+}
+
+impl IndexMut<RegexId> for Vec<Regex> {
+    fn index_mut(&mut self, index: RegexId) -> &mut Self::Output {
+        &mut self[index.as_index()]
+    }
+}
+
+impl Index<RepositoryId> for Vec<Repository> {
+    type Output = Repository;
+
+    fn index(&self, index: RepositoryId) -> &Self::Output {
+        &self[index.as_index()]
+    }
+}
+
+impl IndexMut<RepositoryId> for Vec<Repository> {
+    fn index_mut(&mut self, index: RepositoryId) -> &mut Self::Output {
+        &mut self[index.as_index()]
     }
 }
 
@@ -1025,7 +985,7 @@ mod tests {
 
             let raw_grammar = RawGrammar::load_from_file(&path).unwrap();
 
-            println!(">> {path:?}");
+            println!(">> {path:#?}");
             let _ = CompiledGrammar::from_raw_grammar(raw_grammar, GrammarId(0)).unwrap();
         }
     }

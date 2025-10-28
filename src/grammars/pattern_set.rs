@@ -1,6 +1,6 @@
 use crate::grammars::{END_RULE_ID, GlobalRuleRef};
 use crate::tokenizer::TokenizeError;
-use onig::RegSet;
+use onig::{RegSet, RegexOptions};
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 
@@ -107,30 +107,32 @@ impl PatternSet {
         if self.regset.borrow().is_none() {
             let pattern_strs: Vec<&str> = self.patterns.iter().map(|s| s.as_str()).collect();
 
-            let regset = RegSet::new(&pattern_strs).map_err(|e| {
-                eprintln!(
-                    "RegSet compilation failed for pattern set with {} patterns",
-                    pattern_strs.len()
-                );
-                eprintln!("Onig error: {:?}", e);
-                eprintln!("Rule IDs and patterns in this set:");
-                for (i, (rule_ref, pattern)) in
-                    self.rule_refs.iter().zip(self.patterns.iter()).enumerate()
-                {
-                    eprintln!(
-                        "  [{}] Rule ID {} of grammar {}: {:?}",
-                        i,
-                        rule_ref.rule.id(),
-                        rule_ref.grammar.id(),
-                        pattern
-                    );
-                }
-                TokenizeError::InvalidRegex(format!(
-                    "Failed to compile pattern set with {} patterns: {:?}",
-                    pattern_strs.len(),
-                    e
-                ))
-            })?;
+            let regset =
+                RegSet::with_options(&pattern_strs, RegexOptions::REGEX_OPTION_CAPTURE_GROUP)
+                    .map_err(|e| {
+                        eprintln!(
+                            "RegSet compilation failed for pattern set with {} patterns",
+                            pattern_strs.len()
+                        );
+                        eprintln!("Onig error: {:?}", e);
+                        eprintln!("Rule IDs and patterns in this set:");
+                        for (i, (rule_ref, pattern)) in
+                            self.rule_refs.iter().zip(self.patterns.iter()).enumerate()
+                        {
+                            eprintln!(
+                                "  [{}] Rule ID {} of grammar {}: {:?}",
+                                i,
+                                rule_ref.rule.as_index(),
+                                rule_ref.grammar.as_index(),
+                                pattern
+                            );
+                        }
+                        TokenizeError::InvalidRegex(format!(
+                            "Failed to compile pattern set with {} patterns: {:?}",
+                            pattern_strs.len(),
+                            e
+                        ))
+                    })?;
             *self.regset.borrow_mut() = Some(regset);
         }
         let regset_ref = self.regset.borrow();
@@ -159,15 +161,6 @@ impl PatternSet {
 
         Ok(None)
     }
-
-    // TODO: unused?
-    // fn patterns_and_rule_ids(&self) -> Vec<(&str, RuleId)> {
-    //     self.patterns
-    //         .iter()
-    //         .zip(self.rule_refs.iter())
-    //         .map(|(pat, rule_id)| (pat.as_str(), *rule_id))
-    //         .collect()
-    // }
 }
 
 impl Debug for PatternSet {
@@ -176,7 +169,7 @@ impl Debug for PatternSet {
             .patterns
             .iter()
             .zip(self.rule_refs.iter())
-            .map(|(pat, rule_ref)| format!("  - {}: {pat}", rule_ref.rule()))
+            .map(|(pat, rule_ref)| format!("  - {:?}: {pat}", rule_ref.rule))
             .collect();
         write!(f, "{}", all.join("\n"))
     }
