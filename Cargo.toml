@@ -21,7 +21,6 @@ builtins = []
 dump = ["dep:rmp-serde", "dep:flate2"]
 
 [dev-dependencies]
-insta = "1.39"
 criterion = "0.7"
 pretty_assertions = "1.0"
 

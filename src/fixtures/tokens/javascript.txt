@@ -1,274 +1,274 @@
-0: "//" [0-2] (line 0)
+0: '//' (line 0)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " --- Demonstration of imports ---" [2-35] (line 0)
+1: ' --- Demonstration of imports ---' (line 0)
   - source.js
   - comment.line.double-slash.js
 
-0: "//" [0-2] (line 2)
+0: '//' (line 2)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " Importing named exports and the default export" [2-49] (line 2)
+1: ' Importing named exports and the default export' (line 2)
   - source.js
   - comment.line.double-slash.js
 
-0: "import" [0-6] (line 3)
+0: 'import' (line 3)
   - source.js
   - meta.import.js
   - keyword.control.import.js
 
-1: " " [6-7] (line 3)
+1: ' ' (line 3)
   - source.js
   - meta.import.js
 
-2: "defaultAnimal" [7-20] (line 3)
+2: 'defaultAnimal' (line 3)
   - source.js
   - meta.import.js
   - variable.other.readwrite.alias.js
 
-3: "," [20-21] (line 3)
+3: ',' (line 3)
   - source.js
   - meta.import.js
   - punctuation.separator.comma.js
 
-4: " " [21-22] (line 3)
+4: ' ' (line 3)
   - source.js
   - meta.import.js
 
-5: "{" [22-23] (line 3)
+5: '{' (line 3)
   - source.js
   - meta.import.js
   - meta.block.js
   - punctuation.definition.block.js
 
-6: " " [23-24] (line 3)
+6: ' ' (line 3)
   - source.js
   - meta.import.js
   - meta.block.js
 
-7: "person" [24-30] (line 3)
+7: 'person' (line 3)
   - source.js
   - meta.import.js
   - meta.block.js
   - variable.other.readwrite.alias.js
 
-8: "," [30-31] (line 3)
+8: ',' (line 3)
   - source.js
   - meta.import.js
   - meta.block.js
   - punctuation.separator.comma.js
 
-9: " " [31-32] (line 3)
+9: ' ' (line 3)
   - source.js
   - meta.import.js
   - meta.block.js
 
-10: "add" [32-35] (line 3)
+10: 'add' (line 3)
   - source.js
   - meta.import.js
   - meta.block.js
   - variable.other.readwrite.alias.js
 
-11: " " [35-36] (line 3)
+11: ' ' (line 3)
   - source.js
   - meta.import.js
   - meta.block.js
 
-12: "}" [36-37] (line 3)
+12: '}' (line 3)
   - source.js
   - meta.import.js
   - meta.block.js
   - punctuation.definition.block.js
 
-13: " " [37-38] (line 3)
+13: ' ' (line 3)
   - source.js
   - meta.import.js
 
-14: "from" [38-42] (line 3)
+14: 'from' (line 3)
   - source.js
   - meta.import.js
   - keyword.control.from.js
 
-15: " " [42-43] (line 3)
+15: ' ' (line 3)
   - source.js
   - meta.import.js
 
-16: "'" [43-44] (line 3)
+16: ''' (line 3)
   - source.js
   - meta.import.js
   - string.quoted.single.js
   - punctuation.definition.string.begin.js
 
-17: "./module.js" [44-55] (line 3)
+17: './module.js' (line 3)
   - source.js
   - meta.import.js
   - string.quoted.single.js
 
-18: "'" [55-56] (line 3)
+18: ''' (line 3)
   - source.js
   - meta.import.js
   - string.quoted.single.js
   - punctuation.definition.string.end.js
 
-19: ";" [56-57] (line 3)
+19: ';' (line 3)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "//" [0-2] (line 5)
+0: '//' (line 5)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " Importing everything from the module as an alias" [2-51] (line 5)
+1: ' Importing everything from the module as an alias' (line 5)
   - source.js
   - comment.line.double-slash.js
 
-0: "import" [0-6] (line 6)
+0: 'import' (line 6)
   - source.js
   - meta.import.js
   - keyword.control.import.js
 
-1: " " [6-7] (line 6)
+1: ' ' (line 6)
   - source.js
   - meta.import.js
 
-2: "*" [7-8] (line 6)
+2: '*' (line 6)
   - source.js
   - meta.import.js
   - constant.language.import-export-all.js
 
-3: " " [8-9] (line 6)
+3: ' ' (line 6)
   - source.js
   - meta.import.js
 
-4: "as" [9-11] (line 6)
+4: 'as' (line 6)
   - source.js
   - meta.import.js
   - keyword.control.as.js
 
-5: " " [11-12] (line 6)
+5: ' ' (line 6)
   - source.js
   - meta.import.js
 
-6: "Module" [12-18] (line 6)
+6: 'Module' (line 6)
   - source.js
   - meta.import.js
   - variable.other.readwrite.alias.js
 
-7: " " [18-19] (line 6)
+7: ' ' (line 6)
   - source.js
   - meta.import.js
 
-8: "from" [19-23] (line 6)
+8: 'from' (line 6)
   - source.js
   - meta.import.js
   - keyword.control.from.js
 
-9: " " [23-24] (line 6)
+9: ' ' (line 6)
   - source.js
   - meta.import.js
 
-10: "'" [24-25] (line 6)
+10: ''' (line 6)
   - source.js
   - meta.import.js
   - string.quoted.single.js
   - punctuation.definition.string.begin.js
 
-11: "./module.js" [25-36] (line 6)
+11: './module.js' (line 6)
   - source.js
   - meta.import.js
   - string.quoted.single.js
 
-12: "'" [36-37] (line 6)
+12: ''' (line 6)
   - source.js
   - meta.import.js
   - string.quoted.single.js
   - punctuation.definition.string.end.js
 
-13: ";" [37-38] (line 6)
+13: ';' (line 6)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "//" [0-2] (line 9)
+0: '//' (line 9)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " --- Demonstration of exports ---" [2-35] (line 9)
+1: ' --- Demonstration of exports ---' (line 9)
   - source.js
   - comment.line.double-slash.js
 
-0: "//" [0-2] (line 11)
+0: '//' (line 11)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " Named exports" [2-16] (line 11)
+1: ' Named exports' (line 11)
   - source.js
   - comment.line.double-slash.js
 
-0: "export" [0-6] (line 12)
+0: 'export' (line 12)
   - source.js
   - meta.var.expr.js
   - keyword.control.export.js
 
-1: " " [6-7] (line 12)
+1: ' ' (line 12)
   - source.js
   - meta.var.expr.js
 
-2: "const" [7-12] (line 12)
+2: 'const' (line 12)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-3: " " [12-13] (line 12)
+3: ' ' (line 12)
   - source.js
   - meta.var.expr.js
 
-4: "person" [13-19] (line 12)
+4: 'person' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.constant.js
 
-5: " " [19-20] (line 12)
+5: ' ' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-6: "=" [20-21] (line 12)
+6: '=' (line 12)
   - source.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-7: " " [21-22] (line 12)
+7: ' ' (line 12)
   - source.js
   - meta.var.expr.js
 
-8: "{" [22-23] (line 12)
+8: '{' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.definition.block.js
 
-9: " " [23-24] (line 12)
+9: ' ' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
 
-10: "name" [24-28] (line 12)
+10: 'name' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - meta.object-literal.key.js
 
-11: ":" [28-29] (line 12)
+11: ':' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -276,13 +276,13 @@
   - meta.object-literal.key.js
   - punctuation.separator.key-value.js
 
-12: " " [29-30] (line 12)
+12: ' ' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
 
-13: "\"" [30-31] (line 12)
+13: '"' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -290,14 +290,14 @@
   - string.quoted.double.js
   - punctuation.definition.string.begin.js
 
-14: "Alice" [31-36] (line 12)
+14: 'Alice' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - string.quoted.double.js
 
-15: "\"" [36-37] (line 12)
+15: '"' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -305,25 +305,25 @@
   - string.quoted.double.js
   - punctuation.definition.string.end.js
 
-16: "," [37-38] (line 12)
+16: ',' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.separator.comma.js
 
-17: " " [38-39] (line 12)
+17: ' ' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
 
-18: "age" [39-42] (line 12)
+18: 'age' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - meta.object-literal.key.js
 
-19: ":" [42-43] (line 12)
+19: ':' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -331,240 +331,240 @@
   - meta.object-literal.key.js
   - punctuation.separator.key-value.js
 
-20: " " [43-44] (line 12)
+20: ' ' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
 
-21: "30" [44-46] (line 12)
+21: '30' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - constant.numeric.decimal.js
 
-22: " " [46-47] (line 12)
+22: ' ' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
 
-23: "}" [47-48] (line 12)
+23: '}' (line 12)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.definition.block.js
 
-24: ";" [48-49] (line 12)
+24: ';' (line 12)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "export" [0-6] (line 14)
+0: 'export' (line 14)
   - source.js
   - meta.function.js
   - keyword.control.export.js
 
-1: " " [6-7] (line 14)
+1: ' ' (line 14)
   - source.js
   - meta.function.js
 
-2: "function" [7-15] (line 14)
+2: 'function' (line 14)
   - source.js
   - meta.function.js
   - storage.type.function.js
 
-3: " " [15-16] (line 14)
+3: ' ' (line 14)
   - source.js
   - meta.function.js
 
-4: "add" [16-19] (line 14)
+4: 'add' (line 14)
   - source.js
   - meta.function.js
   - meta.definition.function.js
   - entity.name.function.js
 
-5: "(" [19-20] (line 14)
+5: '(' (line 14)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.begin.js
 
-6: "x" [20-21] (line 14)
+6: 'x' (line 14)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - variable.parameter.js
 
-7: "," [21-22] (line 14)
+7: ',' (line 14)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.separator.parameter.js
 
-8: " " [22-23] (line 14)
+8: ' ' (line 14)
   - source.js
   - meta.function.js
   - meta.parameters.js
 
-9: "y" [23-24] (line 14)
+9: 'y' (line 14)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - variable.parameter.js
 
-10: " " [24-25] (line 14)
+10: ' ' (line 14)
   - source.js
   - meta.function.js
   - meta.parameters.js
 
-11: "=" [25-26] (line 14)
+11: '=' (line 14)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - keyword.operator.assignment.js
 
-12: " " [26-27] (line 14)
+12: ' ' (line 14)
   - source.js
   - meta.function.js
   - meta.parameters.js
 
-13: "0" [27-28] (line 14)
+13: '0' (line 14)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - constant.numeric.decimal.js
 
-14: ")" [28-29] (line 14)
+14: ')' (line 14)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.end.js
 
-15: " " [29-30] (line 14)
+15: ' ' (line 14)
   - source.js
   - meta.function.js
 
-16: "{" [30-31] (line 14)
+16: '{' (line 14)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "  " [0-2] (line 15)
+0: '  ' (line 15)
   - source.js
   - meta.function.js
   - meta.block.js
 
-1: "return" [2-8] (line 15)
+1: 'return' (line 15)
   - source.js
   - meta.function.js
   - meta.block.js
   - keyword.control.flow.js
 
-2: " " [8-9] (line 15)
+2: ' ' (line 15)
   - source.js
   - meta.function.js
   - meta.block.js
 
-3: "x" [9-10] (line 15)
+3: 'x' (line 15)
   - source.js
   - meta.function.js
   - meta.block.js
   - variable.other.readwrite.js
 
-4: " " [10-11] (line 15)
+4: ' ' (line 15)
   - source.js
   - meta.function.js
   - meta.block.js
 
-5: "+" [11-12] (line 15)
+5: '+' (line 15)
   - source.js
   - meta.function.js
   - meta.block.js
   - keyword.operator.arithmetic.js
 
-6: " " [12-13] (line 15)
+6: ' ' (line 15)
   - source.js
   - meta.function.js
   - meta.block.js
 
-7: "y" [13-14] (line 15)
+7: 'y' (line 15)
   - source.js
   - meta.function.js
   - meta.block.js
   - variable.other.readwrite.js
 
-8: ";" [14-15] (line 15)
+8: ';' (line 15)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "}" [0-1] (line 16)
+0: '}' (line 16)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "//" [0-2] (line 18)
+0: '//' (line 18)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " Default export" [2-17] (line 18)
+1: ' Default export' (line 18)
   - source.js
   - comment.line.double-slash.js
 
-0: "const" [0-5] (line 19)
+0: 'const' (line 19)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-1: " " [5-6] (line 19)
+1: ' ' (line 19)
   - source.js
   - meta.var.expr.js
 
-2: "defaultAnimal" [6-19] (line 19)
+2: 'defaultAnimal' (line 19)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.constant.js
 
-3: " " [19-20] (line 19)
+3: ' ' (line 19)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-4: "=" [20-21] (line 19)
+4: '=' (line 19)
   - source.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-5: " " [21-22] (line 19)
+5: ' ' (line 19)
   - source.js
   - meta.var.expr.js
 
-6: "{" [22-23] (line 19)
+6: '{' (line 19)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.definition.block.js
 
-7: " " [23-24] (line 19)
+7: ' ' (line 19)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
 
-8: "name" [24-28] (line 19)
+8: 'name' (line 19)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - meta.object-literal.key.js
 
-9: ":" [28-29] (line 19)
+9: ':' (line 19)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -572,13 +572,13 @@
   - meta.object-literal.key.js
   - punctuation.separator.key-value.js
 
-10: " " [29-30] (line 19)
+10: ' ' (line 19)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
 
-11: "\"" [30-31] (line 19)
+11: '"' (line 19)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -586,14 +586,14 @@
   - string.quoted.double.js
   - punctuation.definition.string.begin.js
 
-12: "Default Animal" [31-45] (line 19)
+12: 'Default Animal' (line 19)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - string.quoted.double.js
 
-13: "\"" [45-46] (line 19)
+13: '"' (line 19)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -601,128 +601,128 @@
   - string.quoted.double.js
   - punctuation.definition.string.end.js
 
-14: " " [46-47] (line 19)
+14: ' ' (line 19)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
 
-15: "}" [47-48] (line 19)
+15: '}' (line 19)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.definition.block.js
 
-16: ";" [48-49] (line 19)
+16: ';' (line 19)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "export" [0-6] (line 20)
+0: 'export' (line 20)
   - source.js
   - meta.export.default.js
   - keyword.control.export.js
 
-1: " " [6-7] (line 20)
+1: ' ' (line 20)
   - source.js
   - meta.export.default.js
 
-2: "default" [7-14] (line 20)
+2: 'default' (line 20)
   - source.js
   - meta.export.default.js
   - keyword.control.default.js
 
-3: " " [14-15] (line 20)
+3: ' ' (line 20)
   - source.js
   - meta.export.default.js
 
-4: "defaultAnimal" [15-28] (line 20)
+4: 'defaultAnimal' (line 20)
   - source.js
   - meta.export.default.js
   - variable.other.readwrite.js
 
-5: ";" [28-29] (line 20)
+5: ';' (line 20)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "//" [0-2] (line 22)
+0: '//' (line 22)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " Generator function" [2-21] (line 22)
+1: ' Generator function' (line 22)
   - source.js
   - comment.line.double-slash.js
 
-0: "export" [0-6] (line 23)
+0: 'export' (line 23)
   - source.js
   - meta.function.js
   - keyword.control.export.js
 
-1: " " [6-7] (line 23)
+1: ' ' (line 23)
   - source.js
   - meta.function.js
 
-2: "function" [7-15] (line 23)
+2: 'function' (line 23)
   - source.js
   - meta.function.js
   - storage.type.function.js
 
-3: "*" [15-16] (line 23)
+3: '*' (line 23)
   - source.js
   - meta.function.js
   - keyword.generator.asterisk.js
 
-4: " " [16-17] (line 23)
+4: ' ' (line 23)
   - source.js
   - meta.function.js
 
-5: "idGenerator" [17-28] (line 23)
+5: 'idGenerator' (line 23)
   - source.js
   - meta.function.js
   - meta.definition.function.js
   - entity.name.function.js
 
-6: "(" [28-29] (line 23)
+6: '(' (line 23)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.begin.js
 
-7: ")" [29-30] (line 23)
+7: ')' (line 23)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.end.js
 
-8: " " [30-31] (line 23)
+8: ' ' (line 23)
   - source.js
   - meta.function.js
 
-9: "{" [31-32] (line 23)
+9: '{' (line 23)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "  " [0-2] (line 24)
+0: '  ' (line 24)
   - source.js
   - meta.function.js
   - meta.block.js
 
-1: "let" [2-5] (line 24)
+1: 'let' (line 24)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.var.expr.js
   - storage.type.js
 
-2: " " [5-6] (line 24)
+2: ' ' (line 24)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.var.expr.js
 
-3: "id" [6-8] (line 24)
+3: 'id' (line 24)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -731,510 +731,510 @@
   - meta.definition.variable.js
   - variable.other.readwrite.js
 
-4: " " [8-9] (line 24)
+4: ' ' (line 24)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-5: "=" [9-10] (line 24)
+5: '=' (line 24)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-6: " " [10-11] (line 24)
+6: ' ' (line 24)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.var.expr.js
 
-7: "0" [11-12] (line 24)
+7: '0' (line 24)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.var.expr.js
   - constant.numeric.decimal.js
 
-8: ";" [12-13] (line 24)
+8: ';' (line 24)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "  " [0-2] (line 25)
+0: '  ' (line 25)
   - source.js
   - meta.function.js
   - meta.block.js
 
-1: "while" [2-7] (line 25)
+1: 'while' (line 25)
   - source.js
   - meta.function.js
   - meta.block.js
   - keyword.control.loop.js
 
-2: " " [7-8] (line 25)
+2: ' ' (line 25)
   - source.js
   - meta.function.js
   - meta.block.js
 
-3: "(" [8-9] (line 25)
+3: '(' (line 25)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.brace.round.js
 
-4: "true" [9-13] (line 25)
+4: 'true' (line 25)
   - source.js
   - meta.function.js
   - meta.block.js
   - constant.language.boolean.true.js
 
-5: ")" [13-14] (line 25)
+5: ')' (line 25)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.brace.round.js
 
-6: " " [14-15] (line 25)
+6: ' ' (line 25)
   - source.js
   - meta.function.js
   - meta.block.js
 
-7: "{" [15-16] (line 25)
+7: '{' (line 25)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "    " [0-4] (line 26)
+0: '    ' (line 26)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-1: "yield" [4-9] (line 26)
+1: 'yield' (line 26)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - keyword.control.flow.js
 
-2: " " [9-10] (line 26)
+2: ' ' (line 26)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-3: "id" [10-12] (line 26)
+3: 'id' (line 26)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - variable.other.readwrite.js
 
-4: "++" [12-14] (line 26)
+4: '++' (line 26)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - keyword.operator.increment.js
 
-5: ";" [14-15] (line 26)
+5: ';' (line 26)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "  " [0-2] (line 27)
+0: '  ' (line 27)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-1: "}" [2-3] (line 27)
+1: '}' (line 27)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "}" [0-1] (line 28)
+0: '}' (line 28)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "//" [0-2] (line 30)
+0: '//' (line 30)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " Using typeof for runtime type checks" [2-39] (line 30)
+1: ' Using typeof for runtime type checks' (line 30)
   - source.js
   - comment.line.double-slash.js
 
-0: "console" [0-7] (line 31)
+0: 'console' (line 31)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 31)
+1: '.' (line 31)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 31)
+2: 'log' (line 31)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 31)
+3: '(' (line 31)
   - source.js
   - meta.brace.round.js
 
-4: "typeof" [12-18] (line 31)
+4: 'typeof' (line 31)
   - source.js
   - keyword.operator.expression.typeof.js
 
-5: " " [18-19] (line 31)
+5: ' ' (line 31)
   - source.js
 
-6: "person" [19-25] (line 31)
+6: 'person' (line 31)
   - source.js
   - variable.other.readwrite.js
 
-7: ")" [25-26] (line 31)
+7: ')' (line 31)
   - source.js
   - meta.brace.round.js
 
-8: ";" [26-27] (line 31)
+8: ';' (line 31)
   - source.js
   - punctuation.terminator.statement.js
 
-9: "  " [27-29] (line 31)
+9: '  ' (line 31)
   - source.js
 
-10: "//" [29-31] (line 31)
+10: '//' (line 31)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-11: " object" [31-38] (line 31)
+11: ' object' (line 31)
   - source.js
   - comment.line.double-slash.js
 
-0: "console" [0-7] (line 32)
+0: 'console' (line 32)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 32)
+1: '.' (line 32)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 32)
+2: 'log' (line 32)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 32)
+3: '(' (line 32)
   - source.js
   - meta.brace.round.js
 
-4: "add" [12-15] (line 32)
+4: 'add' (line 32)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-5: "(" [15-16] (line 32)
+5: '(' (line 32)
   - source.js
   - meta.brace.round.js
 
-6: "2" [16-17] (line 32)
+6: '2' (line 32)
   - source.js
   - constant.numeric.decimal.js
 
-7: "," [17-18] (line 32)
+7: ',' (line 32)
   - source.js
   - punctuation.separator.comma.js
 
-8: " " [18-19] (line 32)
+8: ' ' (line 32)
   - source.js
 
-9: "3" [19-20] (line 32)
+9: '3' (line 32)
   - source.js
   - constant.numeric.decimal.js
 
-10: ")" [20-21] (line 32)
+10: ')' (line 32)
   - source.js
   - meta.brace.round.js
 
-11: ")" [21-22] (line 32)
+11: ')' (line 32)
   - source.js
   - meta.brace.round.js
 
-12: ";" [22-23] (line 32)
+12: ';' (line 32)
   - source.js
   - punctuation.terminator.statement.js
 
-13: "      " [23-29] (line 32)
+13: '      ' (line 32)
   - source.js
 
-14: "//" [29-31] (line 32)
+14: '//' (line 32)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-15: " 5" [31-33] (line 32)
+15: ' 5' (line 32)
   - source.js
   - comment.line.double-slash.js
 
-0: "console" [0-7] (line 33)
+0: 'console' (line 33)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 33)
+1: '.' (line 33)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 33)
+2: 'log' (line 33)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 33)
+3: '(' (line 33)
   - source.js
   - meta.brace.round.js
 
-4: "defaultAnimal" [12-25] (line 33)
+4: 'defaultAnimal' (line 33)
   - source.js
   - variable.other.readwrite.js
 
-5: ")" [25-26] (line 33)
+5: ')' (line 33)
   - source.js
   - meta.brace.round.js
 
-6: ";" [26-27] (line 33)
+6: ';' (line 33)
   - source.js
   - punctuation.terminator.statement.js
 
-7: "  " [27-29] (line 33)
+7: '  ' (line 33)
   - source.js
 
-8: "//" [29-31] (line 33)
-  - source.js
-  - comment.line.double-slash.js
-  - punctuation.definition.comment.js
-
-9: " { name: \"Default Animal\" }" [31-58] (line 33)
-  - source.js
-  - comment.line.double-slash.js
-
-0: "//" [0-2] (line 35)
+8: '//' (line 33)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " Emulating 'satisfies' behavior using runtime checks" [2-54] (line 35)
+9: ' { name: "Default Animal" }' (line 33)
   - source.js
   - comment.line.double-slash.js
 
-0: "function" [0-8] (line 36)
+0: '//' (line 35)
+  - source.js
+  - comment.line.double-slash.js
+  - punctuation.definition.comment.js
+
+1: ' Emulating 'satisfies' behavior using runtime checks' (line 35)
+  - source.js
+  - comment.line.double-slash.js
+
+0: 'function' (line 36)
   - source.js
   - meta.function.js
   - storage.type.function.js
 
-1: " " [8-9] (line 36)
+1: ' ' (line 36)
   - source.js
   - meta.function.js
 
-2: "createAnimal" [9-21] (line 36)
+2: 'createAnimal' (line 36)
   - source.js
   - meta.function.js
   - meta.definition.function.js
   - entity.name.function.js
 
-3: "(" [21-22] (line 36)
+3: '(' (line 36)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.begin.js
 
-4: "animal" [22-28] (line 36)
+4: 'animal' (line 36)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - variable.parameter.js
 
-5: ")" [28-29] (line 36)
+5: ')' (line 36)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.end.js
 
-6: " " [29-30] (line 36)
+6: ' ' (line 36)
   - source.js
   - meta.function.js
 
-7: "{" [30-31] (line 36)
+7: '{' (line 36)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "  " [0-2] (line 37)
+0: '  ' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
 
-1: "if" [2-4] (line 37)
+1: 'if' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
   - keyword.control.conditional.js
 
-2: " " [4-5] (line 37)
+2: ' ' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
 
-3: "(" [5-6] (line 37)
+3: '(' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.brace.round.js
 
-4: "typeof" [6-12] (line 37)
+4: 'typeof' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
   - keyword.operator.expression.typeof.js
 
-5: " " [12-13] (line 37)
+5: ' ' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
 
-6: "animal" [13-19] (line 37)
+6: 'animal' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
   - variable.other.object.js
 
-7: "." [19-20] (line 37)
+7: '.' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.accessor.js
 
-8: "name" [20-24] (line 37)
+8: 'name' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
   - variable.other.property.js
 
-9: " " [24-25] (line 37)
+9: ' ' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
 
-10: "===" [25-28] (line 37)
+10: '===' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
   - keyword.operator.comparison.js
 
-11: " " [28-29] (line 37)
+11: ' ' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
 
-12: "'" [29-30] (line 37)
+12: ''' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
   - string.quoted.single.js
   - punctuation.definition.string.begin.js
 
-13: "string" [30-36] (line 37)
+13: 'string' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
   - string.quoted.single.js
 
-14: "'" [36-37] (line 37)
+14: ''' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
   - string.quoted.single.js
   - punctuation.definition.string.end.js
 
-15: ")" [37-38] (line 37)
+15: ')' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.brace.round.js
 
-16: " " [38-39] (line 37)
+16: ' ' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
 
-17: "{" [39-40] (line 37)
+17: '{' (line 37)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "    " [0-4] (line 38)
+0: '    ' (line 38)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-1: "return" [4-10] (line 38)
+1: 'return' (line 38)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - keyword.control.flow.js
 
-2: " " [10-11] (line 38)
+2: ' ' (line 38)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-3: "animal" [11-17] (line 38)
+3: 'animal' (line 38)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - variable.other.readwrite.js
 
-4: ";" [17-18] (line 38)
+4: ';' (line 38)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-5: "  " [18-20] (line 38)
+5: '  ' (line 38)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-6: "//" [20-22] (line 38)
+6: '//' (line 38)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -1242,56 +1242,56 @@
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-7: " Ensures the animal has a 'name' property" [22-63] (line 38)
+7: ' Ensures the animal has a 'name' property' (line 38)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - comment.line.double-slash.js
 
-0: "  " [0-2] (line 39)
+0: '  ' (line 39)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-1: "}" [2-3] (line 39)
+1: '}' (line 39)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "  " [0-2] (line 40)
+0: '  ' (line 40)
   - source.js
   - meta.function.js
   - meta.block.js
 
-1: "throw" [2-7] (line 40)
+1: 'throw' (line 40)
   - source.js
   - meta.function.js
   - meta.block.js
   - keyword.control.trycatch.js
 
-2: " " [7-8] (line 40)
+2: ' ' (line 40)
   - source.js
   - meta.function.js
   - meta.block.js
 
-3: "new" [8-11] (line 40)
+3: 'new' (line 40)
   - source.js
   - meta.function.js
   - meta.block.js
   - new.expr.js
   - keyword.operator.new.js
 
-4: " " [11-12] (line 40)
+4: ' ' (line 40)
   - source.js
   - meta.function.js
   - meta.block.js
   - new.expr.js
 
-5: "Error" [12-17] (line 40)
+5: 'Error' (line 40)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -1299,14 +1299,14 @@
   - meta.function-call.js
   - entity.name.function.js
 
-6: "(" [17-18] (line 40)
+6: '(' (line 40)
   - source.js
   - meta.function.js
   - meta.block.js
   - new.expr.js
   - meta.brace.round.js
 
-7: "\"" [18-19] (line 40)
+7: '"' (line 40)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -1314,14 +1314,14 @@
   - string.quoted.double.js
   - punctuation.definition.string.begin.js
 
-8: "Animal must have a name" [19-42] (line 40)
+8: 'Animal must have a name' (line 40)
   - source.js
   - meta.function.js
   - meta.block.js
   - new.expr.js
   - string.quoted.double.js
 
-9: "\"" [42-43] (line 40)
+9: '"' (line 40)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -1329,140 +1329,85 @@
   - string.quoted.double.js
   - punctuation.definition.string.end.js
 
-10: ")" [43-44] (line 40)
+10: ')' (line 40)
   - source.js
   - meta.function.js
   - meta.block.js
   - new.expr.js
   - meta.brace.round.js
 
-11: ";" [44-45] (line 40)
+11: ';' (line 40)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "}" [0-1] (line 41)
+0: '}' (line 41)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "const" [0-5] (line 43)
+0: 'const' (line 43)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-1: " " [5-6] (line 43)
+1: ' ' (line 43)
   - source.js
   - meta.var.expr.js
 
-2: "dog" [6-9] (line 43)
+2: 'dog' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.constant.js
 
-3: " " [9-10] (line 43)
+3: ' ' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-4: "=" [10-11] (line 43)
+4: '=' (line 43)
   - source.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-5: " " [11-12] (line 43)
+5: ' ' (line 43)
   - source.js
   - meta.var.expr.js
 
-6: "createAnimal" [12-24] (line 43)
+6: 'createAnimal' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [24-25] (line 43)
+7: '(' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-8: "{" [25-26] (line 43)
+8: '{' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.definition.block.js
 
-9: " " [26-27] (line 43)
+9: ' ' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
 
-10: "name" [27-31] (line 43)
-  - source.js
-  - meta.var.expr.js
-  - meta.objectliteral.js
-  - meta.object.member.js
-  - meta.object-literal.key.js
-
-11: ":" [31-32] (line 43)
-  - source.js
-  - meta.var.expr.js
-  - meta.objectliteral.js
-  - meta.object.member.js
-  - meta.object-literal.key.js
-  - punctuation.separator.key-value.js
-
-12: " " [32-33] (line 43)
-  - source.js
-  - meta.var.expr.js
-  - meta.objectliteral.js
-  - meta.object.member.js
-
-13: "\"" [33-34] (line 43)
-  - source.js
-  - meta.var.expr.js
-  - meta.objectliteral.js
-  - meta.object.member.js
-  - string.quoted.double.js
-  - punctuation.definition.string.begin.js
-
-14: "Buddy" [34-39] (line 43)
-  - source.js
-  - meta.var.expr.js
-  - meta.objectliteral.js
-  - meta.object.member.js
-  - string.quoted.double.js
-
-15: "\"" [39-40] (line 43)
-  - source.js
-  - meta.var.expr.js
-  - meta.objectliteral.js
-  - meta.object.member.js
-  - string.quoted.double.js
-  - punctuation.definition.string.end.js
-
-16: "," [40-41] (line 43)
-  - source.js
-  - meta.var.expr.js
-  - meta.objectliteral.js
-  - punctuation.separator.comma.js
-
-17: " " [41-42] (line 43)
-  - source.js
-  - meta.var.expr.js
-  - meta.objectliteral.js
-
-18: "breed" [42-47] (line 43)
+10: 'name' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - meta.object-literal.key.js
 
-19: ":" [47-48] (line 43)
+11: ':' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -1470,13 +1415,13 @@
   - meta.object-literal.key.js
   - punctuation.separator.key-value.js
 
-20: " " [48-49] (line 43)
+12: ' ' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
 
-21: "\"" [49-50] (line 43)
+13: '"' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -1484,14 +1429,14 @@
   - string.quoted.double.js
   - punctuation.definition.string.begin.js
 
-22: "Golden Retriever" [50-66] (line 43)
+14: 'Buddy' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - string.quoted.double.js
 
-23: "\"" [66-67] (line 43)
+15: '"' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -1499,1250 +1444,1305 @@
   - string.quoted.double.js
   - punctuation.definition.string.end.js
 
-24: " " [67-68] (line 43)
+16: ',' (line 43)
+  - source.js
+  - meta.var.expr.js
+  - meta.objectliteral.js
+  - punctuation.separator.comma.js
+
+17: ' ' (line 43)
+  - source.js
+  - meta.var.expr.js
+  - meta.objectliteral.js
+
+18: 'breed' (line 43)
+  - source.js
+  - meta.var.expr.js
+  - meta.objectliteral.js
+  - meta.object.member.js
+  - meta.object-literal.key.js
+
+19: ':' (line 43)
+  - source.js
+  - meta.var.expr.js
+  - meta.objectliteral.js
+  - meta.object.member.js
+  - meta.object-literal.key.js
+  - punctuation.separator.key-value.js
+
+20: ' ' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
 
-25: "}" [68-69] (line 43)
+21: '"' (line 43)
+  - source.js
+  - meta.var.expr.js
+  - meta.objectliteral.js
+  - meta.object.member.js
+  - string.quoted.double.js
+  - punctuation.definition.string.begin.js
+
+22: 'Golden Retriever' (line 43)
+  - source.js
+  - meta.var.expr.js
+  - meta.objectliteral.js
+  - meta.object.member.js
+  - string.quoted.double.js
+
+23: '"' (line 43)
+  - source.js
+  - meta.var.expr.js
+  - meta.objectliteral.js
+  - meta.object.member.js
+  - string.quoted.double.js
+  - punctuation.definition.string.end.js
+
+24: ' ' (line 43)
+  - source.js
+  - meta.var.expr.js
+  - meta.objectliteral.js
+  - meta.object.member.js
+
+25: '}' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.definition.block.js
 
-26: ")" [69-70] (line 43)
+26: ')' (line 43)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-27: ";" [70-71] (line 43)
+27: ';' (line 43)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "console" [0-7] (line 44)
+0: 'console' (line 44)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 44)
+1: '.' (line 44)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 44)
+2: 'log' (line 44)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 44)
+3: '(' (line 44)
   - source.js
   - meta.brace.round.js
 
-4: "dog" [12-15] (line 44)
+4: 'dog' (line 44)
   - source.js
   - variable.other.readwrite.js
 
-5: ")" [15-16] (line 44)
+5: ')' (line 44)
   - source.js
   - meta.brace.round.js
 
-6: ";" [16-17] (line 44)
+6: ';' (line 44)
   - source.js
   - punctuation.terminator.statement.js
 
-7: "  " [17-19] (line 44)
+7: '  ' (line 44)
   - source.js
 
-8: "//" [19-21] (line 44)
-  - source.js
-  - comment.line.double-slash.js
-  - punctuation.definition.comment.js
-
-9: " { name: 'Buddy', breed: 'Golden Retriever' }" [21-66] (line 44)
-  - source.js
-  - comment.line.double-slash.js
-
-0: "//" [0-2] (line 46)
+8: '//' (line 44)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " Generator usage" [2-18] (line 46)
+9: ' { name: 'Buddy', breed: 'Golden Retriever' }' (line 44)
   - source.js
   - comment.line.double-slash.js
 
-0: "const" [0-5] (line 47)
+0: '//' (line 46)
+  - source.js
+  - comment.line.double-slash.js
+  - punctuation.definition.comment.js
+
+1: ' Generator usage' (line 46)
+  - source.js
+  - comment.line.double-slash.js
+
+0: 'const' (line 47)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-1: " " [5-6] (line 47)
+1: ' ' (line 47)
   - source.js
   - meta.var.expr.js
 
-2: "generator" [6-15] (line 47)
+2: 'generator' (line 47)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.constant.js
 
-3: " " [15-16] (line 47)
+3: ' ' (line 47)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-4: "=" [16-17] (line 47)
+4: '=' (line 47)
   - source.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-5: " " [17-18] (line 47)
+5: ' ' (line 47)
   - source.js
   - meta.var.expr.js
 
-6: "Module" [18-24] (line 47)
+6: 'Module' (line 47)
   - source.js
   - meta.var.expr.js
   - meta.function-call.js
   - variable.other.object.js
 
-7: "." [24-25] (line 47)
+7: '.' (line 47)
   - source.js
   - meta.var.expr.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-8: "idGenerator" [25-36] (line 47)
+8: 'idGenerator' (line 47)
   - source.js
   - meta.var.expr.js
   - meta.function-call.js
   - entity.name.function.js
 
-9: "(" [36-37] (line 47)
+9: '(' (line 47)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-10: ")" [37-38] (line 47)
+10: ')' (line 47)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-11: ";" [38-39] (line 47)
+11: ';' (line 47)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "console" [0-7] (line 48)
+0: 'console' (line 48)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 48)
+1: '.' (line 48)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 48)
+2: 'log' (line 48)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 48)
+3: '(' (line 48)
   - source.js
   - meta.brace.round.js
 
-4: "generator" [12-21] (line 48)
+4: 'generator' (line 48)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-5: "." [21-22] (line 48)
+5: '.' (line 48)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-6: "next" [22-26] (line 48)
+6: 'next' (line 48)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [26-27] (line 48)
+7: '(' (line 48)
   - source.js
   - meta.brace.round.js
 
-8: ")" [27-28] (line 48)
+8: ')' (line 48)
   - source.js
   - meta.brace.round.js
 
-9: "." [28-29] (line 48)
+9: '.' (line 48)
   - source.js
   - punctuation.accessor.js
 
-10: "value" [29-34] (line 48)
+10: 'value' (line 48)
   - source.js
   - variable.other.property.js
 
-11: ")" [34-35] (line 48)
+11: ')' (line 48)
   - source.js
   - meta.brace.round.js
 
-12: ";" [35-36] (line 48)
+12: ';' (line 48)
   - source.js
   - punctuation.terminator.statement.js
 
-13: "  " [36-38] (line 48)
+13: '  ' (line 48)
   - source.js
 
-14: "//" [38-40] (line 48)
+14: '//' (line 48)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-15: " 0" [40-42] (line 48)
+15: ' 0' (line 48)
   - source.js
   - comment.line.double-slash.js
 
-0: "console" [0-7] (line 49)
+0: 'console' (line 49)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 49)
+1: '.' (line 49)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 49)
+2: 'log' (line 49)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 49)
+3: '(' (line 49)
   - source.js
   - meta.brace.round.js
 
-4: "generator" [12-21] (line 49)
+4: 'generator' (line 49)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-5: "." [21-22] (line 49)
+5: '.' (line 49)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-6: "next" [22-26] (line 49)
+6: 'next' (line 49)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [26-27] (line 49)
+7: '(' (line 49)
   - source.js
   - meta.brace.round.js
 
-8: ")" [27-28] (line 49)
+8: ')' (line 49)
   - source.js
   - meta.brace.round.js
 
-9: "." [28-29] (line 49)
+9: '.' (line 49)
   - source.js
   - punctuation.accessor.js
 
-10: "value" [29-34] (line 49)
+10: 'value' (line 49)
   - source.js
   - variable.other.property.js
 
-11: ")" [34-35] (line 49)
+11: ')' (line 49)
   - source.js
   - meta.brace.round.js
 
-12: ";" [35-36] (line 49)
+12: ';' (line 49)
   - source.js
   - punctuation.terminator.statement.js
 
-13: "  " [36-38] (line 49)
+13: '  ' (line 49)
   - source.js
 
-14: "//" [38-40] (line 49)
+14: '//' (line 49)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-15: " 1" [40-42] (line 49)
+15: ' 1' (line 49)
   - source.js
   - comment.line.double-slash.js
 
-0: "console" [0-7] (line 50)
+0: 'console' (line 50)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 50)
+1: '.' (line 50)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 50)
+2: 'log' (line 50)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 50)
+3: '(' (line 50)
   - source.js
   - meta.brace.round.js
 
-4: "generator" [12-21] (line 50)
+4: 'generator' (line 50)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-5: "." [21-22] (line 50)
+5: '.' (line 50)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-6: "next" [22-26] (line 50)
+6: 'next' (line 50)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [26-27] (line 50)
+7: '(' (line 50)
   - source.js
   - meta.brace.round.js
 
-8: ")" [27-28] (line 50)
+8: ')' (line 50)
   - source.js
   - meta.brace.round.js
 
-9: "." [28-29] (line 50)
+9: '.' (line 50)
   - source.js
   - punctuation.accessor.js
 
-10: "value" [29-34] (line 50)
+10: 'value' (line 50)
   - source.js
   - variable.other.property.js
 
-11: ")" [34-35] (line 50)
+11: ')' (line 50)
   - source.js
   - meta.brace.round.js
 
-12: ";" [35-36] (line 50)
+12: ';' (line 50)
   - source.js
   - punctuation.terminator.statement.js
 
-13: "  " [36-38] (line 50)
+13: '  ' (line 50)
   - source.js
 
-14: "//" [38-40] (line 50)
-  - source.js
-  - comment.line.double-slash.js
-  - punctuation.definition.comment.js
-
-15: " 2" [40-42] (line 50)
-  - source.js
-  - comment.line.double-slash.js
-
-0: "//" [0-2] (line 52)
+14: '//' (line 50)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " Handling a generic-like behavior by allowing any type and runtime checks" [2-75] (line 52)
+15: ' 2' (line 50)
   - source.js
   - comment.line.double-slash.js
 
-0: "function" [0-8] (line 53)
+0: '//' (line 52)
+  - source.js
+  - comment.line.double-slash.js
+  - punctuation.definition.comment.js
+
+1: ' Handling a generic-like behavior by allowing any type and runtime checks' (line 52)
+  - source.js
+  - comment.line.double-slash.js
+
+0: 'function' (line 53)
   - source.js
   - meta.function.js
   - storage.type.function.js
 
-1: " " [8-9] (line 53)
+1: ' ' (line 53)
   - source.js
   - meta.function.js
 
-2: "identity" [9-17] (line 53)
+2: 'identity' (line 53)
   - source.js
   - meta.function.js
   - meta.definition.function.js
   - entity.name.function.js
 
-3: "(" [17-18] (line 53)
+3: '(' (line 53)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.begin.js
 
-4: "arg" [18-21] (line 53)
+4: 'arg' (line 53)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - variable.parameter.js
 
-5: ")" [21-22] (line 53)
+5: ')' (line 53)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.end.js
 
-6: " " [22-23] (line 53)
+6: ' ' (line 53)
   - source.js
   - meta.function.js
 
-7: "{" [23-24] (line 53)
+7: '{' (line 53)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "  " [0-2] (line 54)
+0: '  ' (line 54)
   - source.js
   - meta.function.js
   - meta.block.js
 
-1: "return" [2-8] (line 54)
+1: 'return' (line 54)
   - source.js
   - meta.function.js
   - meta.block.js
   - keyword.control.flow.js
 
-2: " " [8-9] (line 54)
+2: ' ' (line 54)
   - source.js
   - meta.function.js
   - meta.block.js
 
-3: "arg" [9-12] (line 54)
+3: 'arg' (line 54)
   - source.js
   - meta.function.js
   - meta.block.js
   - variable.other.readwrite.js
 
-4: ";" [12-13] (line 54)
+4: ';' (line 54)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "}" [0-1] (line 55)
+0: '}' (line 55)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "let" [0-3] (line 57)
+0: 'let' (line 57)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-1: " " [3-4] (line 57)
+1: ' ' (line 57)
   - source.js
   - meta.var.expr.js
 
-2: "str" [4-7] (line 57)
+2: 'str' (line 57)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.readwrite.js
 
-3: " " [7-8] (line 57)
+3: ' ' (line 57)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-4: "=" [8-9] (line 57)
+4: '=' (line 57)
   - source.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-5: " " [9-10] (line 57)
+5: ' ' (line 57)
   - source.js
   - meta.var.expr.js
 
-6: "identity" [10-18] (line 57)
+6: 'identity' (line 57)
   - source.js
   - meta.var.expr.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [18-19] (line 57)
+7: '(' (line 57)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-8: "\"" [19-20] (line 57)
+8: '"' (line 57)
   - source.js
   - meta.var.expr.js
   - string.quoted.double.js
   - punctuation.definition.string.begin.js
 
-9: "Hello" [20-25] (line 57)
+9: 'Hello' (line 57)
   - source.js
   - meta.var.expr.js
   - string.quoted.double.js
 
-10: "\"" [25-26] (line 57)
+10: '"' (line 57)
   - source.js
   - meta.var.expr.js
   - string.quoted.double.js
   - punctuation.definition.string.end.js
 
-11: ")" [26-27] (line 57)
+11: ')' (line 57)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-12: ";" [27-28] (line 57)
+12: ';' (line 57)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "let" [0-3] (line 58)
+0: 'let' (line 58)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-1: " " [3-4] (line 58)
+1: ' ' (line 58)
   - source.js
   - meta.var.expr.js
 
-2: "num" [4-7] (line 58)
+2: 'num' (line 58)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.readwrite.js
 
-3: " " [7-8] (line 58)
+3: ' ' (line 58)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-4: "=" [8-9] (line 58)
+4: '=' (line 58)
   - source.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-5: " " [9-10] (line 58)
+5: ' ' (line 58)
   - source.js
   - meta.var.expr.js
 
-6: "identity" [10-18] (line 58)
+6: 'identity' (line 58)
   - source.js
   - meta.var.expr.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [18-19] (line 58)
+7: '(' (line 58)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-8: "42" [19-21] (line 58)
+8: '42' (line 58)
   - source.js
   - meta.var.expr.js
   - constant.numeric.decimal.js
 
-9: ")" [21-22] (line 58)
+9: ')' (line 58)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-10: ";" [22-23] (line 58)
+10: ';' (line 58)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "console" [0-7] (line 59)
+0: 'console' (line 59)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 59)
+1: '.' (line 59)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 59)
+2: 'log' (line 59)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 59)
+3: '(' (line 59)
   - source.js
   - meta.brace.round.js
 
-4: "str" [12-15] (line 59)
+4: 'str' (line 59)
   - source.js
   - variable.other.readwrite.js
 
-5: "," [15-16] (line 59)
+5: ',' (line 59)
   - source.js
   - punctuation.separator.comma.js
 
-6: " " [16-17] (line 59)
+6: ' ' (line 59)
   - source.js
 
-7: "num" [17-20] (line 59)
+7: 'num' (line 59)
   - source.js
   - variable.other.readwrite.js
 
-8: ")" [20-21] (line 59)
+8: ')' (line 59)
   - source.js
   - meta.brace.round.js
 
-9: ";" [21-22] (line 59)
+9: ';' (line 59)
   - source.js
   - punctuation.terminator.statement.js
 
-10: "  " [22-24] (line 59)
+10: '  ' (line 59)
   - source.js
 
-11: "//" [24-26] (line 59)
-  - source.js
-  - comment.line.double-slash.js
-  - punctuation.definition.comment.js
-
-12: " \"Hello\", 42" [26-38] (line 59)
-  - source.js
-  - comment.line.double-slash.js
-
-0: "//" [0-2] (line 61)
+11: '//' (line 59)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " Emulating default generics by using default parameters" [2-57] (line 61)
+12: ' "Hello", 42' (line 59)
   - source.js
   - comment.line.double-slash.js
 
-0: "function" [0-8] (line 62)
+0: '//' (line 61)
+  - source.js
+  - comment.line.double-slash.js
+  - punctuation.definition.comment.js
+
+1: ' Emulating default generics by using default parameters' (line 61)
+  - source.js
+  - comment.line.double-slash.js
+
+0: 'function' (line 62)
   - source.js
   - meta.function.js
   - storage.type.function.js
 
-1: " " [8-9] (line 62)
+1: ' ' (line 62)
   - source.js
   - meta.function.js
 
-2: "wrapInArray" [9-20] (line 62)
+2: 'wrapInArray' (line 62)
   - source.js
   - meta.function.js
   - meta.definition.function.js
   - entity.name.function.js
 
-3: "(" [20-21] (line 62)
+3: '(' (line 62)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.begin.js
 
-4: "value" [21-26] (line 62)
+4: 'value' (line 62)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - variable.parameter.js
 
-5: " " [26-27] (line 62)
+5: ' ' (line 62)
   - source.js
   - meta.function.js
   - meta.parameters.js
 
-6: "=" [27-28] (line 62)
+6: '=' (line 62)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - keyword.operator.assignment.js
 
-7: " " [28-29] (line 62)
+7: ' ' (line 62)
   - source.js
   - meta.function.js
   - meta.parameters.js
 
-8: "\"" [29-30] (line 62)
+8: '"' (line 62)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - string.quoted.double.js
   - punctuation.definition.string.begin.js
 
-9: "\"" [30-31] (line 62)
+9: '"' (line 62)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - string.quoted.double.js
   - punctuation.definition.string.end.js
 
-10: ")" [31-32] (line 62)
+10: ')' (line 62)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.end.js
 
-11: " " [32-33] (line 62)
+11: ' ' (line 62)
   - source.js
   - meta.function.js
 
-12: "{" [33-34] (line 62)
+12: '{' (line 62)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "  " [0-2] (line 63)
+0: '  ' (line 63)
   - source.js
   - meta.function.js
   - meta.block.js
 
-1: "return" [2-8] (line 63)
+1: 'return' (line 63)
   - source.js
   - meta.function.js
   - meta.block.js
   - keyword.control.flow.js
 
-2: " " [8-9] (line 63)
+2: ' ' (line 63)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.array.literal.js
 
-3: "[" [9-10] (line 63)
+3: '[' (line 63)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.array.literal.js
   - meta.brace.square.js
 
-4: "value" [10-15] (line 63)
+4: 'value' (line 63)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.array.literal.js
   - variable.other.readwrite.js
 
-5: "]" [15-16] (line 63)
+5: ']' (line 63)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.array.literal.js
   - meta.brace.square.js
 
-6: ";" [16-17] (line 63)
+6: ';' (line 63)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "}" [0-1] (line 64)
+0: '}' (line 64)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "const" [0-5] (line 66)
+0: 'const' (line 66)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-1: " " [5-6] (line 66)
+1: ' ' (line 66)
   - source.js
   - meta.var.expr.js
 
-2: "stringArray" [6-17] (line 66)
+2: 'stringArray' (line 66)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.constant.js
 
-3: " " [17-18] (line 66)
+3: ' ' (line 66)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-4: "=" [18-19] (line 66)
+4: '=' (line 66)
   - source.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-5: " " [19-20] (line 66)
+5: ' ' (line 66)
   - source.js
   - meta.var.expr.js
 
-6: "wrapInArray" [20-31] (line 66)
+6: 'wrapInArray' (line 66)
   - source.js
   - meta.var.expr.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [31-32] (line 66)
+7: '(' (line 66)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-8: ")" [32-33] (line 66)
+8: ')' (line 66)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-9: ";" [33-34] (line 66)
+9: ';' (line 66)
   - source.js
   - punctuation.terminator.statement.js
 
-10: "  " [34-36] (line 66)
+10: '  ' (line 66)
   - source.js
 
-11: "//" [36-38] (line 66)
+11: '//' (line 66)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-12: " Default is empty string" [38-62] (line 66)
+12: ' Default is empty string' (line 66)
   - source.js
   - comment.line.double-slash.js
 
-0: "const" [0-5] (line 67)
+0: 'const' (line 67)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-1: " " [5-6] (line 67)
+1: ' ' (line 67)
   - source.js
   - meta.var.expr.js
 
-2: "numberArray" [6-17] (line 67)
+2: 'numberArray' (line 67)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.constant.js
 
-3: " " [17-18] (line 67)
+3: ' ' (line 67)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-4: "=" [18-19] (line 67)
+4: '=' (line 67)
   - source.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-5: " " [19-20] (line 67)
+5: ' ' (line 67)
   - source.js
   - meta.var.expr.js
 
-6: "wrapInArray" [20-31] (line 67)
+6: 'wrapInArray' (line 67)
   - source.js
   - meta.var.expr.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [31-32] (line 67)
+7: '(' (line 67)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-8: "42" [32-34] (line 67)
+8: '42' (line 67)
   - source.js
   - meta.var.expr.js
   - constant.numeric.decimal.js
 
-9: ")" [34-35] (line 67)
+9: ')' (line 67)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-10: ";" [35-36] (line 67)
+10: ';' (line 67)
   - source.js
   - punctuation.terminator.statement.js
 
-11: "  " [36-38] (line 67)
+11: '  ' (line 67)
   - source.js
 
-12: "//" [38-40] (line 67)
+12: '//' (line 67)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-13: " Passes 42 explicitly" [40-61] (line 67)
+13: ' Passes 42 explicitly' (line 67)
   - source.js
   - comment.line.double-slash.js
 
-0: "console" [0-7] (line 68)
+0: 'console' (line 68)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 68)
+1: '.' (line 68)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 68)
+2: 'log' (line 68)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 68)
+3: '(' (line 68)
   - source.js
   - meta.brace.round.js
 
-4: "stringArray" [12-23] (line 68)
+4: 'stringArray' (line 68)
   - source.js
   - variable.other.readwrite.js
 
-5: "," [23-24] (line 68)
+5: ',' (line 68)
   - source.js
   - punctuation.separator.comma.js
 
-6: " " [24-25] (line 68)
+6: ' ' (line 68)
   - source.js
 
-7: "numberArray" [25-36] (line 68)
+7: 'numberArray' (line 68)
   - source.js
   - variable.other.readwrite.js
 
-8: ")" [36-37] (line 68)
+8: ')' (line 68)
   - source.js
   - meta.brace.round.js
 
-9: ";" [37-38] (line 68)
+9: ';' (line 68)
   - source.js
   - punctuation.terminator.statement.js
 
-10: "  " [38-40] (line 68)
+10: '  ' (line 68)
   - source.js
 
-11: "//" [40-42] (line 68)
-  - source.js
-  - comment.line.double-slash.js
-  - punctuation.definition.comment.js
-
-12: " [\"\"] , [42]" [42-54] (line 68)
-  - source.js
-  - comment.line.double-slash.js
-
-0: "//" [0-2] (line 70)
+11: '//' (line 68)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " --- for-of and for-in loops ---" [2-34] (line 70)
+12: ' [""] , [42]' (line 68)
   - source.js
   - comment.line.double-slash.js
 
-0: "//" [0-2] (line 72)
+0: '//' (line 70)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " for-of: Iterates over iterable objects like arrays, strings, maps, etc." [2-74] (line 72)
+1: ' --- for-of and for-in loops ---' (line 70)
   - source.js
   - comment.line.double-slash.js
 
-0: "const" [0-5] (line 73)
+0: '//' (line 72)
+  - source.js
+  - comment.line.double-slash.js
+  - punctuation.definition.comment.js
+
+1: ' for-of: Iterates over iterable objects like arrays, strings, maps, etc.' (line 72)
+  - source.js
+  - comment.line.double-slash.js
+
+0: 'const' (line 73)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-1: " " [5-6] (line 73)
+1: ' ' (line 73)
   - source.js
   - meta.var.expr.js
 
-2: "fruits" [6-12] (line 73)
+2: 'fruits' (line 73)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.constant.js
 
-3: " " [12-13] (line 73)
+3: ' ' (line 73)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-4: "=" [13-14] (line 73)
+4: '=' (line 73)
   - source.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-5: " " [14-15] (line 73)
+5: ' ' (line 73)
   - source.js
   - meta.var.expr.js
   - meta.array.literal.js
 
-6: "[" [15-16] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-  - meta.brace.square.js
-
-7: "\"" [16-17] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-  - string.quoted.double.js
-  - punctuation.definition.string.begin.js
-
-8: "apple" [17-22] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-  - string.quoted.double.js
-
-9: "\"" [22-23] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-  - string.quoted.double.js
-  - punctuation.definition.string.end.js
-
-10: "," [23-24] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-  - punctuation.separator.comma.js
-
-11: " " [24-25] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-
-12: "\"" [25-26] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-  - string.quoted.double.js
-  - punctuation.definition.string.begin.js
-
-13: "banana" [26-32] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-  - string.quoted.double.js
-
-14: "\"" [32-33] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-  - string.quoted.double.js
-  - punctuation.definition.string.end.js
-
-15: "," [33-34] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-  - punctuation.separator.comma.js
-
-16: " " [34-35] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-
-17: "\"" [35-36] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-  - string.quoted.double.js
-  - punctuation.definition.string.begin.js
-
-18: "cherry" [36-42] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-  - string.quoted.double.js
-
-19: "\"" [42-43] (line 73)
-  - source.js
-  - meta.var.expr.js
-  - meta.array.literal.js
-  - string.quoted.double.js
-  - punctuation.definition.string.end.js
-
-20: "]" [43-44] (line 73)
+6: '[' (line 73)
   - source.js
   - meta.var.expr.js
   - meta.array.literal.js
   - meta.brace.square.js
 
-21: ";" [44-45] (line 73)
+7: '"' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+  - string.quoted.double.js
+  - punctuation.definition.string.begin.js
+
+8: 'apple' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+  - string.quoted.double.js
+
+9: '"' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+  - string.quoted.double.js
+  - punctuation.definition.string.end.js
+
+10: ',' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+  - punctuation.separator.comma.js
+
+11: ' ' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+
+12: '"' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+  - string.quoted.double.js
+  - punctuation.definition.string.begin.js
+
+13: 'banana' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+  - string.quoted.double.js
+
+14: '"' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+  - string.quoted.double.js
+  - punctuation.definition.string.end.js
+
+15: ',' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+  - punctuation.separator.comma.js
+
+16: ' ' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+
+17: '"' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+  - string.quoted.double.js
+  - punctuation.definition.string.begin.js
+
+18: 'cherry' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+  - string.quoted.double.js
+
+19: '"' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+  - string.quoted.double.js
+  - punctuation.definition.string.end.js
+
+20: ']' (line 73)
+  - source.js
+  - meta.var.expr.js
+  - meta.array.literal.js
+  - meta.brace.square.js
+
+21: ';' (line 73)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "for" [0-3] (line 74)
+0: 'for' (line 74)
   - source.js
   - keyword.control.loop.js
 
-1: " " [3-4] (line 74)
+1: ' ' (line 74)
   - source.js
 
-2: "(" [4-5] (line 74)
+2: '(' (line 74)
   - source.js
   - meta.brace.round.js
 
-3: "const" [5-10] (line 74)
+3: 'const' (line 74)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-4: " " [10-11] (line 74)
+4: ' ' (line 74)
   - source.js
   - meta.var.expr.js
 
-5: "fruit" [11-16] (line 74)
+5: 'fruit' (line 74)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.constant.js
 
-6: " " [16-17] (line 74)
+6: ' ' (line 74)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-7: "of" [17-19] (line 74)
+7: 'of' (line 74)
   - source.js
   - keyword.operator.expression.of.js
 
-8: " " [19-20] (line 74)
+8: ' ' (line 74)
   - source.js
 
-9: "fruits" [20-26] (line 74)
+9: 'fruits' (line 74)
   - source.js
   - variable.other.readwrite.js
 
-10: ")" [26-27] (line 74)
+10: ')' (line 74)
   - source.js
   - meta.brace.round.js
 
-11: " " [27-28] (line 74)
+11: ' ' (line 74)
   - source.js
 
-12: "{" [28-29] (line 74)
+12: '{' (line 74)
   - source.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "  " [0-2] (line 75)
+0: '  ' (line 75)
   - source.js
   - meta.block.js
 
-1: "console" [2-9] (line 75)
+1: 'console' (line 75)
   - source.js
   - meta.block.js
   - meta.function-call.js
   - variable.other.object.js
 
-2: "." [9-10] (line 75)
+2: '.' (line 75)
   - source.js
   - meta.block.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-3: "log" [10-13] (line 75)
+3: 'log' (line 75)
   - source.js
   - meta.block.js
   - meta.function-call.js
   - entity.name.function.js
 
-4: "(" [13-14] (line 75)
+4: '(' (line 75)
   - source.js
   - meta.block.js
   - meta.brace.round.js
 
-5: "fruit" [14-19] (line 75)
+5: 'fruit' (line 75)
   - source.js
   - meta.block.js
   - variable.other.readwrite.js
 
-6: ")" [19-20] (line 75)
+6: ')' (line 75)
   - source.js
   - meta.block.js
   - meta.brace.round.js
 
-7: ";" [20-21] (line 75)
+7: ';' (line 75)
   - source.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-8: "  " [21-23] (line 75)
+8: '  ' (line 75)
   - source.js
   - meta.block.js
 
-9: "//" [23-25] (line 75)
+9: '//' (line 75)
   - source.js
   - meta.block.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-10: " Outputs: apple, banana, cherry" [25-56] (line 75)
+10: ' Outputs: apple, banana, cherry' (line 75)
   - source.js
   - meta.block.js
   - comment.line.double-slash.js
 
-0: "}" [0-1] (line 76)
+0: '}' (line 76)
   - source.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "//" [0-2] (line 78)
+0: '//' (line 78)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " for-in: Iterates over enumerable properties of an object" [2-59] (line 78)
+1: ' for-in: Iterates over enumerable properties of an object' (line 78)
   - source.js
   - comment.line.double-slash.js
 
-0: "const" [0-5] (line 79)
+0: 'const' (line 79)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-1: " " [5-6] (line 79)
+1: ' ' (line 79)
   - source.js
   - meta.var.expr.js
 
-2: "car" [6-9] (line 79)
+2: 'car' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.constant.js
 
-3: " " [9-10] (line 79)
+3: ' ' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-4: "=" [10-11] (line 79)
+4: '=' (line 79)
   - source.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-5: " " [11-12] (line 79)
+5: ' ' (line 79)
   - source.js
   - meta.var.expr.js
 
-6: "{" [12-13] (line 79)
+6: '{' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.definition.block.js
 
-7: " " [13-14] (line 79)
+7: ' ' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
 
-8: "make" [14-18] (line 79)
+8: 'make' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - meta.object-literal.key.js
 
-9: ":" [18-19] (line 79)
+9: ':' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -2750,13 +2750,13 @@
   - meta.object-literal.key.js
   - punctuation.separator.key-value.js
 
-10: " " [19-20] (line 79)
+10: ' ' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
 
-11: "\"" [20-21] (line 79)
+11: '"' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -2764,14 +2764,14 @@
   - string.quoted.double.js
   - punctuation.definition.string.begin.js
 
-12: "Tesla" [21-26] (line 79)
+12: 'Tesla' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - string.quoted.double.js
 
-13: "\"" [26-27] (line 79)
+13: '"' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -2779,25 +2779,25 @@
   - string.quoted.double.js
   - punctuation.definition.string.end.js
 
-14: "," [27-28] (line 79)
+14: ',' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.separator.comma.js
 
-15: " " [28-29] (line 79)
+15: ' ' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
 
-16: "model" [29-34] (line 79)
+16: 'model' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - meta.object-literal.key.js
 
-17: ":" [34-35] (line 79)
+17: ':' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -2805,13 +2805,13 @@
   - meta.object-literal.key.js
   - punctuation.separator.key-value.js
 
-18: " " [35-36] (line 79)
+18: ' ' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
 
-19: "\"" [36-37] (line 79)
+19: '"' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -2819,14 +2819,14 @@
   - string.quoted.double.js
   - punctuation.definition.string.begin.js
 
-20: "Model S" [37-44] (line 79)
+20: 'Model S' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - string.quoted.double.js
 
-21: "\"" [44-45] (line 79)
+21: '"' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -2834,25 +2834,25 @@
   - string.quoted.double.js
   - punctuation.definition.string.end.js
 
-22: "," [45-46] (line 79)
+22: ',' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.separator.comma.js
 
-23: " " [46-47] (line 79)
+23: ' ' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
 
-24: "year" [47-51] (line 79)
+24: 'year' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - meta.object-literal.key.js
 
-25: ":" [51-52] (line 79)
+25: ':' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -2860,196 +2860,196 @@
   - meta.object-literal.key.js
   - punctuation.separator.key-value.js
 
-26: " " [52-53] (line 79)
+26: ' ' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
 
-27: "2021" [53-57] (line 79)
+27: '2021' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - constant.numeric.decimal.js
 
-28: " " [57-58] (line 79)
+28: ' ' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
 
-29: "}" [58-59] (line 79)
+29: '}' (line 79)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.definition.block.js
 
-30: ";" [59-60] (line 79)
+30: ';' (line 79)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "for" [0-3] (line 80)
+0: 'for' (line 80)
   - source.js
   - keyword.control.loop.js
 
-1: " " [3-4] (line 80)
+1: ' ' (line 80)
   - source.js
 
-2: "(" [4-5] (line 80)
+2: '(' (line 80)
   - source.js
   - meta.brace.round.js
 
-3: "const" [5-10] (line 80)
+3: 'const' (line 80)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-4: " " [10-11] (line 80)
+4: ' ' (line 80)
   - source.js
   - meta.var.expr.js
 
-5: "key" [11-14] (line 80)
+5: 'key' (line 80)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.constant.js
 
-6: " " [14-15] (line 80)
+6: ' ' (line 80)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-7: "in" [15-17] (line 80)
+7: 'in' (line 80)
   - source.js
   - keyword.operator.expression.in.js
 
-8: " " [17-18] (line 80)
+8: ' ' (line 80)
   - source.js
 
-9: "car" [18-21] (line 80)
+9: 'car' (line 80)
   - source.js
   - variable.other.readwrite.js
 
-10: ")" [21-22] (line 80)
+10: ')' (line 80)
   - source.js
   - meta.brace.round.js
 
-11: " " [22-23] (line 80)
+11: ' ' (line 80)
   - source.js
 
-12: "{" [23-24] (line 80)
+12: '{' (line 80)
   - source.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "  " [0-2] (line 81)
+0: '  ' (line 81)
   - source.js
   - meta.block.js
 
-1: "if" [2-4] (line 81)
+1: 'if' (line 81)
   - source.js
   - meta.block.js
   - keyword.control.conditional.js
 
-2: " " [4-5] (line 81)
+2: ' ' (line 81)
   - source.js
   - meta.block.js
 
-3: "(" [5-6] (line 81)
+3: '(' (line 81)
   - source.js
   - meta.block.js
   - meta.brace.round.js
 
-4: "car" [6-9] (line 81)
+4: 'car' (line 81)
   - source.js
   - meta.block.js
   - meta.function-call.js
   - variable.other.object.js
 
-5: "." [9-10] (line 81)
+5: '.' (line 81)
   - source.js
   - meta.block.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-6: "hasOwnProperty" [10-24] (line 81)
+6: 'hasOwnProperty' (line 81)
   - source.js
   - meta.block.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [24-25] (line 81)
+7: '(' (line 81)
   - source.js
   - meta.block.js
   - meta.brace.round.js
 
-8: "key" [25-28] (line 81)
+8: 'key' (line 81)
   - source.js
   - meta.block.js
   - variable.other.readwrite.js
 
-9: ")" [28-29] (line 81)
+9: ')' (line 81)
   - source.js
   - meta.block.js
   - meta.brace.round.js
 
-10: ")" [29-30] (line 81)
+10: ')' (line 81)
   - source.js
   - meta.block.js
   - meta.brace.round.js
 
-11: " " [30-31] (line 81)
+11: ' ' (line 81)
   - source.js
   - meta.block.js
 
-12: "{" [31-32] (line 81)
+12: '{' (line 81)
   - source.js
   - meta.block.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "    " [0-4] (line 82)
+0: '    ' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
 
-1: "console" [4-11] (line 82)
+1: 'console' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
   - meta.function-call.js
   - variable.other.object.js
 
-2: "." [11-12] (line 82)
+2: '.' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-3: "log" [12-15] (line 82)
+3: 'log' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
   - meta.function-call.js
   - entity.name.function.js
 
-4: "(" [15-16] (line 82)
+4: '(' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
   - meta.brace.round.js
 
-5: "`" [16-17] (line 82)
+5: '`' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
   - string.template.js
   - punctuation.definition.string.template.begin.js
 
-6: "${" [17-19] (line 82)
+6: '${' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
@@ -3057,7 +3057,7 @@
   - meta.template.expression.js
   - punctuation.definition.template-expression.begin.js
 
-7: "key" [19-22] (line 82)
+7: 'key' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
@@ -3066,7 +3066,7 @@
   - meta.embedded.line.js
   - variable.other.readwrite.js
 
-8: "}" [22-23] (line 82)
+8: '}' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
@@ -3074,13 +3074,13 @@
   - meta.template.expression.js
   - punctuation.definition.template-expression.end.js
 
-9: ": " [23-25] (line 82)
+9: ': ' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
   - string.template.js
 
-10: "${" [25-27] (line 82)
+10: '${' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
@@ -3088,7 +3088,7 @@
   - meta.template.expression.js
   - punctuation.definition.template-expression.begin.js
 
-11: "car" [27-30] (line 82)
+11: 'car' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
@@ -3097,7 +3097,7 @@
   - meta.embedded.line.js
   - variable.other.readwrite.js
 
-12: "[" [30-31] (line 82)
+12: '[' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
@@ -3107,7 +3107,7 @@
   - meta.array.literal.js
   - meta.brace.square.js
 
-13: "key" [31-34] (line 82)
+13: 'key' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
@@ -3117,7 +3117,7 @@
   - meta.array.literal.js
   - variable.other.readwrite.js
 
-14: "]" [34-35] (line 82)
+14: ']' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
@@ -3127,7 +3127,7 @@
   - meta.array.literal.js
   - meta.brace.square.js
 
-15: "}" [35-36] (line 82)
+15: '}' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
@@ -3135,186 +3135,186 @@
   - meta.template.expression.js
   - punctuation.definition.template-expression.end.js
 
-16: "`" [36-37] (line 82)
+16: '`' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
   - string.template.js
   - punctuation.definition.string.template.end.js
 
-17: ")" [37-38] (line 82)
+17: ')' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
   - meta.brace.round.js
 
-18: ";" [38-39] (line 82)
+18: ';' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-19: "  " [39-41] (line 82)
+19: '  ' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
 
-20: "//" [41-43] (line 82)
+20: '//' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-21: " Outputs key-value pairs of car object" [43-81] (line 82)
+21: ' Outputs key-value pairs of car object' (line 82)
   - source.js
   - meta.block.js
   - meta.block.js
   - comment.line.double-slash.js
 
-0: "  " [0-2] (line 83)
+0: '  ' (line 83)
   - source.js
   - meta.block.js
   - meta.block.js
 
-1: "}" [2-3] (line 83)
+1: '}' (line 83)
   - source.js
   - meta.block.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "}" [0-1] (line 84)
+0: '}' (line 84)
   - source.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "//" [0-2] (line 86)
+0: '//' (line 86)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " --- IIFE (Immediately Invoked Function Expression) ---" [2-57] (line 86)
+1: ' --- IIFE (Immediately Invoked Function Expression) ---' (line 86)
   - source.js
   - comment.line.double-slash.js
 
-0: "(" [0-1] (line 88)
+0: '(' (line 88)
   - source.js
   - meta.brace.round.js
 
-1: "function" [1-9] (line 88)
+1: 'function' (line 88)
   - source.js
   - meta.function.expression.js
   - storage.type.function.js
 
-2: " " [9-10] (line 88)
+2: ' ' (line 88)
   - source.js
   - meta.function.expression.js
 
-3: "(" [10-11] (line 88)
+3: '(' (line 88)
   - source.js
   - meta.function.expression.js
   - meta.parameters.js
   - punctuation.definition.parameters.begin.js
 
-4: ")" [11-12] (line 88)
+4: ')' (line 88)
   - source.js
   - meta.function.expression.js
   - meta.parameters.js
   - punctuation.definition.parameters.end.js
 
-5: " " [12-13] (line 88)
+5: ' ' (line 88)
   - source.js
   - meta.function.expression.js
 
-6: "{" [13-14] (line 88)
+6: '{' (line 88)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "  " [0-2] (line 89)
+0: '  ' (line 89)
   - source.js
   - meta.function.expression.js
   - meta.block.js
 
-1: "console" [2-9] (line 89)
+1: 'console' (line 89)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.function-call.js
   - variable.other.object.js
 
-2: "." [9-10] (line 89)
+2: '.' (line 89)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-3: "log" [10-13] (line 89)
+3: 'log' (line 89)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.function-call.js
   - entity.name.function.js
 
-4: "(" [13-14] (line 89)
+4: '(' (line 89)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.brace.round.js
 
-5: "\"" [14-15] (line 89)
+5: '"' (line 89)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - string.quoted.double.js
   - punctuation.definition.string.begin.js
 
-6: "This IIFE runs immediately after it's defined." [15-61] (line 89)
+6: 'This IIFE runs immediately after it's defined.' (line 89)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - string.quoted.double.js
 
-7: "\"" [61-62] (line 89)
+7: '"' (line 89)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - string.quoted.double.js
   - punctuation.definition.string.end.js
 
-8: ")" [62-63] (line 89)
+8: ')' (line 89)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.brace.round.js
 
-9: ";" [63-64] (line 89)
+9: ';' (line 89)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "  " [0-2] (line 90)
+0: '  ' (line 90)
   - source.js
   - meta.function.expression.js
   - meta.block.js
 
-1: "const" [2-7] (line 90)
+1: 'const' (line 90)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.var.expr.js
   - storage.type.js
 
-2: " " [7-8] (line 90)
+2: ' ' (line 90)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.var.expr.js
 
-3: "privateVar" [8-18] (line 90)
+3: 'privateVar' (line 90)
   - source.js
   - meta.function.expression.js
   - meta.block.js
@@ -3323,27 +3323,27 @@
   - meta.definition.variable.js
   - variable.other.constant.js
 
-4: " " [18-19] (line 90)
+4: ' ' (line 90)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-5: "=" [19-20] (line 90)
+5: '=' (line 90)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-6: " " [20-21] (line 90)
+6: ' ' (line 90)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.var.expr.js
 
-7: "\"" [21-22] (line 90)
+7: '"' (line 90)
   - source.js
   - meta.function.expression.js
   - meta.block.js
@@ -3351,14 +3351,14 @@
   - string.quoted.double.js
   - punctuation.definition.string.begin.js
 
-8: "I'm private inside the IIFE!" [22-50] (line 90)
+8: 'I'm private inside the IIFE!' (line 90)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.var.expr.js
   - string.quoted.double.js
 
-9: "\"" [50-51] (line 90)
+9: '"' (line 90)
   - source.js
   - meta.function.expression.js
   - meta.block.js
@@ -3366,172 +3366,172 @@
   - string.quoted.double.js
   - punctuation.definition.string.end.js
 
-10: ";" [51-52] (line 90)
+10: ';' (line 90)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "  " [0-2] (line 91)
+0: '  ' (line 91)
   - source.js
   - meta.function.expression.js
   - meta.block.js
 
-1: "console" [2-9] (line 91)
+1: 'console' (line 91)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.function-call.js
   - variable.other.object.js
 
-2: "." [9-10] (line 91)
+2: '.' (line 91)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-3: "log" [10-13] (line 91)
+3: 'log' (line 91)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.function-call.js
   - entity.name.function.js
 
-4: "(" [13-14] (line 91)
+4: '(' (line 91)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.brace.round.js
 
-5: "privateVar" [14-24] (line 91)
+5: 'privateVar' (line 91)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - variable.other.readwrite.js
 
-6: ")" [24-25] (line 91)
+6: ')' (line 91)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - meta.brace.round.js
 
-7: ";" [25-26] (line 91)
+7: ';' (line 91)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-8: "  " [26-28] (line 91)
+8: '  ' (line 91)
   - source.js
   - meta.function.expression.js
   - meta.block.js
 
-9: "//" [28-30] (line 91)
+9: '//' (line 91)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-10: " Accessing the private variable inside the IIFE" [30-77] (line 91)
+10: ' Accessing the private variable inside the IIFE' (line 91)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - comment.line.double-slash.js
 
-0: "}" [0-1] (line 92)
+0: '}' (line 92)
   - source.js
   - meta.function.expression.js
   - meta.block.js
   - punctuation.definition.block.js
 
-1: ")" [1-2] (line 92)
+1: ')' (line 92)
   - source.js
   - meta.brace.round.js
 
-2: "(" [2-3] (line 92)
+2: '(' (line 92)
   - source.js
   - meta.brace.round.js
 
-3: ")" [3-4] (line 92)
+3: ')' (line 92)
   - source.js
   - meta.brace.round.js
 
-4: ";" [4-5] (line 92)
+4: ';' (line 92)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "//" [0-2] (line 94)
+0: '//' (line 94)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " --- Using a generator to loop indefinitely ---" [2-49] (line 94)
+1: ' --- Using a generator to loop indefinitely ---' (line 94)
   - source.js
   - comment.line.double-slash.js
 
-0: "function" [0-8] (line 95)
+0: 'function' (line 95)
   - source.js
   - meta.function.js
   - storage.type.function.js
 
-1: "*" [8-9] (line 95)
+1: '*' (line 95)
   - source.js
   - meta.function.js
   - keyword.generator.asterisk.js
 
-2: " " [9-10] (line 95)
+2: ' ' (line 95)
   - source.js
   - meta.function.js
 
-3: "infiniteGenerator" [10-27] (line 95)
+3: 'infiniteGenerator' (line 95)
   - source.js
   - meta.function.js
   - meta.definition.function.js
   - entity.name.function.js
 
-4: "(" [27-28] (line 95)
+4: '(' (line 95)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.begin.js
 
-5: ")" [28-29] (line 95)
+5: ')' (line 95)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.end.js
 
-6: " " [29-30] (line 95)
+6: ' ' (line 95)
   - source.js
   - meta.function.js
 
-7: "{" [30-31] (line 95)
+7: '{' (line 95)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "  " [0-2] (line 96)
+0: '  ' (line 96)
   - source.js
   - meta.function.js
   - meta.block.js
 
-1: "let" [2-5] (line 96)
+1: 'let' (line 96)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.var.expr.js
   - storage.type.js
 
-2: " " [5-6] (line 96)
+2: ' ' (line 96)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.var.expr.js
 
-3: "i" [6-7] (line 96)
+3: 'i' (line 96)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -3540,425 +3540,425 @@
   - meta.definition.variable.js
   - variable.other.readwrite.js
 
-4: " " [7-8] (line 96)
+4: ' ' (line 96)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-5: "=" [8-9] (line 96)
+5: '=' (line 96)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-6: " " [9-10] (line 96)
+6: ' ' (line 96)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.var.expr.js
 
-7: "0" [10-11] (line 96)
+7: '0' (line 96)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.var.expr.js
   - constant.numeric.decimal.js
 
-8: ";" [11-12] (line 96)
+8: ';' (line 96)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "  " [0-2] (line 97)
+0: '  ' (line 97)
   - source.js
   - meta.function.js
   - meta.block.js
 
-1: "while" [2-7] (line 97)
+1: 'while' (line 97)
   - source.js
   - meta.function.js
   - meta.block.js
   - keyword.control.loop.js
 
-2: " " [7-8] (line 97)
+2: ' ' (line 97)
   - source.js
   - meta.function.js
   - meta.block.js
 
-3: "(" [8-9] (line 97)
+3: '(' (line 97)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.brace.round.js
 
-4: "true" [9-13] (line 97)
+4: 'true' (line 97)
   - source.js
   - meta.function.js
   - meta.block.js
   - constant.language.boolean.true.js
 
-5: ")" [13-14] (line 97)
+5: ')' (line 97)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.brace.round.js
 
-6: " " [14-15] (line 97)
+6: ' ' (line 97)
   - source.js
   - meta.function.js
   - meta.block.js
 
-7: "{" [15-16] (line 97)
+7: '{' (line 97)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "    " [0-4] (line 98)
+0: '    ' (line 98)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-1: "yield" [4-9] (line 98)
+1: 'yield' (line 98)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - keyword.control.flow.js
 
-2: " " [9-10] (line 98)
+2: ' ' (line 98)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-3: "i" [10-11] (line 98)
+3: 'i' (line 98)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - variable.other.readwrite.js
 
-4: "++" [11-13] (line 98)
+4: '++' (line 98)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - keyword.operator.increment.js
 
-5: ";" [13-14] (line 98)
+5: ';' (line 98)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "  " [0-2] (line 99)
+0: '  ' (line 99)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-1: "}" [2-3] (line 99)
+1: '}' (line 99)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "}" [0-1] (line 100)
+0: '}' (line 100)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "const" [0-5] (line 102)
+0: 'const' (line 102)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-1: " " [5-6] (line 102)
+1: ' ' (line 102)
   - source.js
   - meta.var.expr.js
 
-2: "gen" [6-9] (line 102)
+2: 'gen' (line 102)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.constant.js
 
-3: " " [9-10] (line 102)
+3: ' ' (line 102)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-4: "=" [10-11] (line 102)
+4: '=' (line 102)
   - source.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-5: " " [11-12] (line 102)
+5: ' ' (line 102)
   - source.js
   - meta.var.expr.js
 
-6: "infiniteGenerator" [12-29] (line 102)
+6: 'infiniteGenerator' (line 102)
   - source.js
   - meta.var.expr.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [29-30] (line 102)
+7: '(' (line 102)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-8: ")" [30-31] (line 102)
+8: ')' (line 102)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-9: ";" [31-32] (line 102)
+9: ';' (line 102)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "console" [0-7] (line 103)
+0: 'console' (line 103)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 103)
+1: '.' (line 103)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 103)
+2: 'log' (line 103)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 103)
+3: '(' (line 103)
   - source.js
   - meta.brace.round.js
 
-4: "gen" [12-15] (line 103)
+4: 'gen' (line 103)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-5: "." [15-16] (line 103)
+5: '.' (line 103)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-6: "next" [16-20] (line 103)
+6: 'next' (line 103)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [20-21] (line 103)
+7: '(' (line 103)
   - source.js
   - meta.brace.round.js
 
-8: ")" [21-22] (line 103)
+8: ')' (line 103)
   - source.js
   - meta.brace.round.js
 
-9: "." [22-23] (line 103)
+9: '.' (line 103)
   - source.js
   - punctuation.accessor.js
 
-10: "value" [23-28] (line 103)
+10: 'value' (line 103)
   - source.js
   - variable.other.property.js
 
-11: ")" [28-29] (line 103)
+11: ')' (line 103)
   - source.js
   - meta.brace.round.js
 
-12: ";" [29-30] (line 103)
+12: ';' (line 103)
   - source.js
   - punctuation.terminator.statement.js
 
-13: "  " [30-32] (line 103)
+13: '  ' (line 103)
   - source.js
 
-14: "//" [32-34] (line 103)
+14: '//' (line 103)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-15: " 0" [34-36] (line 103)
+15: ' 0' (line 103)
   - source.js
   - comment.line.double-slash.js
 
-0: "console" [0-7] (line 104)
+0: 'console' (line 104)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 104)
+1: '.' (line 104)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 104)
+2: 'log' (line 104)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 104)
+3: '(' (line 104)
   - source.js
   - meta.brace.round.js
 
-4: "gen" [12-15] (line 104)
+4: 'gen' (line 104)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-5: "." [15-16] (line 104)
+5: '.' (line 104)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-6: "next" [16-20] (line 104)
+6: 'next' (line 104)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [20-21] (line 104)
+7: '(' (line 104)
   - source.js
   - meta.brace.round.js
 
-8: ")" [21-22] (line 104)
+8: ')' (line 104)
   - source.js
   - meta.brace.round.js
 
-9: "." [22-23] (line 104)
+9: '.' (line 104)
   - source.js
   - punctuation.accessor.js
 
-10: "value" [23-28] (line 104)
+10: 'value' (line 104)
   - source.js
   - variable.other.property.js
 
-11: ")" [28-29] (line 104)
+11: ')' (line 104)
   - source.js
   - meta.brace.round.js
 
-12: ";" [29-30] (line 104)
+12: ';' (line 104)
   - source.js
   - punctuation.terminator.statement.js
 
-13: "  " [30-32] (line 104)
+13: '  ' (line 104)
   - source.js
 
-14: "//" [32-34] (line 104)
-  - source.js
-  - comment.line.double-slash.js
-  - punctuation.definition.comment.js
-
-15: " 1" [34-36] (line 104)
-  - source.js
-  - comment.line.double-slash.js
-
-0: "//" [0-2] (line 106)
+14: '//' (line 104)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " --- Async and Await ---" [2-26] (line 106)
+15: ' 1' (line 104)
   - source.js
   - comment.line.double-slash.js
 
-0: "async" [0-5] (line 108)
+0: '//' (line 106)
+  - source.js
+  - comment.line.double-slash.js
+  - punctuation.definition.comment.js
+
+1: ' --- Async and Await ---' (line 106)
+  - source.js
+  - comment.line.double-slash.js
+
+0: 'async' (line 108)
   - source.js
   - meta.function.js
   - storage.modifier.async.js
 
-1: " " [5-6] (line 108)
+1: ' ' (line 108)
   - source.js
   - meta.function.js
 
-2: "function" [6-14] (line 108)
+2: 'function' (line 108)
   - source.js
   - meta.function.js
   - storage.type.function.js
 
-3: " " [14-15] (line 108)
+3: ' ' (line 108)
   - source.js
   - meta.function.js
 
-4: "fetchData" [15-24] (line 108)
+4: 'fetchData' (line 108)
   - source.js
   - meta.function.js
   - meta.definition.function.js
   - entity.name.function.js
 
-5: "(" [24-25] (line 108)
+5: '(' (line 108)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.begin.js
 
-6: "url" [25-28] (line 108)
+6: 'url' (line 108)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - variable.parameter.js
 
-7: ")" [28-29] (line 108)
+7: ')' (line 108)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.end.js
 
-8: " " [29-30] (line 108)
+8: ' ' (line 108)
   - source.js
   - meta.function.js
 
-9: "{" [30-31] (line 108)
+9: '{' (line 108)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "  " [0-2] (line 109)
+0: '  ' (line 109)
   - source.js
   - meta.function.js
   - meta.block.js
 
-1: "try" [2-5] (line 109)
+1: 'try' (line 109)
   - source.js
   - meta.function.js
   - meta.block.js
   - keyword.control.trycatch.js
 
-2: " " [5-6] (line 109)
+2: ' ' (line 109)
   - source.js
   - meta.function.js
   - meta.block.js
 
-3: "{" [6-7] (line 109)
+3: '{' (line 109)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "    " [0-4] (line 110)
+0: '    ' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-1: "const" [4-9] (line 110)
+1: 'const' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -3966,14 +3966,14 @@
   - meta.var.expr.js
   - storage.type.js
 
-2: " " [9-10] (line 110)
+2: ' ' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - meta.var.expr.js
 
-3: "response" [10-18] (line 110)
+3: 'response' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -3983,7 +3983,7 @@
   - meta.definition.variable.js
   - variable.other.constant.js
 
-4: " " [18-19] (line 110)
+4: ' ' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -3991,7 +3991,7 @@
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-5: "=" [19-20] (line 110)
+5: '=' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -3999,14 +3999,14 @@
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-6: " " [20-21] (line 110)
+6: ' ' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - meta.var.expr.js
 
-7: "await" [21-26] (line 110)
+7: 'await' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4014,14 +4014,14 @@
   - meta.var.expr.js
   - keyword.control.flow.js
 
-8: " " [26-27] (line 110)
+8: ' ' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - meta.var.expr.js
 
-9: "fetch" [27-32] (line 110)
+9: 'fetch' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4030,7 +4030,7 @@
   - meta.function-call.js
   - entity.name.function.js
 
-10: "(" [32-33] (line 110)
+10: '(' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4038,7 +4038,7 @@
   - meta.var.expr.js
   - meta.brace.round.js
 
-11: "url" [33-36] (line 110)
+11: 'url' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4046,7 +4046,7 @@
   - meta.var.expr.js
   - variable.other.readwrite.js
 
-12: ")" [36-37] (line 110)
+12: ')' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4054,81 +4054,81 @@
   - meta.var.expr.js
   - meta.brace.round.js
 
-13: ";" [37-38] (line 110)
+13: ';' (line 110)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "    " [0-4] (line 111)
+0: '    ' (line 111)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-1: "if" [4-6] (line 111)
+1: 'if' (line 111)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - keyword.control.conditional.js
 
-2: " " [6-7] (line 111)
+2: ' ' (line 111)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-3: "(" [7-8] (line 111)
+3: '(' (line 111)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - meta.brace.round.js
 
-4: "!" [8-9] (line 111)
+4: '!' (line 111)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - keyword.operator.logical.js
 
-5: "response" [9-17] (line 111)
+5: 'response' (line 111)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - variable.other.object.js
 
-6: "." [17-18] (line 111)
+6: '.' (line 111)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.accessor.js
 
-7: "ok" [18-20] (line 111)
+7: 'ok' (line 111)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - variable.other.property.js
 
-8: ")" [20-21] (line 111)
+8: ')' (line 111)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - meta.brace.round.js
 
-9: " " [21-22] (line 111)
+9: ' ' (line 111)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-10: "{" [22-23] (line 111)
+10: '{' (line 111)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4136,14 +4136,14 @@
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "      " [0-6] (line 112)
+0: '      ' (line 112)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - meta.block.js
 
-1: "throw" [6-11] (line 112)
+1: 'throw' (line 112)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4151,14 +4151,14 @@
   - meta.block.js
   - keyword.control.trycatch.js
 
-2: " " [11-12] (line 112)
+2: ' ' (line 112)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - meta.block.js
 
-3: "new" [12-15] (line 112)
+3: 'new' (line 112)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4167,7 +4167,7 @@
   - new.expr.js
   - keyword.operator.new.js
 
-4: " " [15-16] (line 112)
+4: ' ' (line 112)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4175,7 +4175,7 @@
   - meta.block.js
   - new.expr.js
 
-5: "Error" [16-21] (line 112)
+5: 'Error' (line 112)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4185,7 +4185,7 @@
   - meta.function-call.js
   - entity.name.function.js
 
-6: "(" [21-22] (line 112)
+6: '(' (line 112)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4194,7 +4194,7 @@
   - new.expr.js
   - meta.brace.round.js
 
-7: "'" [22-23] (line 112)
+7: ''' (line 112)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4204,7 +4204,7 @@
   - string.quoted.single.js
   - punctuation.definition.string.begin.js
 
-8: "Network response was not ok" [23-50] (line 112)
+8: 'Network response was not ok' (line 112)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4213,7 +4213,7 @@
   - new.expr.js
   - string.quoted.single.js
 
-9: "'" [50-51] (line 112)
+9: ''' (line 112)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4223,7 +4223,7 @@
   - string.quoted.single.js
   - punctuation.definition.string.end.js
 
-10: ")" [51-52] (line 112)
+10: ')' (line 112)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4232,7 +4232,7 @@
   - new.expr.js
   - meta.brace.round.js
 
-11: ";" [52-53] (line 112)
+11: ';' (line 112)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4240,14 +4240,14 @@
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "    " [0-4] (line 113)
+0: '    ' (line 113)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - meta.block.js
 
-1: "}" [4-5] (line 113)
+1: '}' (line 113)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4255,13 +4255,13 @@
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "    " [0-4] (line 114)
+0: '    ' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-1: "const" [4-9] (line 114)
+1: 'const' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4269,14 +4269,14 @@
   - meta.var.expr.js
   - storage.type.js
 
-2: " " [9-10] (line 114)
+2: ' ' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - meta.var.expr.js
 
-3: "data" [10-14] (line 114)
+3: 'data' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4286,7 +4286,7 @@
   - meta.definition.variable.js
   - variable.other.constant.js
 
-4: " " [14-15] (line 114)
+4: ' ' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4294,7 +4294,7 @@
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-5: "=" [15-16] (line 114)
+5: '=' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4302,14 +4302,14 @@
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-6: " " [16-17] (line 114)
+6: ' ' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - meta.var.expr.js
 
-7: "await" [17-22] (line 114)
+7: 'await' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4317,14 +4317,14 @@
   - meta.var.expr.js
   - keyword.control.flow.js
 
-8: " " [22-23] (line 114)
+8: ' ' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - meta.var.expr.js
 
-9: "response" [23-31] (line 114)
+9: 'response' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4333,7 +4333,7 @@
   - meta.function-call.js
   - variable.other.object.js
 
-10: "." [31-32] (line 114)
+10: '.' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4342,7 +4342,7 @@
   - meta.function-call.js
   - punctuation.accessor.js
 
-11: "json" [32-36] (line 114)
+11: 'json' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4351,7 +4351,7 @@
   - meta.function-call.js
   - entity.name.function.js
 
-12: "(" [36-37] (line 114)
+12: '(' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4359,7 +4359,7 @@
   - meta.var.expr.js
   - meta.brace.round.js
 
-13: ")" [37-38] (line 114)
+13: ')' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4367,112 +4367,112 @@
   - meta.var.expr.js
   - meta.brace.round.js
 
-14: ";" [38-39] (line 114)
+14: ';' (line 114)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "    " [0-4] (line 115)
+0: '    ' (line 115)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-1: "return" [4-10] (line 115)
+1: 'return' (line 115)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - keyword.control.flow.js
 
-2: " " [10-11] (line 115)
+2: ' ' (line 115)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-3: "data" [11-15] (line 115)
+3: 'data' (line 115)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - variable.other.readwrite.js
 
-4: ";" [15-16] (line 115)
+4: ';' (line 115)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "  " [0-2] (line 116)
+0: '  ' (line 116)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-1: "}" [2-3] (line 116)
+1: '}' (line 116)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.definition.block.js
 
-2: " " [3-4] (line 116)
+2: ' ' (line 116)
   - source.js
   - meta.function.js
   - meta.block.js
 
-3: "catch" [4-9] (line 116)
+3: 'catch' (line 116)
   - source.js
   - meta.function.js
   - meta.block.js
   - keyword.control.trycatch.js
 
-4: " " [9-10] (line 116)
+4: ' ' (line 116)
   - source.js
   - meta.function.js
   - meta.block.js
 
-5: "(" [10-11] (line 116)
+5: '(' (line 116)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.brace.round.js
 
-6: "error" [11-16] (line 116)
+6: 'error' (line 116)
   - source.js
   - meta.function.js
   - meta.block.js
   - variable.other.readwrite.js
 
-7: ")" [16-17] (line 116)
+7: ')' (line 116)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.brace.round.js
 
-8: " " [17-18] (line 116)
+8: ' ' (line 116)
   - source.js
   - meta.function.js
   - meta.block.js
 
-9: "{" [18-19] (line 116)
+9: '{' (line 116)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "    " [0-4] (line 117)
+0: '    ' (line 117)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-1: "console" [4-11] (line 117)
+1: 'console' (line 117)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4480,7 +4480,7 @@
   - meta.function-call.js
   - variable.other.object.js
 
-2: "." [11-12] (line 117)
+2: '.' (line 117)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4488,7 +4488,7 @@
   - meta.function-call.js
   - punctuation.accessor.js
 
-3: "error" [12-17] (line 117)
+3: 'error' (line 117)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4496,14 +4496,14 @@
   - meta.function-call.js
   - entity.name.function.js
 
-4: "(" [17-18] (line 117)
+4: '(' (line 117)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - meta.brace.round.js
 
-5: "'" [18-19] (line 117)
+5: ''' (line 117)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4511,14 +4511,14 @@
   - string.quoted.single.js
   - punctuation.definition.string.begin.js
 
-6: "There has been a problem with your fetch operation:" [19-70] (line 117)
+6: 'There has been a problem with your fetch operation:' (line 117)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - string.quoted.single.js
 
-7: "'" [70-71] (line 117)
+7: ''' (line 117)
   - source.js
   - meta.function.js
   - meta.block.js
@@ -4526,637 +4526,637 @@
   - string.quoted.single.js
   - punctuation.definition.string.end.js
 
-8: "," [71-72] (line 117)
+8: ',' (line 117)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.separator.comma.js
 
-9: " " [72-73] (line 117)
+9: ' ' (line 117)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-10: "error" [73-78] (line 117)
+10: 'error' (line 117)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - variable.other.readwrite.js
 
-11: ")" [78-79] (line 117)
+11: ')' (line 117)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - meta.brace.round.js
 
-12: ";" [79-80] (line 117)
+12: ';' (line 117)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "  " [0-2] (line 118)
+0: '  ' (line 118)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
 
-1: "}" [2-3] (line 118)
+1: '}' (line 118)
   - source.js
   - meta.function.js
   - meta.block.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "}" [0-1] (line 119)
+0: '}' (line 119)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "//" [0-2] (line 121)
+0: '//' (line 121)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " Example usage of async function" [2-34] (line 121)
+1: ' Example usage of async function' (line 121)
   - source.js
   - comment.line.double-slash.js
 
-0: "fetchData" [0-9] (line 122)
+0: 'fetchData' (line 122)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-1: "(" [9-10] (line 122)
+1: '(' (line 122)
   - source.js
   - meta.brace.round.js
 
-2: "'" [10-11] (line 122)
+2: ''' (line 122)
   - source.js
   - string.quoted.single.js
   - punctuation.definition.string.begin.js
 
-3: "https://jsonplaceholder.typicode.com/todos/1" [11-55] (line 122)
+3: 'https://jsonplaceholder.typicode.com/todos/1' (line 122)
   - source.js
   - string.quoted.single.js
 
-4: "'" [55-56] (line 122)
+4: ''' (line 122)
   - source.js
   - string.quoted.single.js
   - punctuation.definition.string.end.js
 
-5: ")" [56-57] (line 122)
+5: ')' (line 122)
   - source.js
   - meta.brace.round.js
 
-0: "  " [0-2] (line 123)
+0: '  ' (line 123)
   - source.js
 
-1: "." [2-3] (line 123)
+1: '.' (line 123)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "then" [3-7] (line 123)
+2: 'then' (line 123)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [7-8] (line 123)
+3: '(' (line 123)
   - source.js
   - meta.brace.round.js
 
-4: "data" [8-12] (line 123)
+4: 'data' (line 123)
   - source.js
   - meta.arrow.js
   - variable.parameter.js
 
-5: " " [12-13] (line 123)
+5: ' ' (line 123)
   - source.js
   - meta.arrow.js
 
-6: "=>" [13-15] (line 123)
+6: '=>' (line 123)
   - source.js
   - meta.arrow.js
   - storage.type.function.arrow.js
 
-7: " " [15-16] (line 123)
+7: ' ' (line 123)
   - source.js
   - meta.arrow.js
 
-8: "console" [16-23] (line 123)
+8: 'console' (line 123)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-9: "." [23-24] (line 123)
+9: '.' (line 123)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-10: "log" [24-27] (line 123)
+10: 'log' (line 123)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-11: "(" [27-28] (line 123)
+11: '(' (line 123)
   - source.js
   - meta.brace.round.js
 
-12: "data" [28-32] (line 123)
+12: 'data' (line 123)
   - source.js
   - variable.other.readwrite.js
 
-13: ")" [32-33] (line 123)
+13: ')' (line 123)
   - source.js
   - meta.brace.round.js
 
-14: ")" [33-34] (line 123)
+14: ')' (line 123)
   - source.js
   - meta.brace.round.js
 
-15: "  " [34-36] (line 123)
+15: '  ' (line 123)
   - source.js
 
-16: "//" [36-38] (line 123)
+16: '//' (line 123)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-17: " Outputs fetched data" [38-59] (line 123)
+17: ' Outputs fetched data' (line 123)
   - source.js
   - comment.line.double-slash.js
 
-0: "  " [0-2] (line 124)
+0: '  ' (line 124)
   - source.js
 
-1: "." [2-3] (line 124)
+1: '.' (line 124)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "catch" [3-8] (line 124)
+2: 'catch' (line 124)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [8-9] (line 124)
+3: '(' (line 124)
   - source.js
   - meta.brace.round.js
 
-4: "error" [9-14] (line 124)
+4: 'error' (line 124)
   - source.js
   - meta.arrow.js
   - variable.parameter.js
 
-5: " " [14-15] (line 124)
+5: ' ' (line 124)
   - source.js
   - meta.arrow.js
 
-6: "=>" [15-17] (line 124)
+6: '=>' (line 124)
   - source.js
   - meta.arrow.js
   - storage.type.function.arrow.js
 
-7: " " [17-18] (line 124)
+7: ' ' (line 124)
   - source.js
   - meta.arrow.js
 
-8: "console" [18-25] (line 124)
+8: 'console' (line 124)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-9: "." [25-26] (line 124)
+9: '.' (line 124)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-10: "error" [26-31] (line 124)
+10: 'error' (line 124)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-11: "(" [31-32] (line 124)
+11: '(' (line 124)
   - source.js
   - meta.brace.round.js
 
-12: "error" [32-37] (line 124)
+12: 'error' (line 124)
   - source.js
   - variable.other.readwrite.js
 
-13: ")" [37-38] (line 124)
+13: ')' (line 124)
   - source.js
   - meta.brace.round.js
 
-14: ")" [38-39] (line 124)
+14: ')' (line 124)
   - source.js
   - meta.brace.round.js
 
-15: ";" [39-40] (line 124)
+15: ';' (line 124)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "//" [0-2] (line 126)
+0: '//' (line 126)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " JSDoc type annotations" [2-25] (line 126)
+1: ' JSDoc type annotations' (line 126)
   - source.js
   - comment.line.double-slash.js
 
-0: "/**" [0-3] (line 127)
+0: '/**' (line 127)
   - source.js
   - comment.block.documentation.js
   - punctuation.definition.comment.js
 
-0: " * " [0-3] (line 128)
+0: ' * ' (line 128)
   - source.js
   - comment.block.documentation.js
 
-1: "@" [3-4] (line 128)
-  - source.js
-  - comment.block.documentation.js
-  - storage.type.class.jsdoc
-  - punctuation.definition.block.tag.jsdoc
-
-2: "typedef" [4-11] (line 128)
-  - source.js
-  - comment.block.documentation.js
-  - storage.type.class.jsdoc
-
-3: " " [11-12] (line 128)
-  - source.js
-  - comment.block.documentation.js
-
-4: "{" [12-13] (line 128)
-  - source.js
-  - comment.block.documentation.js
-  - entity.name.type.instance.jsdoc
-  - punctuation.definition.bracket.curly.begin.jsdoc
-
-5: "Object" [13-19] (line 128)
-  - source.js
-  - comment.block.documentation.js
-  - entity.name.type.instance.jsdoc
-
-6: "}" [19-20] (line 128)
-  - source.js
-  - comment.block.documentation.js
-  - entity.name.type.instance.jsdoc
-  - punctuation.definition.bracket.curly.end.jsdoc
-
-7: " " [20-21] (line 128)
-  - source.js
-  - comment.block.documentation.js
-
-8: "Task" [21-25] (line 128)
-  - source.js
-  - comment.block.documentation.js
-  - entity.name.type.instance.jsdoc
-
-0: " * " [0-3] (line 129)
-  - source.js
-  - comment.block.documentation.js
-
-1: "@" [3-4] (line 129)
+1: '@' (line 128)
   - source.js
   - comment.block.documentation.js
   - storage.type.class.jsdoc
   - punctuation.definition.block.tag.jsdoc
 
-2: "property" [4-12] (line 129)
+2: 'typedef' (line 128)
   - source.js
   - comment.block.documentation.js
   - storage.type.class.jsdoc
 
-3: " " [12-13] (line 129)
+3: ' ' (line 128)
   - source.js
   - comment.block.documentation.js
 
-4: "{" [13-14] (line 129)
+4: '{' (line 128)
   - source.js
   - comment.block.documentation.js
   - entity.name.type.instance.jsdoc
   - punctuation.definition.bracket.curly.begin.jsdoc
 
-5: "string" [14-20] (line 129)
+5: 'Object' (line 128)
   - source.js
   - comment.block.documentation.js
   - entity.name.type.instance.jsdoc
 
-6: "}" [20-21] (line 129)
+6: '}' (line 128)
   - source.js
   - comment.block.documentation.js
   - entity.name.type.instance.jsdoc
   - punctuation.definition.bracket.curly.end.jsdoc
 
-7: " " [21-22] (line 129)
+7: ' ' (line 128)
   - source.js
   - comment.block.documentation.js
 
-8: "title" [22-27] (line 129)
+8: 'Task' (line 128)
+  - source.js
+  - comment.block.documentation.js
+  - entity.name.type.instance.jsdoc
+
+0: ' * ' (line 129)
+  - source.js
+  - comment.block.documentation.js
+
+1: '@' (line 129)
+  - source.js
+  - comment.block.documentation.js
+  - storage.type.class.jsdoc
+  - punctuation.definition.block.tag.jsdoc
+
+2: 'property' (line 129)
+  - source.js
+  - comment.block.documentation.js
+  - storage.type.class.jsdoc
+
+3: ' ' (line 129)
+  - source.js
+  - comment.block.documentation.js
+
+4: '{' (line 129)
+  - source.js
+  - comment.block.documentation.js
+  - entity.name.type.instance.jsdoc
+  - punctuation.definition.bracket.curly.begin.jsdoc
+
+5: 'string' (line 129)
+  - source.js
+  - comment.block.documentation.js
+  - entity.name.type.instance.jsdoc
+
+6: '}' (line 129)
+  - source.js
+  - comment.block.documentation.js
+  - entity.name.type.instance.jsdoc
+  - punctuation.definition.bracket.curly.end.jsdoc
+
+7: ' ' (line 129)
+  - source.js
+  - comment.block.documentation.js
+
+8: 'title' (line 129)
   - source.js
   - comment.block.documentation.js
   - variable.other.jsdoc
 
-0: " * " [0-3] (line 130)
+0: ' * ' (line 130)
   - source.js
   - comment.block.documentation.js
 
-1: "@" [3-4] (line 130)
+1: '@' (line 130)
   - source.js
   - comment.block.documentation.js
   - storage.type.class.jsdoc
   - punctuation.definition.block.tag.jsdoc
 
-2: "property" [4-12] (line 130)
+2: 'property' (line 130)
   - source.js
   - comment.block.documentation.js
   - storage.type.class.jsdoc
 
-3: " " [12-13] (line 130)
+3: ' ' (line 130)
   - source.js
   - comment.block.documentation.js
 
-4: "{" [13-14] (line 130)
+4: '{' (line 130)
   - source.js
   - comment.block.documentation.js
   - entity.name.type.instance.jsdoc
   - punctuation.definition.bracket.curly.begin.jsdoc
 
-5: "boolean" [14-21] (line 130)
+5: 'boolean' (line 130)
   - source.js
   - comment.block.documentation.js
   - entity.name.type.instance.jsdoc
 
-6: "}" [21-22] (line 130)
+6: '}' (line 130)
   - source.js
   - comment.block.documentation.js
   - entity.name.type.instance.jsdoc
   - punctuation.definition.bracket.curly.end.jsdoc
 
-7: " " [22-23] (line 130)
+7: ' ' (line 130)
   - source.js
   - comment.block.documentation.js
 
-8: "completed" [23-32] (line 130)
+8: 'completed' (line 130)
   - source.js
   - comment.block.documentation.js
   - variable.other.jsdoc
 
-0: " " [0-1] (line 131)
+0: ' ' (line 131)
   - source.js
   - comment.block.documentation.js
 
-1: "*/" [1-3] (line 131)
-  - source.js
-  - comment.block.documentation.js
-  - punctuation.definition.comment.js
-
-0: "/**" [0-3] (line 133)
+1: '*/' (line 131)
   - source.js
   - comment.block.documentation.js
   - punctuation.definition.comment.js
 
-0: " * Create a task" [0-16] (line 134)
+0: '/**' (line 133)
+  - source.js
+  - comment.block.documentation.js
+  - punctuation.definition.comment.js
+
+0: ' * Create a task' (line 134)
   - source.js
   - comment.block.documentation.js
 
-0: " * " [0-3] (line 135)
+0: ' * ' (line 135)
   - source.js
   - comment.block.documentation.js
 
-1: "@" [3-4] (line 135)
+1: '@' (line 135)
   - source.js
   - comment.block.documentation.js
   - storage.type.class.jsdoc
   - punctuation.definition.block.tag.jsdoc
 
-2: "param" [4-9] (line 135)
+2: 'param' (line 135)
   - source.js
   - comment.block.documentation.js
   - storage.type.class.jsdoc
 
-3: " " [9-10] (line 135)
+3: ' ' (line 135)
   - source.js
   - comment.block.documentation.js
 
-4: "{" [10-11] (line 135)
+4: '{' (line 135)
   - source.js
   - comment.block.documentation.js
   - entity.name.type.instance.jsdoc
   - punctuation.definition.bracket.curly.begin.jsdoc
 
-5: "Task" [11-15] (line 135)
+5: 'Task' (line 135)
   - source.js
   - comment.block.documentation.js
   - entity.name.type.instance.jsdoc
 
-6: "}" [15-16] (line 135)
+6: '}' (line 135)
   - source.js
   - comment.block.documentation.js
   - entity.name.type.instance.jsdoc
   - punctuation.definition.bracket.curly.end.jsdoc
 
-7: " " [16-17] (line 135)
+7: ' ' (line 135)
   - source.js
   - comment.block.documentation.js
 
-8: "task" [17-21] (line 135)
+8: 'task' (line 135)
   - source.js
   - comment.block.documentation.js
   - variable.other.jsdoc
 
-0: " * " [0-3] (line 136)
+0: ' * ' (line 136)
   - source.js
   - comment.block.documentation.js
 
-1: "@" [3-4] (line 136)
+1: '@' (line 136)
   - source.js
   - comment.block.documentation.js
   - storage.type.class.jsdoc
   - punctuation.definition.block.tag.jsdoc
 
-2: "returns" [4-11] (line 136)
+2: 'returns' (line 136)
   - source.js
   - comment.block.documentation.js
   - storage.type.class.jsdoc
 
-3: " " [11-12] (line 136)
+3: ' ' (line 136)
   - source.js
   - comment.block.documentation.js
 
-4: "{" [12-13] (line 136)
+4: '{' (line 136)
   - source.js
   - comment.block.documentation.js
   - entity.name.type.instance.jsdoc
   - punctuation.definition.bracket.curly.begin.jsdoc
 
-5: "Task" [13-17] (line 136)
+5: 'Task' (line 136)
   - source.js
   - comment.block.documentation.js
   - entity.name.type.instance.jsdoc
 
-6: "}" [17-18] (line 136)
+6: '}' (line 136)
   - source.js
   - comment.block.documentation.js
   - entity.name.type.instance.jsdoc
   - punctuation.definition.bracket.curly.end.jsdoc
 
-0: " " [0-1] (line 137)
+0: ' ' (line 137)
   - source.js
   - comment.block.documentation.js
 
-1: "*/" [1-3] (line 137)
+1: '*/' (line 137)
   - source.js
   - comment.block.documentation.js
   - punctuation.definition.comment.js
 
-0: "function" [0-8] (line 138)
+0: 'function' (line 138)
   - source.js
   - meta.function.js
   - storage.type.function.js
 
-1: " " [8-9] (line 138)
+1: ' ' (line 138)
   - source.js
   - meta.function.js
 
-2: "createTask" [9-19] (line 138)
+2: 'createTask' (line 138)
   - source.js
   - meta.function.js
   - meta.definition.function.js
   - entity.name.function.js
 
-3: "(" [19-20] (line 138)
+3: '(' (line 138)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.begin.js
 
-4: "task" [20-24] (line 138)
+4: 'task' (line 138)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - variable.parameter.js
 
-5: ")" [24-25] (line 138)
+5: ')' (line 138)
   - source.js
   - meta.function.js
   - meta.parameters.js
   - punctuation.definition.parameters.end.js
 
-6: " " [25-26] (line 138)
+6: ' ' (line 138)
   - source.js
   - meta.function.js
 
-7: "{" [26-27] (line 138)
+7: '{' (line 138)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "  " [0-2] (line 139)
+0: '  ' (line 139)
   - source.js
   - meta.function.js
   - meta.block.js
 
-1: "return" [2-8] (line 139)
+1: 'return' (line 139)
   - source.js
   - meta.function.js
   - meta.block.js
   - keyword.control.flow.js
 
-2: " " [8-9] (line 139)
+2: ' ' (line 139)
   - source.js
   - meta.function.js
   - meta.block.js
 
-3: "task" [9-13] (line 139)
+3: 'task' (line 139)
   - source.js
   - meta.function.js
   - meta.block.js
   - variable.other.readwrite.js
 
-4: ";" [13-14] (line 139)
+4: ';' (line 139)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.terminator.statement.js
 
-0: "}" [0-1] (line 140)
+0: '}' (line 140)
   - source.js
   - meta.function.js
   - meta.block.js
   - punctuation.definition.block.js
 
-0: "const" [0-5] (line 142)
+0: 'const' (line 142)
   - source.js
   - meta.var.expr.js
   - storage.type.js
 
-1: " " [5-6] (line 142)
+1: ' ' (line 142)
   - source.js
   - meta.var.expr.js
 
-2: "myTask" [6-12] (line 142)
+2: 'myTask' (line 142)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
   - meta.definition.variable.js
   - variable.other.constant.js
 
-3: " " [12-13] (line 142)
+3: ' ' (line 142)
   - source.js
   - meta.var.expr.js
   - meta.var-single-variable.expr.js
 
-4: "=" [13-14] (line 142)
+4: '=' (line 142)
   - source.js
   - meta.var.expr.js
   - keyword.operator.assignment.js
 
-5: " " [14-15] (line 142)
+5: ' ' (line 142)
   - source.js
   - meta.var.expr.js
 
-6: "createTask" [15-25] (line 142)
+6: 'createTask' (line 142)
   - source.js
   - meta.var.expr.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [25-26] (line 142)
+7: '(' (line 142)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-8: "{" [26-27] (line 142)
+8: '{' (line 142)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.definition.block.js
 
-0: "  " [0-2] (line 143)
+0: '  ' (line 143)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
 
-1: "title" [2-7] (line 143)
+1: 'title' (line 143)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - meta.object-literal.key.js
 
-2: ":" [7-8] (line 143)
+2: ':' (line 143)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -5164,13 +5164,13 @@
   - meta.object-literal.key.js
   - punctuation.separator.key-value.js
 
-3: " " [8-9] (line 143)
+3: ' ' (line 143)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
 
-4: "\"" [9-10] (line 143)
+4: '"' (line 143)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -5178,14 +5178,14 @@
   - string.quoted.double.js
   - punctuation.definition.string.begin.js
 
-5: "Learn JavaScript" [10-26] (line 143)
+5: 'Learn JavaScript' (line 143)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - string.quoted.double.js
 
-6: "\"" [26-27] (line 143)
+6: '"' (line 143)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -5193,25 +5193,25 @@
   - string.quoted.double.js
   - punctuation.definition.string.end.js
 
-7: "," [27-28] (line 143)
+7: ',' (line 143)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.separator.comma.js
 
-0: "  " [0-2] (line 144)
+0: '  ' (line 144)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
 
-1: "completed" [2-11] (line 144)
+1: 'completed' (line 144)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - meta.object-literal.key.js
 
-2: ":" [11-12] (line 144)
+2: ':' (line 144)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
@@ -5219,205 +5219,205 @@
   - meta.object-literal.key.js
   - punctuation.separator.key-value.js
 
-3: " " [12-13] (line 144)
+3: ' ' (line 144)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
 
-4: "false" [13-18] (line 144)
+4: 'false' (line 144)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - meta.object.member.js
   - constant.language.boolean.false.js
 
-5: "," [18-19] (line 144)
+5: ',' (line 144)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.separator.comma.js
 
-0: "}" [0-1] (line 145)
+0: '}' (line 145)
   - source.js
   - meta.var.expr.js
   - meta.objectliteral.js
   - punctuation.definition.block.js
 
-1: ")" [1-2] (line 145)
+1: ')' (line 145)
   - source.js
   - meta.var.expr.js
   - meta.brace.round.js
 
-2: ";" [2-3] (line 145)
+2: ';' (line 145)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "console" [0-7] (line 146)
+0: 'console' (line 146)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 146)
+1: '.' (line 146)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 146)
+2: 'log' (line 146)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 146)
+3: '(' (line 146)
   - source.js
   - meta.brace.round.js
 
-4: "myTask" [12-18] (line 146)
+4: 'myTask' (line 146)
   - source.js
   - variable.other.readwrite.js
 
-5: ")" [18-19] (line 146)
+5: ')' (line 146)
   - source.js
   - meta.brace.round.js
 
-6: ";" [19-20] (line 146)
+6: ';' (line 146)
   - source.js
   - punctuation.terminator.statement.js
 
-0: "//" [0-2] (line 148)
+0: '//' (line 148)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-1: " Importing everything as a namespace (simulated for demonstration)" [2-68] (line 148)
+1: ' Importing everything as a namespace (simulated for demonstration)' (line 148)
   - source.js
   - comment.line.double-slash.js
 
-0: "console" [0-7] (line 149)
+0: 'console' (line 149)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 149)
+1: '.' (line 149)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 149)
+2: 'log' (line 149)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 149)
+3: '(' (line 149)
   - source.js
   - meta.brace.round.js
 
-4: "Module" [12-18] (line 149)
+4: 'Module' (line 149)
   - source.js
   - variable.other.object.js
 
-5: "." [18-19] (line 149)
+5: '.' (line 149)
   - source.js
   - punctuation.accessor.js
 
-6: "person" [19-25] (line 149)
+6: 'person' (line 149)
   - source.js
   - variable.other.property.js
 
-7: ")" [25-26] (line 149)
+7: ')' (line 149)
   - source.js
   - meta.brace.round.js
 
-8: ";" [26-27] (line 149)
+8: ';' (line 149)
   - source.js
   - punctuation.terminator.statement.js
 
-9: "  " [27-29] (line 149)
+9: '  ' (line 149)
   - source.js
 
-10: "//" [29-31] (line 149)
+10: '//' (line 149)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-11: " { name: \"Alice\", age: 30 }" [31-58] (line 149)
+11: ' { name: "Alice", age: 30 }' (line 149)
   - source.js
   - comment.line.double-slash.js
 
-0: "console" [0-7] (line 150)
+0: 'console' (line 150)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-1: "." [7-8] (line 150)
+1: '.' (line 150)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-2: "log" [8-11] (line 150)
+2: 'log' (line 150)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-3: "(" [11-12] (line 150)
+3: '(' (line 150)
   - source.js
   - meta.brace.round.js
 
-4: "Module" [12-18] (line 150)
+4: 'Module' (line 150)
   - source.js
   - meta.function-call.js
   - variable.other.object.js
 
-5: "." [18-19] (line 150)
+5: '.' (line 150)
   - source.js
   - meta.function-call.js
   - punctuation.accessor.js
 
-6: "add" [19-22] (line 150)
+6: 'add' (line 150)
   - source.js
   - meta.function-call.js
   - entity.name.function.js
 
-7: "(" [22-23] (line 150)
+7: '(' (line 150)
   - source.js
   - meta.brace.round.js
 
-8: "10" [23-25] (line 150)
+8: '10' (line 150)
   - source.js
   - constant.numeric.decimal.js
 
-9: "," [25-26] (line 150)
+9: ',' (line 150)
   - source.js
   - punctuation.separator.comma.js
 
-10: " " [26-27] (line 150)
+10: ' ' (line 150)
   - source.js
 
-11: "20" [27-29] (line 150)
+11: '20' (line 150)
   - source.js
   - constant.numeric.decimal.js
 
-12: ")" [29-30] (line 150)
+12: ')' (line 150)
   - source.js
   - meta.brace.round.js
 
-13: ")" [30-31] (line 150)
+13: ')' (line 150)
   - source.js
   - meta.brace.round.js
 
-14: ";" [31-32] (line 150)
+14: ';' (line 150)
   - source.js
   - punctuation.terminator.statement.js
 
-15: "  " [32-34] (line 150)
+15: '  ' (line 150)
   - source.js
 
-16: "//" [34-36] (line 150)
+16: '//' (line 150)
   - source.js
   - comment.line.double-slash.js
   - punctuation.definition.comment.js
 
-17: " 30" [36-39] (line 150)
+17: ' 30' (line 150)
   - source.js
   - comment.line.double-slash.js
 

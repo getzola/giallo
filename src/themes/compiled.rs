@@ -159,55 +159,6 @@ impl CompiledTheme {
             rules,
         })
     }
-
-    /// Get the style for a given scope stack
-    ///
-    /// This method finds the most specific theme rule that matches the scope stack
-    /// and applies it to the default style.
-    pub fn get_style(&self, scope_stack: &[String]) -> Style {
-        let mut style = self.default_style;
-
-        // Find the most specific rule that matches
-        for rule in &self.rules {
-            for scope_pattern in &rule.scope_patterns {
-                if self.matches_scope_pattern(scope_stack, scope_pattern) {
-                    // Apply the style modifier to the base style
-                    if let Some(fg) = rule.style_modifier.foreground {
-                        style.foreground = fg;
-                    }
-                    if let Some(bg) = rule.style_modifier.background {
-                        style.background = bg;
-                    }
-                    if let Some(font_style) = rule.style_modifier.font_style {
-                        style.font_style = font_style;
-                    }
-                    // Return the first matching rule (rules should be ordered by specificity)
-                    return style;
-                }
-            }
-        }
-
-        style
-    }
-
-    /// Check if a scope stack matches a scope pattern
-    ///
-    /// A scope pattern matches if all its scopes are contained in the scope stack
-    /// in the same order (but not necessarily consecutively).
-    fn matches_scope_pattern(&self, scope_stack: &[String], pattern: &[String]) -> bool {
-        if pattern.is_empty() {
-            return false;
-        }
-
-        let mut pattern_idx = 0;
-        for scope in scope_stack {
-            if pattern_idx < pattern.len() && scope == &pattern[pattern_idx] {
-                pattern_idx += 1;
-            }
-        }
-
-        pattern_idx == pattern.len()
-    }
 }
 
 #[cfg(test)]
