@@ -55,7 +55,7 @@ where
         where
             E: de::Error,
         {
-            Ok(vec![value.to_owned()])
+            Ok(value.split(',').map(|s| s.trim().to_string()).collect())
         }
 
         fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -108,7 +108,7 @@ impl<'de> Deserialize<'de> for Colors {
                                 foreground = Some(map.next_value()?);
                             } else {
                                 // Skip the value if we already have one
-                                let _: serde::de::IgnoredAny = map.next_value()?;
+                                let _: de::IgnoredAny = map.next_value()?;
                             }
                         }
                         "background" | "editor.background" => {
@@ -116,12 +116,12 @@ impl<'de> Deserialize<'de> for Colors {
                                 background = Some(map.next_value()?);
                             } else {
                                 // Skip the value if we already have one
-                                let _: serde::de::IgnoredAny = map.next_value()?;
+                                let _: de::IgnoredAny = map.next_value()?;
                             }
                         }
                         _ => {
                             // Skip unknown fields
-                            let _: serde::de::IgnoredAny = map.next_value()?;
+                            let _: de::IgnoredAny = map.next_value()?;
                         }
                     }
                 }
@@ -150,30 +150,6 @@ pub struct TokenColorRule {
     pub settings: TokenColorSettings,
 }
 
-impl TokenColorRule {
-    pub fn get_scope_patterns(&self) -> Vec<Vec<String>> {
-        let mut out = Vec::new();
-
-        for s in &self.scope {
-            let mut inner = Vec::new();
-            let parts: Vec<&str> = s.split('.').collect();
-            let mut accumulated = String::new();
-
-            for (i, part) in parts.iter().enumerate() {
-                if i > 0 {
-                    accumulated.push('.');
-                }
-                accumulated.push_str(part);
-                inner.push(accumulated.clone());
-            }
-
-            out.push(inner);
-        }
-
-        out
-    }
-}
-
 /// Raw theme loaded from a JSON theme file
 #[derive(Debug, Clone, Deserialize)]
 pub struct RawTheme {
@@ -196,5 +172,81 @@ impl RawTheme {
     /// Compile this raw grammar into an optimized compiled grammar
     pub fn compile(self) -> Result<CompiledTheme, Box<dyn std::error::Error>> {
         CompiledTheme::from_raw_theme(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn can_handle_all_kinds_of_scope() {
+        let theme = RawTheme::load_from_file("src/fixtures/themes/all_scope_styles.json").unwrap();
+
+        assert_eq!(theme.name, "test");
+        assert_eq!(theme.token_colors.len(), 5);
+
+        // Expected scope parsing results for different formats
+        let expected_scopes = vec![
+            // Rule 0: No scope (default/fallback rule)
+            vec![],
+            // Rule 1: Array format with 2 scopes
+            vec!["comment", "markup.quote.markdown"],
+            // Rule 2: Comma-separated string format with 3 scopes
+            vec![
+                "variable.language.this",
+                "variable.language.self",
+                "variable.language.super",
+            ],
+            // Rule 3: Array format with >
+            vec!["string > source", "string embedded"],
+            // Rule 4: String format with comma-separated scopes with >
+            vec!["string > source", "string embedded"],
+        ];
+
+        // Expected foreground colors
+        let expected_foregrounds = vec![
+            Some("#D5CED9"),   // Rule 0: default/fallback rule with foreground
+            Some("#A0A1A7cc"), // Rule 1: comment scopes
+            Some("#d699b6"),   // Rule 2: language variables
+            Some("#383A42"),   // Rule 3: string sources (array format)
+            Some("#383A42"),   // Rule 4: string sources (string format)
+        ];
+
+        // Test scope parsing and color settings for each rule
+        for (i, (expected_scope, expected_fg)) in expected_scopes
+            .iter()
+            .zip(expected_foregrounds.iter())
+            .enumerate()
+        {
+            let rule = &theme.token_colors[i];
+
+            // Check scope parsing
+            assert_eq!(
+                rule.scope.len(),
+                expected_scope.len(),
+                "Rule {} scope count mismatch",
+                i
+            );
+            assert_eq!(
+                rule.scope, *expected_scope,
+                "Rule {} scope content mismatch",
+                i
+            );
+
+            // Check foreground color
+            assert_eq!(
+                rule.settings.foreground(),
+                *expected_fg,
+                "Rule {} foreground color mismatch",
+                i
+            );
+        }
+
+        // Test that the theme can be compiled successfully
+        let compiled_theme = theme.compile().expect("Failed to compile test theme");
+
+        // Verify the compiled theme has the expected name
+        assert_eq!(compiled_theme.name, "test");
     }
 }

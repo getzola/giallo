@@ -1,27 +1,26 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::ops::Range;
 use std::rc::Rc;
 
 use crate::Registry;
 use crate::grammars::{
     END_RULE_ID, GlobalRuleRef, GrammarId, PatternSet, Regex, RegexId, Rule, RuleId,
 };
-use crate::scope::{ParseScopeError, Scope};
+use crate::scope::Scope;
 
 /// Parse space-separated scope names into a vector of individual scopes
 /// e.g., "string.json support.type.property-name.json" -> [Scope("string.json"), Scope("support.type.property-name.json")]
-fn parse_scope_names(name: &str) -> Result<Vec<Scope>, TokenizeError> {
+fn parse_scope_names(name: &str) -> Vec<Scope> {
     name.split_whitespace()
-        .map(|part| Scope::new(part).map_err(TokenizeError::from))
+        .map(|part| Scope::new(part))
         .collect()
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
-    /// Start byte position within the line (inclusive, 0-based)
-    pub start: usize,
-    /// End byte position within the line (exclusive)
-    pub end: usize,
+    /// Byte span within the line (start inclusive, end exclusive, 0-based)
+    pub span: Range<usize>,
     /// Hierarchical scope names, ordered from outermost to innermost
     /// (e.g., source.js -> string.quoted.double -> punctuation.definition.string).
     pub scopes: Vec<Scope>,
@@ -136,8 +135,7 @@ impl TokenAccumulator {
             )
         }
         self.tokens.push(Token {
-            start: self.last_end_pos,
-            end: end_pos,
+            span: self.last_end_pos..end_pos,
             scopes: scopes.to_vec(),
         });
 
@@ -150,7 +148,7 @@ impl TokenAccumulator {
     fn finalize(&mut self, line_len: usize) {
         // Pop the token for the added newline if there is one
         if let Some(tok) = self.tokens.last()
-            && tok.start == line_len - 1
+            && tok.span.start == line_len - 1
         {
             self.tokens.pop();
         }
@@ -158,9 +156,9 @@ impl TokenAccumulator {
         // If we have a token that includes the trailing newline,
         // decrement the end to not include it
         if let Some(t) = self.tokens.last_mut()
-            && t.end == line_len
+            && t.span.end == line_len
         {
-            t.end -= 1;
+            t.span.end -= 1;
         }
     }
 }
@@ -615,14 +613,14 @@ impl<'g> Tokenizer<'g> {
                 if let Some(name_str) = name.as_ref() {
                     retokenization_stack
                         .name_scopes
-                        .extend(parse_scope_names(name_str)?);
+                        .extend(parse_scope_names(name_str));
                 }
                 // Start with name + content scopes for content scopes
                 retokenization_stack.content_scopes = retokenization_stack.name_scopes.clone();
                 if let Some(content) = content_name {
                     retokenization_stack
                         .content_scopes
-                        .extend(parse_scope_names(&content)?);
+                        .extend(parse_scope_names(&content));
                 }
                 let substring = &line[cap_start..cap_end];
                 if cfg!(feature = "debug") {
@@ -644,7 +642,7 @@ impl<'g> Tokenizer<'g> {
 
                 // Merge retokenized tokens back into accumulator with position adjustment
                 for token in retokenized_acc.tokens {
-                    let adjusted_end = cap_start + token.end;
+                    let adjusted_end = cap_start + token.span.end;
                     // Only include tokens that are within the capture bounds (they should all be valid now)
                     accumulator.produce(adjusted_end, &token.scopes);
                 }
@@ -657,7 +655,7 @@ impl<'g> Tokenizer<'g> {
                 } else {
                     stack.content_scopes.clone()
                 };
-                base.extend(parse_scope_names(&n)?);
+                base.extend(parse_scope_names(&n));
                 local_stack.push((base, cap_end));
             }
         }
@@ -745,7 +743,7 @@ impl<'g> Tokenizer<'g> {
                     accumulator.produce(m.start, &stack.content_scopes);
                     let new_scopes = if let Some(n) = rule.name(line, &m.capture_pos) {
                         let mut s = stack.content_scopes.clone();
-                        s.extend(parse_scope_names(&n)?);
+                        s.extend(parse_scope_names(&n));
                         s
                     } else {
                         stack.content_scopes.clone()
@@ -780,7 +778,7 @@ impl<'g> Tokenizer<'g> {
                         let content_scopes =
                             if let Some(s) = rule.content_name(line, &m.capture_pos) {
                                 let mut r = stack.name_scopes.clone();
-                                r.extend(parse_scope_names(&s)?);
+                                r.extend(parse_scope_names(&s));
                                 r
                             } else {
                                 stack.name_scopes.clone()
@@ -853,7 +851,7 @@ impl<'g> Tokenizer<'g> {
 
         let mut stack = StateStack::new(
             self.base_grammar_id,
-            Scope::new(&self.registry.grammars[self.base_grammar_id].scope_name)?,
+            Scope::new(&self.registry.grammars[self.base_grammar_id].scope_name),
         );
         let mut lines_tokens = Vec::new();
         let mut is_first_line = true;
@@ -879,8 +877,6 @@ pub enum TokenizeError {
     /// Contains the problematic pattern for debugging.
     InvalidRegex(String),
     GrammarError(String),
-    /// A scope failed to parse or had too many atoms.
-    ScopeParseError(ParseScopeError),
 }
 
 impl fmt::Display for TokenizeError {
@@ -892,20 +888,11 @@ impl fmt::Display for TokenizeError {
             TokenizeError::GrammarError(msg) => {
                 write!(f, "Grammar error: {}", msg)
             }
-            TokenizeError::ScopeParseError(err) => {
-                write!(f, "Scope parse error: {}", err)
-            }
         }
     }
 }
 
 impl std::error::Error for TokenizeError {}
-
-impl From<ParseScopeError> for TokenizeError {
-    fn from(err: ParseScopeError) -> Self {
-        TokenizeError::ScopeParseError(err)
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -937,7 +924,7 @@ mod tests {
             let line = lines.get(line_idx).unwrap_or(&"");
 
             for (token_idx, token) in line_tokens.iter().enumerate() {
-                let text = &line[token.start..token.end];
+                let text = &line[token.span.start..token.span.end];
                 out.push_str(&format!(
                     "{}: '{}' (line {})\n", // Match fixture format: [start-end] (line N)
                     token_idx, text, line_idx

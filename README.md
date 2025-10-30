@@ -1,8 +1,3 @@
-TODO:
-
-- debug why the python rules are not loading for md example
-- figure out how vscode-textmate loads External grammar 'source.js.regexp' not found in registry.
-
 List of issues in grammar:
 
 - xml.json wrong level for nesting end/captures

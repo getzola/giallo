@@ -91,8 +91,7 @@ impl ThemeType {
 /// Compiled theme rule for efficient matching
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledThemeRule {
-    /// Compiled scope patterns - each pattern is a sequence of scope names
-    pub scope_patterns: Vec<Vec<String>>,
+    pub scope_patterns: Vec<String>,
     pub style_modifier: StyleModifier,
 }
 
@@ -127,29 +126,16 @@ impl CompiledTheme {
         let mut rules = Vec::new();
 
         for token_rule in raw_theme.token_colors {
-            // Should use the theme default style i think?
+            // Should use the theme default style I think?
             if token_rule.scope.is_empty() {
                 continue;
             }
 
-            let mut scope_patterns = Vec::new();
-            for scopes in token_rule.get_scope_patterns() {
-                if scopes.is_empty() {
-                    continue;
-                }
-
-                if !scopes.is_empty() {
-                    scope_patterns.push(scopes);
-                }
-            }
-
-            if !scope_patterns.is_empty() {
-                let style_modifier = StyleModifier::try_from(token_rule.settings)?;
-                rules.push(CompiledThemeRule {
-                    scope_patterns,
-                    style_modifier,
-                });
-            }
+            let style_modifier = StyleModifier::try_from(token_rule.settings)?;
+            rules.push(CompiledThemeRule {
+                scope_patterns: token_rule.scope,
+                style_modifier,
+            });
         }
 
         Ok(CompiledTheme {
