@@ -4,8 +4,18 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::grammars::{CompiledGrammar, GlobalRuleRef, GrammarId, Match, RawGrammar, Rule};
+use crate::scope::ScopeRepository;
 use crate::themes::{CompiledTheme, RawTheme};
 use crate::tokenizer::{Token, Tokenizer};
+
+// TODO: once theme matching works, we will create scopes in all rules + themes when compiling
+// TODO: and add that to the dump. This means we will need to write only to the scope registry only
+// TODO: for runtime scopes, eg capturing names
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct Dump {
+    registry: Registry,
+    scope_repo: ScopeRepository,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Registry {
@@ -163,17 +173,20 @@ impl Registry {
         self.grammar_id_by_scope_name.get(name).cloned()
     }
 
-    fn get_grammar_by_id(&self, id: GrammarId) -> Option<&CompiledGrammar> {
-        self.grammars.get(id.as_index())
-    }
-
-    /// Dump the current Registry to compressed MessagePack format at the given file path
     #[cfg(feature = "dump")]
     pub fn dump_to_file(&self, path: impl AsRef<Path>) -> Result<(), Box<dyn std::error::Error>> {
+        use crate::scope::lock_global_scope_repo;
         use flate2::{Compression, write::GzEncoder};
         use std::io::Write;
 
-        let msgpack_data = rmp_serde::to_vec(self)?;
+        // Create a Dump containing both Registry and current ScopeRepository
+        let scope_repo = lock_global_scope_repo().clone();
+        let dump = Dump {
+            registry: self.clone(),
+            scope_repo,
+        };
+
+        let msgpack_data = rmp_serde::to_vec(&dump)?;
         let file = std::fs::File::create(path)?;
         let mut encoder = GzEncoder::new(file, Compression::default());
         encoder.write_all(&msgpack_data)?;
@@ -182,9 +195,9 @@ impl Registry {
         Ok(())
     }
 
-    /// Load a Registry from compressed MessagePack format at the given file path
     #[cfg(feature = "dump")]
     pub fn load_from_file(path: impl AsRef<Path>) -> Result<Self, Box<dyn std::error::Error>> {
+        use crate::scope::replace_global_scope_repo;
         use flate2::read::GzDecoder;
         use std::io::Read;
 
@@ -193,7 +206,9 @@ impl Registry {
         let mut msgpack_data = Vec::new();
         decoder.read_to_end(&mut msgpack_data)?;
 
-        let registry: Registry = rmp_serde::from_slice(&msgpack_data)?;
-        Ok(registry)
+        let dump: Dump = rmp_serde::from_slice(&msgpack_data)?;
+        replace_global_scope_repo(dump.scope_repo);
+
+        Ok(dump.registry)
     }
 }

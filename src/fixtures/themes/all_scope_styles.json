@@ -1,7 +1,7 @@
 {
   "colors": {
-    "foreground": "#D5CED9",
-    "background": "#23262E"
+    "foreground": "#111111",
+    "background": "#222222"
   },
   "displayName": "test",
   "name": "test",

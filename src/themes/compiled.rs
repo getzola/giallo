@@ -117,7 +117,7 @@ impl CompiledTheme {
         let foreground = Color::from_hex(&raw_theme.colors.foreground)?;
         let background = Color::from_hex(&raw_theme.colors.background)?;
 
-        let default_style = Style {
+        let mut default_style = Style {
             foreground,
             background,
             font_style: FontStyle::empty(),
@@ -126,8 +126,13 @@ impl CompiledTheme {
         let mut rules = Vec::new();
 
         for token_rule in raw_theme.token_colors {
-            // Should use the theme default style I think?
             if token_rule.scope.is_empty() {
+                if let Some(fg) = token_rule.settings.foreground() {
+                    default_style.foreground = Color::from_hex(&fg)?;
+                }
+                if let Some(bg) = token_rule.settings.background() {
+                    default_style.background = Color::from_hex(&bg)?;
+                }
                 continue;
             }
 
@@ -167,5 +172,13 @@ mod tests {
                 .compile()
                 .expect(&format!("Failed to compile theme: {path:?}"));
         }
+    }
+
+    #[test]
+    fn can_load_default_from_token_colors() {
+        let theme = RawTheme::load_from_file("src/fixtures/themes/all_scope_styles.json").unwrap();
+        let compiled = CompiledTheme::from_raw_theme(theme).unwrap();
+        assert_eq!(compiled.default_style.background.as_hex(), "#23262E");
+        assert_eq!(compiled.default_style.foreground.as_hex(), "#D5CED9");
     }
 }

@@ -4,6 +4,7 @@
 //! Memory layout: [atom0][atom1][atom2][atom3][atom4][atom5][atom6][atom7]
 //! Each atom is 16 bits, storing repository_index + 1 (0 = unused slot)
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::{Mutex, MutexGuard};
@@ -13,17 +14,26 @@ pub const MAX_REPOSITORY_SIZE: usize = 65534; // 2^16 - 2, leaving room for 0 an
 
 /// A scope represents a hierarchical position in source code like "source.rust.meta.function"
 /// Internally stored as a single u128 with up to 8 atoms packed as 16-bit indices
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Default, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Default, Hash, Serialize, Deserialize)]
 pub struct Scope {
     /// Packed atoms in MSB-first order for lexicographic comparison
     atoms: u128,
 }
 
 impl Scope {
-    /// Create a new scope from a dot-separated string, truncating to 8 atoms if longer
-    pub fn new(s: &str) -> Scope {
+    /// Create a new scope from a dot-separated string, truncating to 8 atoms if longer.
+    /// It returns a Vec as the scope string might contain spaces, in which case it should split
+    /// on it and return multiple scopes
+    ///
+    /// e.g., "string.json support.type.property-name.json" -> [Scope("string.json"), Scope("support.type.property-name.json")]
+    pub fn new(s: &str) -> Vec<Scope> {
         let mut repo = lock_global_scope_repo();
-        repo.build(s.trim())
+        if s.is_empty() {
+            return vec![Scope::default()];
+        }
+        s.split_whitespace()
+            .map(|part| repo.build(part.trim()))
+            .collect()
     }
 
     /// Extract a single atom at the given index (0-7)
@@ -97,17 +107,15 @@ impl fmt::Display for Scope {
 }
 
 /// Global repository that maps atom strings to indices for deduplication
-struct ScopeRepository {
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub(crate) struct ScopeRepository {
     atoms: Vec<String>,                     // Index-to-string mapping
     atom_index_map: HashMap<String, usize>, // String-to-index for fast lookup
 }
 
 impl ScopeRepository {
     fn new() -> Self {
-        Self {
-            atoms: Vec::new(),
-            atom_index_map: HashMap::new(),
-        }
+        Self::default()
     }
 
     /// Get existing index or register new atom, returning repository index
@@ -184,8 +192,15 @@ impl ScopeRepository {
 static SCOPE_REPO: std::sync::LazyLock<Mutex<ScopeRepository>> =
     std::sync::LazyLock::new(|| Mutex::new(ScopeRepository::new()));
 
-fn lock_global_scope_repo() -> MutexGuard<'static, ScopeRepository> {
+pub(crate) fn lock_global_scope_repo() -> MutexGuard<'static, ScopeRepository> {
     SCOPE_REPO.lock().expect("Failed to lock scope repository")
+}
+
+/// Replace the global ScopeRepository with a new one
+/// This is used when loading a registry from disk to restore the complete state
+pub(crate) fn replace_global_scope_repo(new_repo: ScopeRepository) {
+    let mut global_repo = lock_global_scope_repo();
+    *global_repo = new_repo;
 }
 
 #[cfg(test)]
@@ -194,14 +209,14 @@ mod tests {
 
     #[test]
     fn test_basic_scope_creation() {
-        let scope = Scope::new("source.rust.meta.function");
+        let scope = Scope::new("source.rust.meta.function")[0];
         assert_eq!(scope.len(), 4);
         assert_eq!(scope.build_string(), "source.rust.meta.function");
     }
 
     #[test]
     fn test_empty_scope() {
-        let scope = Scope::new("");
+        let scope = Scope::new("")[0];
         assert_eq!(scope.len(), 0);
         assert!(scope.is_empty());
         assert_eq!(scope.build_string(), "");
@@ -209,9 +224,9 @@ mod tests {
 
     #[test]
     fn test_prefix_matching() {
-        let prefix = Scope::new("source.rust");
-        let full = Scope::new("source.rust.meta.function");
-        let different = Scope::new("source.javascript");
+        let prefix = Scope::new("source.rust")[0];
+        let full = Scope::new("source.rust.meta.function")[0];
+        let different = Scope::new("source.javascript")[0];
 
         assert!(prefix.is_prefix_of(full));
         assert!(prefix.is_prefix_of(prefix));
@@ -221,14 +236,14 @@ mod tests {
     #[test]
     fn test_atom_truncation() {
         // Scopes with >8 atoms should be truncated to first 8
-        let long_scope = Scope::new("a.b.c.d.e.f.g.h.i.j.k.l");
+        let long_scope = Scope::new("a.b.c.d.e.f.g.h.i.j.k.l")[0];
         assert_eq!(long_scope.len(), 8);
         assert_eq!(long_scope.build_string(), "a.b.c.d.e.f.g.h");
     }
 
     #[test]
     fn test_atom_extraction() {
-        let scope = Scope::new("source.rust.meta");
+        let scope = Scope::new("source.rust.meta")[0];
 
         assert_ne!(scope.atom_at(0), 0); // "source" is present
         assert_ne!(scope.atom_at(1), 0); // "rust" is present
@@ -239,8 +254,8 @@ mod tests {
 
     #[test]
     fn test_scope_ordering() {
-        let scope1 = Scope::new("source.rust");
-        let scope2 = Scope::new("source.rust.meta");
+        let scope1 = Scope::new("source.rust")[0];
+        let scope2 = Scope::new("source.rust.meta")[0];
 
         // Longer scopes should sort after shorter prefixes
         assert!(scope1 < scope2);
@@ -248,9 +263,9 @@ mod tests {
 
     #[test]
     fn test_scope_equality() {
-        let scope1 = Scope::new("source.rust.meta");
-        let scope2 = Scope::new("source.rust.meta");
-        let scope3 = Scope::new("source.rust");
+        let scope1 = Scope::new("source.rust.meta")[0];
+        let scope2 = Scope::new("source.rust.meta")[0];
+        let scope3 = Scope::new("source.rust")[0];
 
         assert_eq!(scope1, scope2);
         assert_ne!(scope1, scope3);

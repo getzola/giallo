@@ -9,14 +9,6 @@ use crate::grammars::{
 };
 use crate::scope::Scope;
 
-/// Parse space-separated scope names into a vector of individual scopes
-/// e.g., "string.json support.type.property-name.json" -> [Scope("string.json"), Scope("support.type.property-name.json")]
-fn parse_scope_names(name: &str) -> Vec<Scope> {
-    name.split_whitespace()
-        .map(|part| Scope::new(part))
-        .collect()
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     /// Byte span within the line (start inclusive, end exclusive, 0-based)
@@ -604,24 +596,22 @@ impl<'g> Tokenizer<'g> {
 
             //  Check if it has captures. If it does we need to call tokenize_string
             let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
-            let name = rule.name(line, captures);
 
             if rule.has_patterns() {
-                let content_name = rule.content_name(line, captures);
                 let mut retokenization_stack = stack.push(rule_ref, None, false);
+
                 // Apply rule name scopes to the new state
-                if let Some(name_str) = name.as_ref() {
-                    retokenization_stack
-                        .name_scopes
-                        .extend(parse_scope_names(name_str));
-                }
+                retokenization_stack
+                    .name_scopes
+                    .extend(rule.get_name_scopes(line, captures));
+
                 // Start with name + content scopes for content scopes
                 retokenization_stack.content_scopes = retokenization_stack.name_scopes.clone();
-                if let Some(content) = content_name {
-                    retokenization_stack
-                        .content_scopes
-                        .extend(parse_scope_names(&content));
-                }
+
+                // Apply content scopes
+                retokenization_stack
+                    .content_scopes
+                    .extend(rule.get_content_scopes(line, captures));
                 let substring = &line[cap_start..cap_end];
                 if cfg!(feature = "debug") {
                     eprintln!(
@@ -649,13 +639,16 @@ impl<'g> Tokenizer<'g> {
                 continue;
             }
 
-            if let Some(n) = name {
+            // For rules without patterns, we still need to apply their scopes
+            let rule_scopes = rule.get_name_scopes(line, captures);
+
+            if !rule_scopes.is_empty() {
                 let mut base = if let Some((scopes, _)) = local_stack.last() {
                     scopes.clone()
                 } else {
                     stack.content_scopes.clone()
                 };
-                base.extend(parse_scope_names(&n));
+                base.extend(rule_scopes);
                 local_stack.push((base, cap_end));
             }
         }
@@ -741,13 +734,8 @@ impl<'g> Tokenizer<'g> {
                 } else {
                     let rule = &self.registry.grammars[m.rule_ref.grammar].rules[m.rule_ref.rule];
                     accumulator.produce(m.start, &stack.content_scopes);
-                    let new_scopes = if let Some(n) = rule.name(line, &m.capture_pos) {
-                        let mut s = stack.content_scopes.clone();
-                        s.extend(parse_scope_names(&n));
-                        s
-                    } else {
-                        stack.content_scopes.clone()
-                    };
+                    let mut new_scopes = stack.content_scopes.clone();
+                    new_scopes.extend(rule.get_name_scopes(line, &m.capture_pos));
                     // TODO: improve that push?
                     stack = stack.push(m.rule_ref, anchor_position, m.end == line.len());
                     stack.name_scopes = new_scopes.clone();
@@ -775,14 +763,8 @@ impl<'g> Tokenizer<'g> {
                         )?;
                         accumulator.produce(m.end, &stack.content_scopes);
                         anchor_position = Some(m.end);
-                        let content_scopes =
-                            if let Some(s) = rule.content_name(line, &m.capture_pos) {
-                                let mut r = stack.name_scopes.clone();
-                                r.extend(parse_scope_names(&s));
-                                r
-                            } else {
-                                stack.name_scopes.clone()
-                            };
+                        let mut content_scopes = stack.name_scopes.clone();
+                        content_scopes.extend(rule.get_content_scopes(line, &m.capture_pos));
                         stack = stack.with_content_scopes(content_scopes);
 
                         if end_has_backrefs {
@@ -851,7 +833,7 @@ impl<'g> Tokenizer<'g> {
 
         let mut stack = StateStack::new(
             self.base_grammar_id,
-            Scope::new(&self.registry.grammars[self.base_grammar_id].scope_name),
+            self.registry.grammars[self.base_grammar_id].scope,
         );
         let mut lines_tokens = Vec::new();
         let mut is_first_line = true;

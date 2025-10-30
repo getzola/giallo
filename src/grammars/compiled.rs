@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::grammars::raw::{Captures, RawGrammar, RawRule, Reference};
 use crate::grammars::regex::Regex;
+use crate::scope::Scope;
 
 static CAPTURING_NAME_RE: LazyLock<onig::Regex> =
     LazyLock::new(|| onig::Regex::new(r"\$(\d+)|\${(\d+):\/(downcase|upcase)}").unwrap());
@@ -157,6 +158,7 @@ pub struct Match {
     // some match only care about the captures and thus don't have a name themselves
     pub name: Option<String>,
     pub name_is_capturing: bool,
+    pub scopes: Vec<Scope>,
     /// The regex ID for this match rule.
     /// None for scope-only rules (e.g., capture groups that only assign scopes like
     /// punctuation.definition.string.begin without their own pattern to match)
@@ -170,8 +172,10 @@ pub struct IncludeOnly {
     pub id: GlobalRuleRef,
     pub name: Option<String>,
     pub name_is_capturing: bool,
+    pub scopes: Vec<Scope>,
     pub content_name: Option<String>,
     pub content_name_is_capturing: bool,
+    pub content_scopes: Vec<Scope>,
     pub repository_stack: RepositoryStack,
     pub patterns: Vec<GlobalRuleRef>,
 }
@@ -181,8 +185,10 @@ pub struct BeginEnd {
     pub id: GlobalRuleRef,
     pub name: Option<String>,
     pub name_is_capturing: bool,
+    pub scopes: Vec<Scope>,
     pub content_name: Option<String>,
     pub content_name_is_capturing: bool,
+    pub content_scopes: Vec<Scope>,
     pub begin: RegexId,
     pub begin_captures: Vec<Option<GlobalRuleRef>>,
     pub end: RegexId,
@@ -198,8 +204,10 @@ pub struct BeginWhile {
     pub id: GlobalRuleRef,
     pub name: Option<String>,
     pub name_is_capturing: bool,
+    pub scopes: Vec<Scope>,
     pub content_name: Option<String>,
     pub content_name_is_capturing: bool,
+    pub content_scopes: Vec<Scope>,
     pub begin: RegexId,
     pub begin_captures: Vec<Option<GlobalRuleRef>>,
     pub while_: RegexId,
@@ -300,6 +308,55 @@ impl Rule {
             Rule::Noop => (),
         }
     }
+
+    /// Get name scopes, either pre-compiled or computed from captures
+    pub fn get_name_scopes(
+        &self,
+        input: &str,
+        captures_pos: &[Option<(usize, usize)>],
+    ) -> Vec<Scope> {
+        let (name_is_capturing, scopes) = match self {
+            Rule::Match(m) => (m.name_is_capturing, &m.scopes),
+            Rule::IncludeOnly(i) => (i.name_is_capturing, &i.scopes),
+            Rule::BeginEnd(b) => (b.name_is_capturing, &b.scopes),
+            Rule::BeginWhile(bw) => (bw.name_is_capturing, &bw.scopes),
+            Rule::Noop => return Vec::new(),
+        };
+
+        if name_is_capturing {
+            if let Some(name) = self.name(input, captures_pos) {
+                Scope::new(&name)
+            } else {
+                Vec::new()
+            }
+        } else {
+            scopes.clone()
+        }
+    }
+
+    /// Get content scopes, either pre-compiled or computed from captures
+    pub fn get_content_scopes(
+        &self,
+        input: &str,
+        captures_pos: &[Option<(usize, usize)>],
+    ) -> Vec<Scope> {
+        let (content_name_is_capturing, content_scopes) = match self {
+            Rule::IncludeOnly(i) => (i.content_name_is_capturing, &i.content_scopes),
+            Rule::BeginEnd(b) => (b.content_name_is_capturing, &b.content_scopes),
+            Rule::BeginWhile(bw) => (bw.content_name_is_capturing, &bw.content_scopes),
+            Rule::Match(_) | Rule::Noop => return Vec::new(),
+        };
+
+        if content_name_is_capturing {
+            if let Some(content_name) = self.content_name(input, captures_pos) {
+                Scope::new(&content_name)
+            } else {
+                Vec::new()
+            }
+        } else {
+            content_scopes.clone()
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -315,6 +372,7 @@ pub struct CompiledGrammar {
     pub name: String,
     pub display_name: Option<String>,
     pub scope_name: String,
+    pub scope: Scope,
     pub file_types: Vec<String>,
     pub regexes: Vec<Regex>,
     pub rules: Vec<Rule>,
@@ -328,7 +386,8 @@ impl CompiledGrammar {
             id,
             name: raw.name,
             display_name: raw.display_name,
-            scope_name: raw.scope_name,
+            scope_name: raw.scope_name.clone(),
+            scope: Scope::new(&raw.scope_name)[0],
             file_types: raw.file_types,
             regexes: Vec::new(),
             rules: Vec::new(),
@@ -367,10 +426,17 @@ impl CompiledGrammar {
 
         // https://github.com/microsoft/vscode-textmate/blob/f03a6a8790af81372d0e81facae75554ec5e97ef/src/rule.ts#L389-L447
         let rule = if let Some(pat) = raw_rule.match_ {
+            let name_is_capturing = has_captures(name.as_deref());
+            let scopes = if name_is_capturing || name.is_none() {
+                Vec::new()
+            } else {
+                Scope::new(name.as_ref().unwrap())
+            };
             Rule::Match(Match {
                 id: global_id,
-                name_is_capturing: has_captures(name.as_deref()),
+                name_is_capturing,
                 name,
+                scopes,
                 regex_id: Some(self.compile_regex(pat).0),
                 captures: self.compile_captures(raw_rule.captures, repository_stack)?,
                 repository_stack,
@@ -382,12 +448,26 @@ impl CompiledGrammar {
                 let (while_, while_has_backrefs) = self.compile_regex(while_pat);
                 let patterns =
                     self.compile_patterns(local_id, raw_rule.patterns, repository_stack)?;
+                let name_is_capturing = has_captures(name.as_deref());
+                let content_name_is_capturing = has_captures(content_name.as_deref());
+                let scopes = if name_is_capturing || name.is_none() {
+                    Vec::new()
+                } else {
+                    Scope::new(name.as_ref().unwrap())
+                };
+                let content_scopes = if content_name_is_capturing || content_name.is_none() {
+                    Vec::new()
+                } else {
+                    Scope::new(content_name.as_ref().unwrap())
+                };
                 Rule::BeginWhile(BeginWhile {
                     id: global_id,
-                    name_is_capturing: has_captures(name.as_deref()),
+                    name_is_capturing,
                     name,
-                    content_name_is_capturing: has_captures(content_name.as_deref()),
+                    scopes,
+                    content_name_is_capturing,
                     content_name,
+                    content_scopes,
                     begin: self.compile_regex(begin_pat).0,
                     begin_captures: self.compile_captures(
                         // Some grammars use "captures" instead of "beginCaptures" for BeginEnd/BeginWhile rules
@@ -415,12 +495,26 @@ impl CompiledGrammar {
                 let (end, end_has_backrefs) = self.compile_regex(end_pat);
                 let patterns =
                     self.compile_patterns(local_id, raw_rule.patterns, repository_stack)?;
+                let name_is_capturing = has_captures(name.as_deref());
+                let content_name_is_capturing = has_captures(content_name.as_deref());
+                let scopes = if name_is_capturing || name.is_none() {
+                    Vec::new()
+                } else {
+                    Scope::new(name.as_ref().unwrap())
+                };
+                let content_scopes = if content_name_is_capturing || content_name.is_none() {
+                    Vec::new()
+                } else {
+                    Scope::new(content_name.as_ref().unwrap())
+                };
                 Rule::BeginEnd(BeginEnd {
                     id: global_id,
-                    name_is_capturing: has_captures(name.as_deref()),
+                    name_is_capturing,
                     name,
-                    content_name_is_capturing: has_captures(content_name.as_deref()),
+                    scopes,
+                    content_name_is_capturing,
                     content_name,
+                    content_scopes,
                     begin: self.compile_regex(begin_pat).0,
                     begin_captures: self.compile_captures(
                         // Some grammars use "captures" instead of "beginCaptures" for BeginEnd/BeginWhile rules
@@ -447,10 +541,17 @@ impl CompiledGrammar {
                 })
             } else {
                 // a rule that has begin without while/end is just a match, probably a typo
+                let name_is_capturing = has_captures(name.as_deref());
+                let scopes = if name_is_capturing || name.is_none() {
+                    Vec::new()
+                } else {
+                    Scope::new(name.as_ref().unwrap())
+                };
                 Rule::Match(Match {
                     id: global_id,
-                    name_is_capturing: has_captures(name.as_deref()),
+                    name_is_capturing,
                     name,
+                    scopes,
                     regex_id: Some(self.compile_regex(begin_pat).0),
                     captures: vec![],
                     repository_stack,
@@ -468,10 +569,17 @@ impl CompiledGrammar {
             if name.is_some() && raw_rule.patterns.is_empty() && raw_rule.include.is_none() {
                 // This is a scope-only rule - create a Match rule with no regex
                 // This handles captures that only assign scopes
+                let name_is_capturing = has_captures(name.as_deref());
+                let scopes = if name_is_capturing || name.is_none() {
+                    Vec::new()
+                } else {
+                    Scope::new(name.as_ref().unwrap())
+                };
                 Rule::Match(Match {
                     id: global_id,
-                    name_is_capturing: has_captures(name.as_deref()),
+                    name_is_capturing,
                     name,
+                    scopes,
                     regex_id: None, // Scope-only rule (e.g., capture that only assigns scope)
                     captures: vec![],
                     repository_stack,
@@ -499,12 +607,27 @@ impl CompiledGrammar {
                 } else {
                     let compiled_patterns =
                         self.compile_patterns(local_id, patterns, repository_stack)?;
+                    let name_is_capturing = has_captures(name.as_deref());
+                    let content_name_is_capturing = has_captures(raw_rule.content_name.as_deref());
+                    let scopes = if name_is_capturing || name.is_none() {
+                        Vec::new()
+                    } else {
+                        Scope::new(name.as_ref().unwrap())
+                    };
+                    let content_scopes =
+                        if content_name_is_capturing || raw_rule.content_name.is_none() {
+                            Vec::new()
+                        } else {
+                            Scope::new(raw_rule.content_name.as_ref().unwrap())
+                        };
                     Rule::IncludeOnly(IncludeOnly {
                         id: global_id,
-                        name_is_capturing: has_captures(name.as_deref()),
+                        name_is_capturing,
                         name,
-                        content_name_is_capturing: has_captures(raw_rule.content_name.as_deref()),
+                        scopes,
+                        content_name_is_capturing,
                         content_name: raw_rule.content_name,
+                        content_scopes,
                         repository_stack,
                         patterns: compiled_patterns,
                     })

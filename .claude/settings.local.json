@@ -70,7 +70,8 @@
       "Bash(timeout:*)",
       "Bash(git log:*)",
       "Bash(ls:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(sort:*)"
     ],
     "deny": [],
     "ask": []
