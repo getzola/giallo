@@ -1,4 +1,5 @@
 mod compiled;
+mod injections;
 mod pattern_set;
 mod raw;
 mod regex;

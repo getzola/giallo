@@ -103,6 +103,17 @@ impl TryFrom<TokenColorSettings> for StyleModifier {
     }
 }
 
+impl StyleModifier {
+    /// Apply this style modifier to a base style, creating a new style
+    pub fn apply_to(&self, base: &Style) -> Style {
+        Style {
+            foreground: self.foreground.unwrap_or(base.foreground),
+            background: self.background.unwrap_or(base.background),
+            font_style: self.font_style.unwrap_or(base.font_style),
+        }
+    }
+}
+
 /// Theme type for determining fallback colors
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ThemeType {

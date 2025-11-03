@@ -1,0 +1,789 @@
+0: 'with' (line 0)
+  - source.ada
+  - meta.context.with.ada
+  - keyword.other.using.ada
+
+0: '    ' (line 1)
+  - source.ada
+  - meta.context.with.ada
+
+1: 'Ada.Text_IO' (line 1)
+  - source.ada
+  - meta.context.with.ada
+  - entity.name.package.ada
+
+2: ',' (line 1)
+  - source.ada
+  - meta.context.with.ada
+  - punctuation.ada
+
+0: '    ' (line 2)
+  - source.ada
+  - meta.context.with.ada
+
+1: 'Ada.Integer_Text_IO' (line 2)
+  - source.ada
+  - meta.context.with.ada
+  - entity.name.package.ada
+
+2: ';' (line 2)
+  - source.ada
+  - meta.context.with.ada
+  - punctuation.ada
+
+0: 'use' (line 3)
+  - source.ada
+  - meta.context.use.package.ada
+  - keyword.other.using.ada
+
+1: ' ' (line 3)
+  - source.ada
+  - meta.context.use.package.ada
+
+2: 'Ada' (line 3)
+  - source.ada
+  - meta.context.use.package.ada
+  - entity.name.package.ada
+
+3: ';' (line 3)
+  - source.ada
+  - meta.context.use.package.ada
+  - punctuation.ada
+
+0: 'procedure' (line 5)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - keyword.ada
+
+1: ' ' (line 5)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+
+2: 'fizz_buzz' (line 5)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - entity.name.function.ada
+
+3: ' ' (line 5)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+
+4: 'is' (line 5)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - keyword.ada
+
+0: 'begin' (line 6)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - keyword.ada
+
+0: '    ' (line 7)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+
+1: 'for' (line 7)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - keyword.control.ada
+
+2: ' ' (line 7)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+
+3: 'i' (line 7)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - variable.name.ada
+
+4: ' ' (line 7)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+
+5: 'in' (line 7)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - keyword.control.ada
+
+6: ' ' (line 7)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+
+7: '1' (line 7)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - constant.numeric.ada
+
+8: '..' (line 7)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - keyword.ada
+
+9: '100' (line 7)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - constant.numeric.ada
+
+10: ' ' (line 7)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+
+11: 'loop' (line 7)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - keyword.control.ada
+
+0: '        ' (line 8)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+
+1: 'if' (line 8)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.control.ada
+
+2: ' i ' (line 8)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+3: 'mod' (line 8)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.operator.multiplying.ada
+
+4: ' ' (line 8)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+5: '15' (line 8)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - constant.numeric.ada
+
+6: ' ' (line 8)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+7: '=' (line 8)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.operator.relational.ada
+
+8: ' ' (line 8)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+9: '0' (line 8)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - constant.numeric.ada
+
+10: ' ' (line 8)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.control.ada
+
+11: 'then' (line 8)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.control.ada
+
+0: '            ' (line 9)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+1: 'Text_IO.Put_Line' (line 9)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - entity.name.function.ada
+
+2: '(' (line 9)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+3: '"' (line 9)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - string.quoted.double.ada
+  - punctuation.definition.string.ada
+
+4: 'fizz buzz' (line 9)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - string.quoted.double.ada
+
+5: '"' (line 9)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - string.quoted.double.ada
+  - punctuation.definition.string.ada
+
+6: ')' (line 9)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+7: ';' (line 9)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+0: '        ' (line 10)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+1: 'elsif' (line 10)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.control.ada
+
+2: ' i ' (line 10)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+3: 'mod' (line 10)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.operator.multiplying.ada
+
+4: ' ' (line 10)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+5: '5' (line 10)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - constant.numeric.ada
+
+6: ' ' (line 10)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+7: '=' (line 10)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.operator.relational.ada
+
+8: ' ' (line 10)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+9: '0' (line 10)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - constant.numeric.ada
+
+10: ' ' (line 10)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+11: 'then' (line 10)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.control.ada
+
+0: '            ' (line 11)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+1: 'Text_IO.Put_Line' (line 11)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - entity.name.function.ada
+
+2: '(' (line 11)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+3: '"' (line 11)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - string.quoted.double.ada
+  - punctuation.definition.string.ada
+
+4: 'buzz' (line 11)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - string.quoted.double.ada
+
+5: '"' (line 11)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - string.quoted.double.ada
+  - punctuation.definition.string.ada
+
+6: ')' (line 11)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+7: ';' (line 11)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+0: '        ' (line 12)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+1: 'elsif' (line 12)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.control.ada
+
+2: ' i ' (line 12)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+3: 'mod' (line 12)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.operator.multiplying.ada
+
+4: ' ' (line 12)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+5: '3' (line 12)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - constant.numeric.ada
+
+6: ' ' (line 12)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+7: '=' (line 12)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.operator.relational.ada
+
+8: ' ' (line 12)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+9: '0' (line 12)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - constant.numeric.ada
+
+10: ' ' (line 12)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+11: 'then' (line 12)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.control.ada
+
+0: '            ' (line 13)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+1: 'Text_IO.Put_Line' (line 13)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - entity.name.function.ada
+
+2: '(' (line 13)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+3: '"' (line 13)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - string.quoted.double.ada
+  - punctuation.definition.string.ada
+
+4: 'fizz' (line 13)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - string.quoted.double.ada
+
+5: '"' (line 13)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - string.quoted.double.ada
+  - punctuation.definition.string.ada
+
+6: ')' (line 13)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+7: ';' (line 13)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+0: '        ' (line 14)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+1: 'else' (line 14)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.control.ada
+
+0: '            ' (line 15)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+1: 'Integer_Text_IO.put' (line 15)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - entity.name.function.ada
+
+2: '(' (line 15)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+3: 'i' (line 15)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+
+4: ',' (line 15)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+5: ' ' (line 15)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+
+6: 'Width' (line 15)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - variable.parameter.ada
+
+7: ' ' (line 15)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+
+8: '=>' (line 15)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - keyword.other.ada
+
+9: ' ' (line 15)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+
+10: '0' (line 15)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - constant.numeric.ada
+
+11: ')' (line 15)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+12: ';' (line 15)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+0: '            ' (line 16)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+1: 'Text_IO.New_Line' (line 16)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - entity.name.function.ada
+
+2: ';' (line 16)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - meta.statement.call.ada
+  - punctuation.ada
+
+0: '        ' (line 17)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+1: 'end' (line 17)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.control.ada
+
+2: ' ' (line 17)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+
+3: 'if' (line 17)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - keyword.control.ada
+
+4: ';' (line 17)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - meta.statement.if.ada
+  - punctuation.ada
+
+0: '    ' (line 18)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+
+1: 'end' (line 18)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - keyword.control.ada
+
+2: ' ' (line 18)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+
+3: 'loop' (line 18)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - keyword.control.ada
+
+4: ';' (line 18)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - meta.statement.loop.for.ada
+  - punctuation.ada
+
+0: 'end' (line 19)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - keyword.ada
+
+1: ' ' (line 19)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+
+2: 'fizz_buzz' (line 19)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - entity.name.function.ada
+
+3: ';' (line 19)
+  - source.ada
+  - meta.declaration.procedure.body.ada
+  - punctuation.ada
+
+0: '-- From https://github.com/kylelk/ada-examples/blob/master/fizz_buzz.adb' (line 21)
+  - source.ada
+  - comment.line.double-dash.ada
+

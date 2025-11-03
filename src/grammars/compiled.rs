@@ -94,7 +94,7 @@ pub struct GlobalRuleRef {
     pub(crate) rule: RuleId,
 }
 
-const NO_OP_GLOBAL_RULE_REF: GlobalRuleRef = GlobalRuleRef {
+pub const NO_OP_GLOBAL_RULE_REF: GlobalRuleRef = GlobalRuleRef {
     grammar: GrammarId(u16::MAX - 1),
     rule: TEMP_RULE_ID,
 };
