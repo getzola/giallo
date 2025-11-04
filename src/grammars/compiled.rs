@@ -4,6 +4,7 @@ use std::sync::LazyLock;
 
 use serde::{Deserialize, Serialize};
 
+use crate::grammars::injections::{CompiledInjectionMatcher, parse_injection_selector};
 use crate::grammars::raw::{Captures, RawGrammar, RawRule, Reference};
 use crate::grammars::regex::Regex;
 use crate::scope::Scope;
@@ -377,7 +378,12 @@ pub struct CompiledGrammar {
     pub regexes: Vec<Regex>,
     pub rules: Vec<Rule>,
     pub repositories: Vec<Repository>,
+    pub injections: Vec<(Vec<CompiledInjectionMatcher>, GlobalRuleRef)>,
     references: Vec<RefToReplace>,
+    // The fields below are only set for injection grammars, eg grammars that are not meant to be
+    // used by themselves
+    pub injection_selector: Vec<CompiledInjectionMatcher>,
+    pub inject_to: Vec<String>,
 }
 
 impl CompiledGrammar {
@@ -392,6 +398,12 @@ impl CompiledGrammar {
             regexes: Vec::new(),
             rules: Vec::new(),
             repositories: Vec::new(),
+            injections: Vec::new(),
+            injection_selector: raw
+                .injection_selector
+                .map(|x| parse_injection_selector(&x))
+                .unwrap_or_default(),
+            inject_to: raw.inject_to,
             references: Vec::new(),
         };
 
@@ -402,6 +414,19 @@ impl CompiledGrammar {
         };
         let root_rule_id = grammar.compile_rule(root_rule, RepositoryStack::default())?;
         assert_eq!(root_rule_id.as_index(), 0);
+
+        // Compile injections
+        for (selector, raw_rule) in raw.injections {
+            let matchers = parse_injection_selector(&selector);
+            let rule_id = grammar.compile_rule(raw_rule, RepositoryStack::default())?;
+            grammar.injections.push((
+                matchers,
+                GlobalRuleRef {
+                    grammar: id,
+                    rule: rule_id,
+                },
+            ));
+        }
 
         // Resolve all Local references after compilation is complete
         grammar.resolve_local_references();

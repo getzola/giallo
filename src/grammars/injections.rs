@@ -19,7 +19,18 @@ pub struct CompiledInjectionMatcher {
     priority: Option<InjectionPrecedence>,
 }
 
-/// Serializable selector matcher that can evaluate against scope stacks
+impl CompiledInjectionMatcher {
+    /// Matches against a scope stack (outermost to innermost)
+    pub fn matches(&self, scope_stack: &[Scope]) -> bool {
+        self.matcher.matches(scope_stack)
+    }
+
+    /// Returns the precedence (Left/Right) for this injection matcher
+    pub fn precedence(&self) -> InjectionPrecedence {
+        self.priority.unwrap_or(InjectionPrecedence::Right)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SelectorMatcher {
     Scope(Scope),
@@ -31,9 +42,61 @@ pub enum SelectorMatcher {
     Not(Box<SelectorMatcher>),
 }
 
+impl SelectorMatcher {
+    /// Recursively evaluates this matcher against scope stack
+    fn matches(&self, scope_stack: &[Scope]) -> bool {
+        match self {
+            SelectorMatcher::Scope(scope) => {
+                // Single scope: check if ANY scope in stack is a match
+                scope_stack
+                    .iter()
+                    .any(|&stack_scope| scope.is_prefix_of(stack_scope))
+            }
+            SelectorMatcher::And(matchers) => {
+                // Sequential matching: each matcher must find a match at or after the previous match
+                let mut start_index = 0;
+                for matcher in matchers {
+                    match matcher {
+                        SelectorMatcher::Scope(scope) => {
+                            // For individual scopes, check sequentially
+                            let mut found = false;
+                            for i in start_index..scope_stack.len() {
+                                if scope.is_prefix_of(scope_stack[i]) {
+                                    start_index = i + 1;
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if !found {
+                                return false;
+                            }
+                        }
+                        _ => {
+                            // For compound matchers (OR, NOT), check against entire scope stack
+                            if !matcher.matches(scope_stack) {
+                                return false;
+                            }
+                            // For compound matchers, we don't advance position since they're global
+                        }
+                    }
+                }
+                true
+            }
+            SelectorMatcher::Or(matchers) => {
+                // Any matcher can succeed
+                matchers.iter().any(|m| m.matches(scope_stack))
+            }
+            SelectorMatcher::Not(matcher) => {
+                // Matcher must NOT succeed
+                !matcher.matches(scope_stack)
+            }
+        }
+    }
+}
+
 /// Regex for tokenizing injection selectors (matches vscode-textmate exactly except for \* added)
 static TOKEN_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"([LR]:|[\w.:]+[\w\*.:\-]*|[,|\-()])?").expect("Invalid selector regex")
+    Regex::new(r"([LR]:|[\w.:]+[\w\*.:\-]*|[,|\-()])").expect("Invalid selector regex")
 });
 
 fn is_identifier(s: &str) -> bool {
@@ -143,7 +206,9 @@ pub fn parse_injection_selector(selector: &str) -> Vec<CompiledInjectionMatcher>
     let tokens: Vec<_> = TOKEN_REGEX
         .find_iter(selector)
         .map(|(start, end)| &selector[start..end])
+        .filter(|s| !s.is_empty())
         .collect();
+
     let mut position = 0;
     let mut res = Vec::new();
 
@@ -173,8 +238,6 @@ pub fn parse_injection_selector(selector: &str) -> Vec<CompiledInjectionMatcher>
             } else {
                 break;
             }
-        } else {
-            break;
         }
     }
 
@@ -206,6 +269,8 @@ mod tests {
             "text.html.php.blade - (meta.embedded | meta.tag | comment.block.blade), L:(text.html.php.blade meta.tag - (comment.block.blade | meta.embedded.block.blade)), L:(source.js.embedded.html - (comment.block.blade | meta.embedded.block.blade))", // blade.json
             "R:text.html - (comment.block, text.html meta.embedded, meta.tag.*.*.html, meta.tag.*.*.*.html, meta.tag.*.*.*.*.html)",
             "L:source.css -comment, L:source.postcss -comment, L:source.sass -comment, L:source.stylus -comment",
+            // es-tag-css.json
+            "L:source.js -comment -string, L:source.js -comment -string, L:source.jsx -comment -string,  L:source.js.jsx -comment -string, L:source.ts -comment -string, L:source.tsx -comment -string, L:source.rescript -comment -string, L:source.vue -comment -string, L:source.svelte -comment -string, L:source.php -comment -string, L:source.rescript -comment -string",
         ];
 
         for (i, test_case) in test_cases.into_iter().enumerate() {
@@ -217,5 +282,130 @@ mod tests {
     }
 
     #[test]
-    fn can_parse_all_kinds_of_injections() {}
+    fn can_match_scopes() {
+        // (selector, scope_names, expected)
+        let test_cases = vec![
+            // === Simple Scope Matching ===
+            ("text.html", vec!["text.html"], true),
+            ("text.html", vec!["text.html.markdown"], true), // prefix match
+            ("text.html", vec!["source.js"], false),
+            ("text.html", vec!["source.js", "text.html"], true), // found in stack
+            ("comment", vec!["comment.line.double-slash"], true), // prefix match
+            // === Sequential Scope Matching (AND) ===
+            ("text.html meta.tag", vec!["text.html", "meta.tag"], true),
+            (
+                "text.html meta.tag",
+                vec!["text.html", "meta.function", "meta.tag"],
+                true,
+            ), // with intermediate
+            ("text.html meta.tag", vec!["text.html"], false), // missing meta.tag
+            ("text.html meta.tag", vec!["meta.tag"], false),  // missing text.html
+            ("text.html meta.tag", vec!["meta.tag", "text.html"], false), // wrong order
+            (
+                "source.js comment",
+                vec!["source.js", "meta.function", "comment.line"],
+                true,
+            ),
+            // === NOT Operations ===
+            ("text.html -comment", vec!["text.html"], true),
+            (
+                "text.html -comment",
+                vec!["text.html", "comment.block"],
+                false,
+            ),
+            ("text.html -comment", vec!["source.js"], false), // no text.html
+            ("comment -comment.block", vec!["comment.line"], true),
+            ("comment -comment.block", vec!["comment.block"], false),
+            // === Parenthesized Groups ===
+            ("(meta.script | meta.style)", vec!["meta.script"], true),
+            ("(meta.script | meta.style)", vec!["meta.style"], true),
+            ("(meta.script | meta.style)", vec!["meta.tag"], false),
+            (
+                "(source.js | source.ts) comment",
+                vec!["source.js", "comment.line"],
+                true,
+            ),
+            (
+                "(source.js | source.ts) comment",
+                vec!["source.py", "comment.line"],
+                false,
+            ),
+            // === Complex Boolean Logic ===
+            (
+                "L:(meta.script.svelte | meta.style.svelte) (meta.lang.js | meta.lang.javascript) - (meta source)",
+                vec!["meta.script.svelte", "meta.lang.js"],
+                true,
+            ),
+            (
+                "L:(meta.script.svelte | meta.style.svelte) (meta.lang.js | meta.lang.javascript) - (meta source)",
+                vec!["meta.style.svelte", "meta.lang.javascript"],
+                true,
+            ),
+            (
+                "L:(meta.script.svelte | meta.style.svelte) (meta.lang.js | meta.lang.javascript) - (meta source)",
+                vec![
+                    "meta.script.svelte",
+                    "meta.lang.js",
+                    "meta.embedded",
+                    "source.js",
+                ],
+                false, // has "source" which contains "meta source"
+            ),
+            (
+                "L:(meta.script.svelte | meta.style.svelte) (meta.lang.js | meta.lang.javascript) - (meta source)",
+                vec!["meta.tag", "meta.lang.js"],
+                false, // missing script.svelte or style.svelte
+            ),
+            // === Precedence Prefixes ===
+            ("L:text.html", vec!["text.html"], true),
+            ("R:text.html", vec!["text.html"], true),
+            ("L:source.js -comment", vec!["source.js"], true),
+            (
+                "R:source.js -comment",
+                vec!["source.js", "comment.block"],
+                false,
+            ),
+            // === Real-world Examples from Snapshot Tests ===
+            ("L:text.html.markdown", vec!["text.html.markdown"], true),
+            ("L:text.html -comment", vec!["text.html"], true),
+            (
+                "L:text.html -comment",
+                vec!["text.html", "comment.line"],
+                false,
+            ),
+            (
+                "L:meta.decorator.ts -comment -text.html",
+                vec!["meta.decorator.ts"],
+                true,
+            ),
+            (
+                "L:meta.decorator.ts -comment -text.html",
+                vec!["meta.decorator.ts", "comment.block"],
+                false,
+            ),
+            (
+                "L:meta.decorator.ts -comment -text.html",
+                vec!["meta.decorator.ts", "text.html"],
+                false,
+            ),
+            // === Edge Cases ===
+            ("text.html", vec![], false), // empty scope stack
+        ];
+
+        for (selector_str, scope_names, expected) in test_cases {
+            let matchers = parse_injection_selector(selector_str);
+            let scope_stack: Vec<Scope> =
+                scope_names.iter().map(|name| Scope::new(name)[0]).collect();
+
+            println!("{selector_str} {matchers:?}");
+
+            let result = matchers.iter().any(|x| x.matches(&scope_stack));
+
+            assert_eq!(
+                result, expected,
+                "Selector '{}' with scopes {:?}: expected {}, got {}",
+                selector_str, scope_names, expected, result
+            );
+        }
+    }
 }

@@ -334,6 +334,9 @@ pub struct RawGrammar {
     /// Example: "source.js meta.embedded.block.sql"
     #[serde(default)]
     pub injection_selector: Option<String>,
+    /// Restrict injections to those grammars
+    #[serde(default)]
+    pub inject_to: Vec<String>,
 }
 
 impl RawGrammar {

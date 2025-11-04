@@ -5,7 +5,8 @@ use std::rc::Rc;
 
 use crate::Registry;
 use crate::grammars::{
-    END_RULE_ID, GlobalRuleRef, GrammarId, PatternSet, Regex, RegexId, Rule, RuleId,
+    END_RULE_ID, GlobalRuleRef, GrammarId, InjectionPrecedence, PatternSet, PatternSetMatch, Regex,
+    RegexId, Rule, RuleId,
 };
 use crate::scope::Scope;
 
@@ -274,6 +275,120 @@ impl<'g> Tokenizer<'g> {
             registry,
             pattern_cache: HashMap::new(),
             end_regex_cache: HashMap::new(),
+        }
+    }
+
+    /// Matches injection patterns at the current position
+    /// Returns (is_left_precedence, PatternSetMatch) for the best match
+    fn match_injections(
+        &mut self,
+        target_grammar_id: GrammarId,
+        scope_stack: &[Scope],
+        line: &str,
+        pos: usize,
+    ) -> Result<Option<(bool, PatternSetMatch)>, TokenizeError> {
+        let injection_patterns = self
+            .registry
+            .collect_injection_patterns(target_grammar_id, scope_stack);
+
+        if injection_patterns.is_empty() {
+            return Ok(None);
+        }
+
+        let mut best_match: Option<(bool, PatternSetMatch)> = None;
+
+        // Process injections in the order returned by registry (already sorted by precedence)
+        for (precedence, patterns) in injection_patterns {
+            if patterns.is_empty() {
+                continue;
+            }
+
+            // Create a PatternSet for this injection rule (convert &str to String)
+            let patterns_owned: Vec<(GlobalRuleRef, String)> = patterns
+                .into_iter()
+                .map(|(rule_ref, pattern)| (rule_ref, pattern.to_string()))
+                .collect();
+            let pattern_set = PatternSet::new(patterns_owned);
+
+            // Try to find a match at current position
+            if let Some(match_result) = pattern_set.find_at(line, pos)? {
+                let is_left_precedence = precedence == InjectionPrecedence::Left;
+                let candidate = (is_left_precedence, match_result);
+
+                match &best_match {
+                    None => {
+                        best_match = Some(candidate);
+                    }
+                    Some((current_is_left, current_match)) => {
+                        // vscode-textmate comparison logic:
+                        // Left precedence wins ties, others lose ties
+                        let should_replace = if is_left_precedence && !current_is_left {
+                            // Left beats non-left
+                            true
+                        } else if !is_left_precedence && *current_is_left {
+                            // Non-left loses to left
+                            false
+                        } else {
+                            // Same precedence level - later wins (replace on >=)
+                            candidate.1.start <= current_match.start
+                        };
+
+                        if should_replace {
+                            best_match = Some(candidate);
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(best_match)
+    }
+
+    /// Matches both regular rule patterns and injections, returning the best match
+    /// Follows vscode-textmate's comparison logic for rule vs injection precedence
+    fn match_rule_or_injections(
+        &mut self,
+        stack: &StateStack,
+        line: &str,
+        pos: usize,
+        is_first_line: bool,
+        anchor_position: Option<usize>,
+    ) -> Result<Option<PatternSetMatch>, TokenizeError> {
+        // Get regular rule patterns
+        let pattern_set =
+            self.get_or_create_pattern_set(stack, pos, is_first_line, anchor_position);
+        let regular_match = pattern_set.find_at(line, pos)?;
+
+        // Get injection matches
+        let injection_match =
+            self.match_injections(stack.rule_ref.grammar, &stack.content_scopes, line, pos)?;
+
+        // Compare and return the winner
+        match (regular_match, injection_match) {
+            (None, None) => Ok(None),
+            (Some(regular), None) => Ok(Some(regular)),
+            (None, Some((_, injection))) => Ok(Some(injection)),
+            (Some(regular), Some((is_left_precedence, injection))) => {
+                // vscode-textmate comparison logic
+                let winner = if regular.start < injection.start {
+                    // Regular rule starts earlier - wins
+                    regular
+                } else if injection.start < regular.start {
+                    // Injection starts earlier - wins
+                    injection
+                } else {
+                    // Same start position - apply precedence rules
+                    if is_left_precedence {
+                        // Left precedence injection wins ties
+                        injection
+                    } else {
+                        // Regular rule wins ties against non-left injections
+                        regular
+                    }
+                };
+
+                Ok(Some(winner))
+            }
         }
     }
 
@@ -694,10 +809,9 @@ impl<'g> Tokenizer<'g> {
                 eprintln!("[tokenize_line] Scanning {pos}: |{:?}|", &line[pos..]);
             }
 
-            let pattern_set =
-                self.get_or_create_pattern_set(&stack, pos, is_first_line, anchor_position);
-
-            if let Some(m) = pattern_set.find_at(line, pos)? {
+            if let Some(m) =
+                self.match_rule_or_injections(&stack, line, pos, is_first_line, anchor_position)?
+            {
                 if cfg!(feature = "debug") {
                     eprintln!(
                         "[tokenize_line] Matched rule: {:?} from pos {} to {}",

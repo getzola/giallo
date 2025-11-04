@@ -5,6 +5,7 @@ mod raw;
 mod regex;
 
 pub use compiled::*;
+pub use injections::{CompiledInjectionMatcher, InjectionPrecedence};
 pub use pattern_set::{PatternSet, PatternSetMatch};
 pub use raw::RawGrammar;
 pub use regex::Regex;
