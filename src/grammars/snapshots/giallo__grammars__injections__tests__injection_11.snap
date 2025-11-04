@@ -1,0 +1,41 @@
+---
+source: src/grammars/injections.rs
+description: "R:text.html - (comment.block, text.html meta.embedded, meta.tag.*.*.html, meta.tag.*.*.*.html, meta.tag.*.*.*.*.html)"
+expression: result
+---
+[
+    CompiledInjectionMatcher {
+        matcher: And(
+            [
+                Scope(
+                    Scope("text.html"),
+                ),
+                Not(
+                    Or(
+                        [
+                            Scope(
+                                Scope("comment.block"),
+                            ),
+                            And(
+                                [
+                                    Scope(
+                                        Scope("text.html"),
+                                    ),
+                                    Scope(
+                                        Scope("meta.embedded"),
+                                    ),
+                                ],
+                            ),
+                            Scope(
+                                Scope("meta.tag"),
+                            ),
+                        ],
+                    ),
+                ),
+            ],
+        ),
+        priority: Some(
+            Right,
+        ),
+    },
+]

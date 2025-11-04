@@ -1,0 +1,13 @@
+---
+source: src/grammars/injections.rs
+description: text.html
+expression: result
+---
+[
+    CompiledInjectionMatcher {
+        matcher: Scope(
+            Scope("text.html"),
+        ),
+        priority: None,
+    },
+]

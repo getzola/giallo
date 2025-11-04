@@ -1,0 +1,36 @@
+---
+source: src/grammars/injections.rs
+description: "L:meta.script.svelte - meta.lang - (meta source)"
+expression: result
+---
+[
+    CompiledInjectionMatcher {
+        matcher: And(
+            [
+                Scope(
+                    Scope("meta.script.svelte"),
+                ),
+                Not(
+                    Scope(
+                        Scope("meta.lang"),
+                    ),
+                ),
+                Not(
+                    And(
+                        [
+                            Scope(
+                                Scope("meta"),
+                            ),
+                            Scope(
+                                Scope("source"),
+                            ),
+                        ],
+                    ),
+                ),
+            ],
+        ),
+        priority: Some(
+            Left,
+        ),
+    },
+]

@@ -23,6 +23,11 @@ dump = ["dep:rmp-serde", "dep:flate2"]
 [dev-dependencies]
 criterion = "0.7"
 pretty_assertions = "1.0"
+insta = { version = "1", features = ["yaml"] }
+
+[profile.dev.package]
+insta.opt-level = 3
+similar.opt-level = 3
 
 [[bench]]
 name = "registry"

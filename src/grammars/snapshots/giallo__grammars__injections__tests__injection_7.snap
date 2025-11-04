@@ -1,0 +1,25 @@
+---
+source: src/grammars/injections.rs
+description: "L:(source.ts, source.js, source.coffee)"
+expression: result
+---
+[
+    CompiledInjectionMatcher {
+        matcher: Or(
+            [
+                Scope(
+                    Scope("source.ts"),
+                ),
+                Scope(
+                    Scope("source.js"),
+                ),
+                Scope(
+                    Scope("source.coffee"),
+                ),
+            ],
+        ),
+        priority: Some(
+            Left,
+        ),
+    },
+]

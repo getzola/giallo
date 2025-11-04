@@ -1,0 +1,24 @@
+---
+source: src/grammars/injections.rs
+description: "L:text.html -comment"
+expression: result
+---
+[
+    CompiledInjectionMatcher {
+        matcher: And(
+            [
+                Scope(
+                    Scope("text.html"),
+                ),
+                Not(
+                    Scope(
+                        Scope("comment"),
+                    ),
+                ),
+            ],
+        ),
+        priority: Some(
+            Left,
+        ),
+    },
+]
