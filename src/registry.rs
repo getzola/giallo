@@ -4,10 +4,10 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::grammars::{
-    CompiledGrammar, CompiledInjectionMatcher, GlobalRuleRef, GrammarId, InjectionPrecedence,
-    Match, NO_OP_GLOBAL_RULE_REF, ROOT_RULE_ID, RawGrammar, Rule,
+    CompiledGrammar, GlobalRuleRef, GrammarId, InjectionPrecedence, Match, NO_OP_GLOBAL_RULE_REF,
+    ROOT_RULE_ID, RawGrammar, Rule,
 };
-use crate::highlight::TokenWithStyle;
+use crate::highlight::{Highlighter, TokenWithStyle};
 use crate::scope::Scope;
 use crate::scope::ScopeRepository;
 use crate::themes::{CompiledTheme, RawTheme};
@@ -33,11 +33,11 @@ pub struct Registry {
     // Vector of compiled grammars for ID-based access
     pub(crate) grammars: Vec<CompiledGrammar>,
     // grammar scope name -> grammar ID lookup for string-based access
-    // this is used internally only
+    // this is used internally only by grammars
     grammar_id_by_scope_name: HashMap<String, GrammarId>,
     // grammar name -> grammar ID lookup for string-based access
     // this is the name that end user will refer to
-    grammar_id_by_name: HashMap<String, GrammarId>,
+    pub(crate) grammar_id_by_name: HashMap<String, GrammarId>,
     // name given by user -> theme
     themes: HashMap<String, CompiledTheme>,
     // grammar ID quick lookup to find which external grammars can be loaded for each grammar
@@ -128,19 +128,18 @@ impl Registry {
             .grammar_id_by_name
             .get(options.lang)
             .ok_or_else(|| format!("no grammar found for {}", options.lang))?;
-        let theme_id = self
+        let theme = self
             .themes
             .get(options.theme)
             .ok_or_else(|| format!("no themes found for {}", options.theme))?;
 
         let tokens = self.tokenize(grammar_id, content)?;
-        let mut out = Vec::with_capacity(tokens.len());
 
-        for line_tokens in tokens {
-            //TODO
-        }
+        // Create highlighter from theme and apply highlighting (with merging)
+        let highlighter = Highlighter::new(theme);
+        let highlighted_tokens = highlighter.highlight_tokens(tokens);
 
-        Ok(out)
+        Ok(highlighted_tokens)
     }
 
     pub fn link_grammars(&mut self) {
@@ -257,10 +256,6 @@ impl Registry {
         });
 
         result
-    }
-
-    fn get_grammar_id(&self, name: &str) -> Option<GrammarId> {
-        self.grammar_id_by_scope_name.get(name).cloned()
     }
 
     #[cfg(feature = "dump")]

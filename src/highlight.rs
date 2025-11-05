@@ -62,15 +62,32 @@ impl Highlighter {
         self.default_style.clone()
     }
 
-    /// Apply highlighting to tokenized lines, preserving line structure
-    pub fn highlight_tokens(&self, tokens: &[Vec<Token>]) -> Vec<Vec<TokenWithStyle>> {
+    /// Apply highlighting to tokenized lines, preserving line structure.
+    /// Merges adjacent tokens with the same style for optimization.
+    pub fn highlight_tokens(&self, tokens: Vec<Vec<Token>>) -> Vec<Vec<TokenWithStyle>> {
         let mut result = Vec::with_capacity(tokens.len());
 
         for line_tokens in tokens {
-            let mut line_result = Vec::with_capacity(line_tokens.len());
+            if line_tokens.is_empty() {
+                result.push(Vec::new());
+                continue;
+            }
+
+            let mut line_result: Vec<TokenWithStyle> = Vec::with_capacity(line_tokens.len());
 
             for token in line_tokens {
                 let style = self.match_scopes(&token.scopes);
+
+                // Try to merge with the last token in line_result
+                if let Some(last_token) = line_result.last_mut() {
+                    if last_token.style == style {
+                        // Same style - extend the range to include this token
+                        last_token.range.end = token.span.end;
+                        continue; // Skip creating a new token
+                    }
+                }
+
+                // Different style or first token - create new TokenWithStyle
                 line_result.push(TokenWithStyle {
                     range: token.span.clone(),
                     style,
@@ -97,7 +114,7 @@ mod tests {
 
     // Helper functions
     fn scope(name: &str) -> Scope {
-        Scope::new(name).into_iter().next().unwrap()
+        Scope::new(name)[0]
     }
 
     fn color(hex: &str) -> Color {
@@ -175,7 +192,7 @@ mod tests {
             vec![token(0, 2, "comment")],
         ];
 
-        let highlighted = highlighter.highlight_tokens(&tokens);
+        let highlighted = highlighter.highlight_tokens(tokens);
 
         assert_eq!(highlighted.len(), 2);
         assert_eq!(highlighted[0].len(), 2);

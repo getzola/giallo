@@ -1105,7 +1105,9 @@ mod tests {
             let sample_path = format!("grammars-themes/samples/{grammar}.sample");
             println!("Checking {sample_path}");
             let sample_content = fs::read_to_string(sample_path).unwrap();
-            let tokens = registry.tokenize(&grammar, &sample_content).unwrap();
+            let tokens = registry
+                .tokenize(registry.grammar_id_by_name[&grammar], &sample_content)
+                .unwrap();
             let out = format_tokens(&sample_content, tokens);
             assert_eq!(expected.trim(), out.trim());
         }

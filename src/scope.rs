@@ -198,6 +198,7 @@ pub(crate) fn lock_global_scope_repo() -> MutexGuard<'static, ScopeRepository> {
 
 /// Replace the global ScopeRepository with a new one
 /// This is used when loading a registry from disk to restore the complete state
+#[cfg(feature = "dump")]
 pub(crate) fn replace_global_scope_repo(new_repo: ScopeRepository) {
     let mut global_repo = lock_global_scope_repo();
     *global_repo = new_repo;
