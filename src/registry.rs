@@ -50,8 +50,7 @@ impl Registry {
         self.grammars.push(grammar);
         self.grammar_id_by_scope_name
             .insert(grammar_scope_name, grammar_id);
-        self.grammar_id_by_scope_name
-            .insert(grammar_name, grammar_id);
+        self.grammar_id_by_name.insert(grammar_name, grammar_id);
         self.injections_by_grammar.push(HashSet::new());
         Ok(())
     }
@@ -70,6 +69,13 @@ impl Registry {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let raw_grammar = RawGrammar::load_from_file(path)?;
         self.add_grammar_from_raw(raw_grammar)
+    }
+
+    pub fn add_alias(&mut self, grammar_name: &str, alias: &str) {
+        if let Some(grammar_id) = self.grammar_id_by_name.get(grammar_name) {
+            self.grammar_id_by_name
+                .insert(alias.to_string(), *grammar_id);
+        }
     }
 
     pub fn add_theme_from_str(

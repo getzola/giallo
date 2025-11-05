@@ -1,14 +1,56 @@
 use giallo::registry::Registry;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
+
+#[derive(Debug, Deserialize, Serialize)]
+struct GrammarMetadata {
+    name: String,
+    aliases: Vec<String>,
+    #[serde(rename = "scopeName")]
+    scope_name: String,
+}
+
+fn load_grammar_metadata() -> Result<HashMap<String, Vec<String>>, Box<dyn std::error::Error>> {
+    let metadata_path = "grammar_metadata.json";
+
+    // Check if metadata file exists
+    if !std::path::Path::new(metadata_path).exists() {
+        println!("⚠️  Grammar metadata file not found at {}", metadata_path);
+        println!("   Run 'node tools/extract_grammar_metadata.js' to generate it");
+        return Ok(HashMap::new());
+    }
+
+    let metadata_content = fs::read_to_string(metadata_path)?;
+    let metadata: Vec<GrammarMetadata> = serde_json::from_str(&metadata_content)?;
+
+    // Create lookup map from grammar name to aliases
+    let mut alias_map = HashMap::new();
+    for grammar in metadata {
+        if !grammar.aliases.is_empty() {
+            alias_map.insert(grammar.name.clone(), grammar.aliases);
+        }
+    }
+
+    println!(
+        "📋 Loaded metadata for {} grammars with aliases",
+        alias_map.len()
+    );
+    Ok(alias_map)
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Building Registry with all grammars and themes from grammars-themes folder...");
+
+    // Load grammar metadata (aliases)
+    let alias_map = load_grammar_metadata()?;
 
     let mut registry = Registry::default();
     let mut grammar_count = 0;
     let mut theme_count = 0;
     let mut grammar_errors = 0;
     let mut theme_errors = 0;
+    let mut aliases_registered = 0;
 
     // Load grammars
     println!("\nLoading grammars...");
@@ -24,6 +66,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Ok(_) => {
                     println!("✓ Loaded grammar: {}", grammar_name);
                     grammar_count += 1;
+
+                    // Register aliases for this grammar if they exist
+                    if let Some(aliases) = alias_map.get(grammar_name) {
+                        for alias in aliases {
+                            registry.add_alias(grammar_name, alias);
+                            aliases_registered += 1;
+                        }
+                        println!(
+                            "  └─ Registered {} aliases: [{}]",
+                            aliases.len(),
+                            aliases.join(", ")
+                        );
+                    }
                 }
                 Err(e) => {
                     eprintln!("✗ Failed to load grammar {}: {}", grammar_name, e);
@@ -61,6 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("- Failed to load: {} grammars", grammar_errors);
     println!("- Successfully loaded: {} themes", theme_count);
     println!("- Failed to load: {} themes", theme_errors);
+    println!("- Registered aliases: {} total", aliases_registered);
 
     // Serialize Registry to compressed MessagePack format
     println!("\nSerializing Registry with MessagePack + flate2 compression...");

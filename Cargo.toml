@@ -35,11 +35,6 @@ harness = false
 required-features = ["dump"]
 
 [[bin]]
-name = "tm-stats"
-path = "tools/stats.rs"
-required-features = ["tools"]
-
-[[bin]]
 name = "build-registry"
 path = "tools/build_registry.rs"
 required-features = ["tools"]
