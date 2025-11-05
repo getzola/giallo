@@ -7,6 +7,7 @@ use crate::grammars::{
     CompiledGrammar, CompiledInjectionMatcher, GlobalRuleRef, GrammarId, InjectionPrecedence,
     Match, NO_OP_GLOBAL_RULE_REF, ROOT_RULE_ID, RawGrammar, Rule,
 };
+use crate::highlight::TokenWithStyle;
 use crate::scope::Scope;
 use crate::scope::ScopeRepository;
 use crate::themes::{CompiledTheme, RawTheme};
@@ -19,6 +20,12 @@ use crate::tokenizer::{Token, Tokenizer};
 struct Dump {
     registry: Registry,
     scope_repo: ScopeRepository,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct HighlightOptions<'a> {
+    pub lang: &'a str,
+    pub theme: &'a str,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -102,17 +109,38 @@ impl Registry {
 
     pub(crate) fn tokenize(
         &self,
-        lang: &str,
+        grammar_id: GrammarId,
         content: &str,
     ) -> Result<Vec<Vec<Token>>, Box<dyn std::error::Error>> {
-        // 1. Get grammar ID by language name
-        if let Some(grammar_id) = self.get_grammar_id(lang) {
-            // 2. Create tokenizer with the grammar ID and all grammars
-            let mut tokenizer = Tokenizer::new(grammar_id, &self);
-            Ok(tokenizer.tokenize_string(content).unwrap())
-        } else {
-            Err("Grammar not found".into())
+        let mut tokenizer = Tokenizer::new(grammar_id, &self);
+        match tokenizer.tokenize_string(content) {
+            Ok(tokens) => Ok(tokens),
+            Err(e) => Err(Box::new(e)),
         }
+    }
+
+    pub fn highlight(
+        &self,
+        content: &str,
+        options: HighlightOptions,
+    ) -> Result<Vec<Vec<TokenWithStyle>>, Box<dyn std::error::Error>> {
+        let grammar_id = *self
+            .grammar_id_by_name
+            .get(options.lang)
+            .ok_or_else(|| format!("no grammar found for {}", options.lang))?;
+        let theme_id = self
+            .themes
+            .get(options.theme)
+            .ok_or_else(|| format!("no themes found for {}", options.theme))?;
+
+        let tokens = self.tokenize(grammar_id, content)?;
+        let mut out = Vec::with_capacity(tokens.len());
+
+        for line_tokens in tokens {
+            //TODO
+        }
+
+        Ok(out)
     }
 
     pub fn link_grammars(&mut self) {
