@@ -5,8 +5,8 @@ use std::rc::Rc;
 
 use crate::Registry;
 use crate::grammars::{
-    END_RULE_ID, GlobalRuleRef, GrammarId, InjectionPrecedence, PatternSet, PatternSetMatch, Regex,
-    RegexId, Rule, RuleId,
+    END_RULE_ID, GlobalRuleRef, GrammarId, InjectionPrecedence, PatternSet, PatternSetMatch,
+    ROOT_RULE_ID, Regex, RegexId, Rule, RuleId,
 };
 use crate::scope::Scope;
 
@@ -42,6 +42,9 @@ struct StateStack {
     begin_rule_has_captured_eol: bool,
     /// Where we currently are in a line
     anchor_position: Option<usize>,
+    /// The position where this rule was entered during current line (for infinite loop detection)
+    /// None at beginning of a line
+    enter_position: Option<usize>,
 }
 
 impl StateStack {
@@ -50,13 +53,14 @@ impl StateStack {
             parent: None,
             rule_ref: GlobalRuleRef {
                 grammar: grammar_id,
-                rule: RuleId(0),
-            }, // Root rule (always ID 0)
+                rule: ROOT_RULE_ID,
+            },
             name_scopes: vec![grammar_scope],
             content_scopes: vec![grammar_scope],
             end_pattern: None,
             begin_rule_has_captured_eol: false,
             anchor_position: None,
+            enter_position: None,
         }
     }
 
@@ -66,6 +70,7 @@ impl StateStack {
         rule_ref: GlobalRuleRef,
         anchor_position: Option<usize>,
         begin_rule_has_captured_eol: bool,
+        enter_position: Option<usize>,
     ) -> StateStack {
         StateStack {
             parent: Some(Rc::new(self.clone())),
@@ -76,6 +81,7 @@ impl StateStack {
             end_pattern: None,
             begin_rule_has_captured_eol,
             anchor_position,
+            enter_position,
         }
     }
 
@@ -94,6 +100,27 @@ impl StateStack {
     /// Exits the current context, getting back to the parent
     fn pop(&self) -> Option<StateStack> {
         self.parent.as_ref().map(|parent| (**parent).clone())
+    }
+
+    /// Pop but never go below root state - used in infinite loop protection
+    fn safe_pop(&self) -> StateStack {
+        if let Some(parent) = &self.parent {
+            (**parent).clone()
+        } else {
+            self.clone()
+        }
+    }
+
+    /// Resets enter_position for all stack elements to None
+    fn reset_enter_position(&self) -> StateStack {
+        StateStack {
+            parent: self
+                .parent
+                .as_ref()
+                .map(|parent| Rc::new(parent.reset_enter_position())),
+            enter_position: None,
+            ..self.clone()
+        }
     }
 }
 
@@ -713,7 +740,7 @@ impl<'g> Tokenizer<'g> {
             let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
 
             if rule.has_patterns() {
-                let mut retokenization_stack = stack.push(rule_ref, None, false);
+                let mut retokenization_stack = stack.push(rule_ref, None, false, Some(cap_start));
 
                 // Apply rule name scopes to the new state
                 retokenization_stack
@@ -819,6 +846,9 @@ impl<'g> Tokenizer<'g> {
                     );
                 }
 
+                // Track whether this match has advanced the position
+                let has_advanced = m.end > pos;
+
                 // We matched the `end` for this rule, can only happen for BeginEnd rules
                 if m.rule_ref.rule == END_RULE_ID
                     && let Rule::BeginEnd(b) =
@@ -831,6 +861,7 @@ impl<'g> Tokenizer<'g> {
                         );
                     }
                     accumulator.produce(m.start, &stack.content_scopes);
+                    let popped = stack.clone();
                     stack = stack.with_content_scopes(stack.name_scopes.clone());
                     self.resolve_captures(
                         &stack,
@@ -845,13 +876,23 @@ impl<'g> Tokenizer<'g> {
                     // Pop to parent state and update anchor position
                     anchor_position = stack.anchor_position;
                     stack = stack.pop().expect("to have a parent stack");
+
+                    // Grammar pushed & popped a rule without advancing - infinite loop protection
+                    // It happens eg for astro grammar
+                    if !has_advanced && popped.enter_position == Some(pos) {
+                        // See https://github.com/Microsoft/vscode-textmate/issues/12
+                        // Let's assume this was a mistake by the grammar author and the intent was to continue in this state
+                        stack = popped;
+                        accumulator.produce(line.len(), &stack.content_scopes);
+                        break;
+                    }
                 } else {
                     let rule = &self.registry.grammars[m.rule_ref.grammar].rules[m.rule_ref.rule];
                     accumulator.produce(m.start, &stack.content_scopes);
                     let mut new_scopes = stack.content_scopes.clone();
                     new_scopes.extend(rule.get_name_scopes(line, &m.capture_pos));
                     // TODO: improve that push?
-                    stack = stack.push(m.rule_ref, anchor_position, m.end == line.len());
+                    stack = stack.push(m.rule_ref, anchor_position, m.end == line.len(), Some(pos));
                     stack.name_scopes = new_scopes.clone();
                     stack.content_scopes = new_scopes;
                     stack.end_pattern = None;
@@ -916,12 +957,23 @@ impl<'g> Tokenizer<'g> {
                             accumulator.produce(m.end, &stack.content_scopes);
                             // pop rule immediately since it is a MatchRule
                             stack = stack.pop().expect("to have a parent stack");
+
+                            // Protection: grammar is not advancing, nor is it pushing/popping
+                            // happens for some grammars eg astro
+                            if !has_advanced {
+                                if cfg!(feature = "debug") {
+                                    eprintln!("Match rule didn't advance, safe_pop and stop");
+                                }
+                                stack = stack.safe_pop();
+                                accumulator.produce(line.len(), &stack.content_scopes);
+                                break;
+                            }
                         }
                         _ => unreachable!("matched something without a regex??"),
                     }
                 }
 
-                if m.end > pos {
+                if has_advanced {
                     // advance
                     pos = m.end;
                     is_first_line = false;
@@ -956,7 +1008,9 @@ impl<'g> Tokenizer<'g> {
         for line in normalized.split('\n') {
             // Always add a new line, some regex expect it
             let line = format!("{line}\n");
-            let (mut acc, new_state) = self.tokenize_line(stack, &line, is_first_line, true)?;
+            let stack_for_line = stack.reset_enter_position();
+            let (mut acc, new_state) =
+                self.tokenize_line(stack_for_line, &line, is_first_line, true)?;
             acc.finalize(line.len());
             lines_tokens.push(acc.tokens);
             stack = new_state;
