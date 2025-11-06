@@ -8,19 +8,15 @@ pub struct FontStyle {
 }
 
 impl FontStyle {
-    /// Bold font style
     pub const BOLD: Self = Self { bits: 1 };
-    /// Underline font style
     pub const UNDERLINE: Self = Self { bits: 2 };
-    /// Italic font style
     pub const ITALIC: Self = Self { bits: 4 };
+    pub const STRIKETHROUGH: Self = Self { bits: 8 };
 
-    /// Returns an empty set of flags
     pub const fn empty() -> Self {
         Self { bits: 0 }
     }
 
-    /// Returns `true` if no flags are currently stored
     pub const fn is_empty(&self) -> bool {
         self.bits == 0
     }
@@ -41,6 +37,9 @@ impl FontStyle {
         }
         if font_style_str.contains("underline") {
             font_style.insert(FontStyle::UNDERLINE);
+        }
+        if font_style_str.contains("strikethrough") {
+            font_style.insert(FontStyle::STRIKETHROUGH);
         }
         font_style
     }

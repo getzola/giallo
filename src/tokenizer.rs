@@ -137,7 +137,7 @@ pub struct TokenAccumulator {
 
 impl TokenAccumulator {
     fn produce(&mut self, end_pos: usize, scopes: &[Scope]) {
-        // Ensure we don't move backward (can happen with zero-width matches)
+        // Skip empty tokens (can happen with zero-width matches)
         if self.last_end_pos >= end_pos {
             return;
         }

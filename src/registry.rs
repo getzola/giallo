@@ -22,10 +22,23 @@ struct Dump {
     scope_repo: ScopeRepository,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HighlightOptions<'a> {
     pub lang: &'a str,
     pub theme: &'a str,
+    pub merge_whitespaces: bool,
+    pub merge_same_style_tokens: bool,
+}
+
+impl<'a> Default for HighlightOptions<'a> {
+    fn default() -> Self {
+        Self {
+            lang: "",
+            theme: "",
+            merge_whitespaces: false,
+            merge_same_style_tokens: false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -135,9 +148,15 @@ impl Registry {
 
         let tokens = self.tokenize(grammar_id, content)?;
 
+        // Create merging options from HighlightOptions
+        let merging_options = crate::highlight::MergingOptions {
+            merge_whitespaces: options.merge_whitespaces,
+            merge_same_style_tokens: options.merge_same_style_tokens,
+        };
+
         // Create highlighter from theme and apply highlighting (with merging)
         let highlighter = Highlighter::new(theme);
-        let highlighted_tokens = highlighter.highlight_tokens(tokens);
+        let highlighted_tokens = highlighter.highlight_tokens(tokens, merging_options);
 
         Ok(highlighted_tokens)
     }
@@ -302,12 +321,12 @@ impl Registry {
 mod tests {
     use super::*;
     use crate::highlight::{Highlighter, TokenWithStyle};
+    use pretty_assertions::assert_eq;
     use std::fs;
     use std::path::PathBuf;
 
     /// Load a registry with all grammars from grammars-themes and the vitesse-black theme
-    fn load_grammars_themes_registry() -> Result<(Registry, Highlighter), Box<dyn std::error::Error>>
-    {
+    fn load_grammars_themes_registry() -> Result<Registry, Box<dyn std::error::Error>> {
         let mut registry = Registry::default();
 
         // Load all grammars from grammars-themes
@@ -338,13 +357,7 @@ mod tests {
 
         registry.add_theme_from_path("vitesse-black", &theme_path)?;
 
-        let theme = registry
-            .themes
-            .get("vitesse-black")
-            .ok_or("Failed to load vitesse-black theme")?;
-        let highlighter = Highlighter::new(theme);
-
-        Ok((registry, highlighter))
+        Ok(registry)
     }
 
     /// Format highlighted tokens as snapshot string matching grammars-themes format
@@ -364,6 +377,7 @@ mod tests {
 
             for token in line_tokens {
                 let token_content = &line_content[token.range.start..token.range.end];
+                // Use proper hex format that includes alpha channel when needed
                 let hex_color = token.style.foreground.as_hex();
                 // Format: {hex_color_15_chars}{content}
                 result.push_str(&format!("{:<15}{}\n", hex_color, token_content));
@@ -395,139 +409,250 @@ mod tests {
         Ok(samples)
     }
 
-    // #[test]
-    // fn test_all_grammar_snapshots() {
-    //     // Load registry and highlighter
-    //     let (registry, highlighter) = match load_grammars_themes_registry() {
-    //         Ok(result) => result,
-    //         Err(e) => {
-    //             panic!("Failed to load grammars-themes data: {}", e);
-    //         }
-    //     };
-    //
-    //     // Get all sample files
-    //     let sample_files = match get_sample_files() {
-    //         Ok(files) => files,
-    //         Err(e) => {
-    //             panic!("Failed to get sample files: {}", e);
-    //         }
-    //     };
-    //
-    //     let mut total_tested = 0;
-    //     let mut passed = 0;
-    //     let mut failed = Vec::new();
-    //     let mut skipped = Vec::new();
-    //
-    //     println!("Running snapshot tests for {} samples", sample_files.len());
-    //
-    //     for (grammar_name, sample_path) in sample_files {
-    //         // Read sample content
-    //         let sample_content = match fs::read_to_string(&sample_path) {
-    //             Ok(content) => content,
-    //             Err(e) => {
-    //                 eprintln!(
-    //                     "Warning: Failed to read sample {}: {}",
-    //                     sample_path.display(),
-    //                     e
-    //                 );
-    //                 skipped.push(grammar_name);
-    //                 continue;
-    //             }
-    //         };
-    //
-    //         // Check if snapshot file exists
-    //         let snapshot_path = PathBuf::from(format!(
-    //             "grammars-themes/test/__snapshots__/{}.txt",
-    //             grammar_name
-    //         ));
-    //         let expected_snapshot = match fs::read_to_string(&snapshot_path) {
-    //             Ok(content) => content,
-    //             Err(_) => {
-    //                 eprintln!("Warning: No snapshot file for grammar {}", grammar_name);
-    //                 skipped.push(grammar_name);
-    //                 continue;
-    //             }
-    //         };
-    //
-    //         println!("{grammar_name}");
-    //         // Tokenize with giallo
-    //         let tokens = match registry.tokenize(&grammar_name, &sample_content) {
-    //             Ok(tokens) => tokens,
-    //             Err(e) => {
-    //                 eprintln!("Warning: Failed to tokenize {}: {}", grammar_name, e);
-    //                 skipped.push(grammar_name);
-    //                 continue;
-    //             }
-    //         };
-    //
-    //         // Apply theme
-    //         let highlighted_tokens = highlighter.highlight_tokens(&tokens);
-    //
-    //         // Format as snapshot
-    //         let actual_snapshot = format_highlighted_tokens(&highlighted_tokens, &sample_content);
-    //
-    //         total_tested += 1;
-    //
-    //         // Compare with expected snapshot
-    //         if actual_snapshot.trim() == expected_snapshot.trim() {
-    //             passed += 1;
-    //         } else {
-    //             // Print first few mismatches for debugging
-    //             if failed.len() < 3 {
-    //                 println!("\n❌ MISMATCH: {}", grammar_name);
-    //                 let actual_lines: Vec<&str> = actual_snapshot.lines().collect();
-    //                 let expected_lines: Vec<&str> = expected_snapshot.lines().collect();
-    //
-    //                 for (i, (actual, expected)) in
-    //                     actual_lines.iter().zip(expected_lines.iter()).enumerate()
-    //                 {
-    //                     if actual != expected {
-    //                         println!("  Line {}: Expected: {:?}", i + 1, expected);
-    //                         println!("  Line {}: Actual:   {:?}", i + 1, actual);
-    //                         break;
-    //                     }
-    //                 }
-    //             }
-    //
-    //             failed.push((grammar_name.clone(), actual_snapshot, expected_snapshot));
-    //         }
-    //     }
-    //
-    //     // Print summary
-    //     println!("\n📊 SNAPSHOT TEST SUMMARY:");
-    //     println!("  Total tested: {}", total_tested);
-    //     println!(
-    //         "  Passed: {} ({}%)",
-    //         passed,
-    //         if total_tested > 0 {
-    //             passed * 100 / total_tested
-    //         } else {
-    //             0
-    //         }
-    //     );
-    //     println!(
-    //         "  Failed: {} ({}%)",
-    //         failed.len(),
-    //         if total_tested > 0 {
-    //             failed.len() * 100 / total_tested
-    //         } else {
-    //             0
-    //         }
-    //     );
-    //     println!("  Skipped: {} (no sample or snapshot)", skipped.len());
-    //
-    //     if !failed.is_empty() {
-    //         println!("\n❌ FAILED GRAMMARS:");
-    //         for (grammar, _, _) in &failed {
-    //             println!("  - {}", grammar);
-    //         }
-    //
-    //         // Fail the test if there are mismatches
-    //         panic!("{} grammar snapshot(s) failed validation", failed.len());
-    //     } else if total_tested == 0 {
-    //         panic!("No grammar samples were tested - check paths to grammars-themes");
-    //     } else {
-    //         println!("\n✅ All {} grammar snapshots passed!", total_tested);
-    //     }
-    // }
+    #[test]
+    fn test_all_grammar_snapshots() {
+        // Get all sample files
+        let sample_files = match get_sample_files() {
+            Ok(files) => files,
+            Err(e) => {
+                panic!("Failed to get sample files: {}", e);
+            }
+        };
+
+        let mut total_tested = 0;
+        let mut passed = 0;
+        let mut failed = Vec::new();
+        let mut skipped = Vec::new();
+
+        println!("Running snapshot tests for {} samples", sample_files.len());
+
+        for (grammar_name, sample_path) in sample_files {
+            // Create isolated registry for this sample (match Shiki behavior)
+            let mut registry = Registry::default();
+
+            // Load only the specific grammar file for this sample
+            let grammar_path = PathBuf::from(format!(
+                "grammars-themes/packages/tm-grammars/grammars/{}.json",
+                grammar_name
+            ));
+
+            if let Err(e) = registry.add_grammar_from_path(&grammar_path) {
+                eprintln!("Warning: Failed to load grammar {}: {}", grammar_name, e);
+                skipped.push(grammar_name);
+                continue;
+            }
+
+            // Load vitesse-black theme
+            let theme_path =
+                PathBuf::from("grammars-themes/packages/tm-themes/themes/vitesse-black.json");
+            if let Err(e) = registry.add_theme_from_path("vitesse-black", &theme_path) {
+                eprintln!("Warning: Failed to load theme: {}", e);
+                skipped.push(grammar_name);
+                continue;
+            }
+
+            // Link grammars to resolve internal rule references
+            registry.link_grammars();
+
+            // Read sample content
+            let sample_content = match fs::read_to_string(&sample_path) {
+                Ok(content) => content,
+                Err(e) => {
+                    eprintln!(
+                        "Warning: Failed to read sample {}: {}",
+                        sample_path.display(),
+                        e
+                    );
+                    skipped.push(grammar_name);
+                    continue;
+                }
+            };
+
+            // Check if snapshot file exists
+            let snapshot_path = PathBuf::from(format!(
+                "grammars-themes/test/__snapshots__/{}.txt",
+                grammar_name
+            ));
+            let expected_snapshot = match fs::read_to_string(&snapshot_path) {
+                Ok(content) => content,
+                Err(_) => {
+                    eprintln!("Warning: No snapshot file for grammar {}", grammar_name);
+                    skipped.push(grammar_name);
+                    continue;
+                }
+            };
+
+            println!("{grammar_name}");
+            // Use the new highlight function that does tokenization + theming + merging in one step
+            let highlighted_tokens = match registry.highlight(
+                &sample_content,
+                HighlightOptions {
+                    lang: &grammar_name,
+                    theme: "vitesse-black",
+                    ..Default::default()
+                },
+            ) {
+                Ok(tokens) => tokens,
+                Err(e) => {
+                    eprintln!("Warning: Failed to highlight {}: {}", grammar_name, e);
+                    skipped.push(grammar_name);
+                    continue;
+                }
+            };
+
+            // Format as snapshot
+            let actual_snapshot = format_highlighted_tokens(&highlighted_tokens, &sample_content);
+
+            total_tested += 1;
+
+            // Compare with expected snapshot
+            if actual_snapshot.trim() == expected_snapshot.trim() {
+                passed += 1;
+            } else {
+                // Print first few mismatches for debugging
+                if failed.len() < 3 {
+                    println!("\n❌ MISMATCH: {}", grammar_name);
+                    let actual_lines: Vec<&str> = actual_snapshot.lines().collect();
+                    let expected_lines: Vec<&str> = expected_snapshot.lines().collect();
+
+                    for (i, (actual, expected)) in
+                        actual_lines.iter().zip(expected_lines.iter()).enumerate()
+                    {
+                        if actual != expected {
+                            println!("  Line {}: Expected: {:?}", i + 1, expected);
+                            println!("  Line {}: Actual:   {:?}", i + 1, actual);
+                            break;
+                        }
+                    }
+                }
+
+                failed.push((grammar_name.clone(), actual_snapshot, expected_snapshot));
+            }
+        }
+
+        // Print summary
+        println!("\n📊 SNAPSHOT TEST SUMMARY:");
+        println!("  Total tested: {}", total_tested);
+        println!(
+            "  Passed: {} ({}%)",
+            passed,
+            if total_tested > 0 {
+                passed * 100 / total_tested
+            } else {
+                0
+            }
+        );
+        println!(
+            "  Failed: {} ({}%)",
+            failed.len(),
+            if total_tested > 0 {
+                failed.len() * 100 / total_tested
+            } else {
+                0
+            }
+        );
+        println!("  Skipped: {} (no sample or snapshot)", skipped.len());
+
+        if !failed.is_empty() {
+            println!("\n❌ FAILED GRAMMARS:");
+            for (grammar, _, _) in &failed {
+                println!("  - {}", grammar);
+            }
+
+            // Fail the test if there are mismatches
+            panic!("{} grammar snapshot(s) failed validation", failed.len());
+        } else if total_tested == 0 {
+            panic!("No grammar samples were tested - check paths to grammars-themes");
+        } else {
+            println!("\n✅ All {} grammar snapshots passed!", total_tested);
+        }
+    }
+
+    #[test]
+    fn test_render_specific_sample() {
+        let grammar = "angular-ts";
+
+        // Load registry with grammars and theme
+        let mut registry = Registry::default();
+        registry
+            .add_grammar_from_path(&format!(
+                "grammars-themes/packages/tm-grammars/grammars/{}.json",
+                grammar
+            ))
+            .unwrap();
+        registry
+            .add_theme_from_path(
+                "vitesse-black",
+                "grammars-themes/packages/tm-themes/themes/vitesse-black.json",
+            )
+            .unwrap();
+        // Load the actual sample file
+        let sample_path = PathBuf::from(format!("grammars-themes/samples/{}.sample", grammar));
+        let sample_content = match fs::read_to_string(&sample_path) {
+            Ok(content) => content,
+            Err(e) => {
+                panic!("Failed to read sample {}: {}", sample_path.display(), e);
+            }
+        };
+
+        // Load the expected snapshot
+        let snapshot_path = PathBuf::from(format!(
+            "grammars-themes/test/__snapshots__/{}.txt",
+            grammar
+        ));
+        let expected_snapshot = match fs::read_to_string(&snapshot_path) {
+            Ok(content) => content,
+            Err(e) => {
+                panic!("Failed to read snapshot {}: {}", snapshot_path.display(), e);
+            }
+        };
+
+        // Use the new highlight function
+        let highlighted_tokens = match registry.highlight(
+            &sample_content,
+            HighlightOptions {
+                lang: grammar,
+                theme: "vitesse-black",
+                merge_same_style_tokens: false,
+                ..Default::default()
+            },
+        ) {
+            Ok(tokens) => tokens,
+            Err(e) => {
+                panic!("Failed to highlight {}: {}", grammar, e);
+            }
+        };
+
+        // Format and print both outputs for comparison
+        let actual_formatted = format_highlighted_tokens(&highlighted_tokens, &sample_content);
+
+        // Debug: Check if we have the exact same tokens that should produce the expected output
+        let total_tokens: usize = highlighted_tokens.iter().map(|line| line.len()).sum();
+        println!("DEBUG: We produced {} tokens total", total_tokens);
+        println!(
+            "DEBUG: Expected {} lines in snapshot",
+            expected_snapshot.lines().count()
+        );
+
+        // Identify the 11 extra tokens we produce
+        let expected_lines: Vec<&str> = expected_snapshot.lines().collect();
+        let actual_lines: Vec<&str> = actual_formatted.lines().collect();
+
+        println!("DEBUG: First difference at line 47:");
+        if let (Some(expected), Some(actual)) = (expected_lines.get(47), actual_lines.get(47)) {
+            println!("  Expected[47]: {:?}", expected);
+            println!("  Actual[47]:   {:?}", actual);
+        }
+
+        // Show the extra 11 tokens at the end
+        if actual_lines.len() > expected_lines.len() {
+            let extra_start = expected_lines.len();
+            println!("DEBUG: Our 11 extra tokens:");
+            for (i, line) in actual_lines[extra_start..].iter().enumerate() {
+                println!("  Extra[{}]: {:?}", i, line);
+            }
+        }
+
+        assert_eq!(actual_formatted.trim(), expected_snapshot.trim());
+    }
 }

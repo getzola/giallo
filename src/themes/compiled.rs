@@ -4,43 +4,33 @@ use serde::{Deserialize, Serialize};
 use crate::themes::Color;
 use crate::themes::font_style::FontStyle;
 use crate::themes::raw::{RawTheme, TokenColorSettings};
-use crate::themes::selector::{Parent, ThemeSelector, parse_selector};
+use crate::themes::selector::{ThemeSelector, parse_selector};
 
-/// Internal struct for calculating theme rule specificity during compilation.
-///
-/// Implements VSCode-TextMate specificity rules with 3-tier ordering:
-/// 1. scope_depth: Number of scopes in the selector (parents + target)
-/// 2. parent_length: Total characters in parent scope names
-/// 3. parent_count: Number of parent scope requirements
-///
+/// Simplified specificity calculation for theme rule sorting.
+/// Higher values = higher specificity = earlier in rule list.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct Specificity {
+    /// Number of atoms in target scope (most important)
     scope_depth: u32,
-    parent_length: u32,
+    /// Number of parent scopes (tie-breaker)
     parent_count: u32,
 }
 
 impl Specificity {
     /// Calculate specificity for a theme selector.
     fn calculate(selector: &ThemeSelector) -> Self {
-        let scope_depth = selector.parent_scopes.len() as u32 + 1;
-
-        let parent_length = selector
-            .parent_scopes
-            .iter()
-            .map(|parent| {
-                let scope = match parent {
-                    Parent::Anywhere(s) | Parent::Direct(s) => s,
-                };
-                scope.build_string().len() as u32
-            })
-            .sum();
+        // Count atoms in target scope (dots + 1)
+        let target_scope_string = selector.target_scope.build_string();
+        let scope_depth = if target_scope_string.is_empty() {
+            0
+        } else {
+            (target_scope_string.matches('.').count() + 1) as u32
+        };
 
         let parent_count = selector.parent_scopes.len() as u32;
 
         Specificity {
             scope_depth,
-            parent_length,
             parent_count,
         }
     }
@@ -64,6 +54,13 @@ impl Default for Style {
             background: Color::WHITE,
             font_style: FontStyle::empty(),
         }
+    }
+}
+
+impl Style {
+    pub fn has_decorations(&self) -> bool {
+        self.font_style.contains(FontStyle::UNDERLINE)
+            || self.font_style.contains(FontStyle::STRIKETHROUGH)
     }
 }
 
@@ -177,12 +174,6 @@ impl CompiledTheme {
 
         let mut rules_with_specificity = Vec::new();
 
-        // TODO: Implement VSCode-TextMate compatible deduplication
-        // VSCode-TextMate merges rules with identical selectors during build-time,
-        // with later rules overwriting earlier ones. Current implementation doesn't
-        // handle this edge case, but it works correctly for most real themes.
-
-        // Parse each token color rule
         for token_rule in raw_theme.token_colors {
             if token_rule.scope.is_empty() {
                 if let Some(fg) = token_rule.settings.foreground() {
@@ -209,22 +200,19 @@ impl CompiledTheme {
             }
 
             if !selectors.is_empty() {
-                // Calculate max specificity among all selectors in this rule
-                let max_specificity = selectors
-                    .iter()
-                    .map(|sel| Specificity::calculate(sel))
-                    .max()
-                    .unwrap();
-
                 let style_modifier = StyleModifier::try_from(token_rule.settings.clone())?;
 
-                rules_with_specificity.push((
-                    CompiledThemeRule {
-                        selectors,
-                        style_modifier,
-                    },
-                    max_specificity,
-                ));
+                // Flatten: create one rule per selector (VSCode-TextMate behavior)
+                for selector in selectors {
+                    let specificity = Specificity::calculate(&selector);
+                    rules_with_specificity.push((
+                        CompiledThemeRule {
+                            selectors: vec![selector], // Single selector per rule
+                            style_modifier: style_modifier.clone(),
+                        },
+                        specificity,
+                    ));
+                }
             }
         }
 

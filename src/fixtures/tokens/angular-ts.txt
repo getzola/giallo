@@ -1,0 +1,707 @@
+0: 'import' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+  - keyword.control.import.ts
+
+1: ' ' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+
+2: '{' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+  - punctuation.definition.block.ts
+
+3: ' ' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+
+4: 'Component' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+  - variable.other.readwrite.alias.ts
+
+5: ',' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+  - punctuation.separator.comma.ts
+
+6: ' ' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+
+7: 'inject' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+  - variable.other.readwrite.alias.ts
+
+8: ' ' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+
+9: '}' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+  - punctuation.definition.block.ts
+
+10: ' ' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+
+11: 'from' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+  - keyword.control.from.ts
+
+12: ' ' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+
+13: ''' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+  - string.quoted.single.ts
+  - punctuation.definition.string.begin.ts
+
+14: '@angular/core' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+  - string.quoted.single.ts
+
+15: ''' (line 0)
+  - source.ts.ng
+  - meta.import.ts
+  - string.quoted.single.ts
+  - punctuation.definition.string.end.ts
+
+16: ';' (line 0)
+  - source.ts.ng
+  - punctuation.terminator.statement.ts
+
+0: 'import' (line 1)
+  - source.ts.ng
+  - meta.import.ts
+  - keyword.control.import.ts
+
+1: ' ' (line 1)
+  - source.ts.ng
+  - meta.import.ts
+
+2: '{' (line 1)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+  - punctuation.definition.block.ts
+
+3: ' ' (line 1)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+
+4: 'RouterLink' (line 1)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+  - variable.other.readwrite.alias.ts
+
+5: ' ' (line 1)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+
+6: '}' (line 1)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+  - punctuation.definition.block.ts
+
+7: ' ' (line 1)
+  - source.ts.ng
+  - meta.import.ts
+
+8: 'from' (line 1)
+  - source.ts.ng
+  - meta.import.ts
+  - keyword.control.from.ts
+
+9: ' ' (line 1)
+  - source.ts.ng
+  - meta.import.ts
+
+10: ''' (line 1)
+  - source.ts.ng
+  - meta.import.ts
+  - string.quoted.single.ts
+  - punctuation.definition.string.begin.ts
+
+11: '@angular/router' (line 1)
+  - source.ts.ng
+  - meta.import.ts
+  - string.quoted.single.ts
+
+12: ''' (line 1)
+  - source.ts.ng
+  - meta.import.ts
+  - string.quoted.single.ts
+  - punctuation.definition.string.end.ts
+
+13: ';' (line 1)
+  - source.ts.ng
+  - punctuation.terminator.statement.ts
+
+0: 'import' (line 2)
+  - source.ts.ng
+  - meta.import.ts
+  - keyword.control.import.ts
+
+1: ' ' (line 2)
+  - source.ts.ng
+  - meta.import.ts
+
+2: '{' (line 2)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+  - punctuation.definition.block.ts
+
+3: ' ' (line 2)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+
+4: 'CartService' (line 2)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+  - variable.other.readwrite.alias.ts
+
+5: ' ' (line 2)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+
+6: '}' (line 2)
+  - source.ts.ng
+  - meta.import.ts
+  - meta.block.ts
+  - punctuation.definition.block.ts
+
+7: ' ' (line 2)
+  - source.ts.ng
+  - meta.import.ts
+
+8: 'from' (line 2)
+  - source.ts.ng
+  - meta.import.ts
+  - keyword.control.from.ts
+
+9: ' ' (line 2)
+  - source.ts.ng
+  - meta.import.ts
+
+10: ''' (line 2)
+  - source.ts.ng
+  - meta.import.ts
+  - string.quoted.single.ts
+  - punctuation.definition.string.begin.ts
+
+11: './cart.service' (line 2)
+  - source.ts.ng
+  - meta.import.ts
+  - string.quoted.single.ts
+
+12: ''' (line 2)
+  - source.ts.ng
+  - meta.import.ts
+  - string.quoted.single.ts
+  - punctuation.definition.string.end.ts
+
+13: ';' (line 2)
+  - source.ts.ng
+  - punctuation.terminator.statement.ts
+
+0: '@' (line 4)
+  - source.ts.ng
+  - meta.decorator.ts
+  - punctuation.decorator.ts
+
+1: 'Component' (line 4)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.function-call.ts
+  - entity.name.function.ts
+
+2: '(' (line 4)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.brace.round.ts
+
+3: '{' (line 4)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - punctuation.definition.block.ts
+
+0: '  ' (line 5)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+
+1: 'selector' (line 5)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.object-literal.key.ts
+
+2: ':' (line 5)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.object-literal.key.ts
+  - punctuation.separator.key-value.ts
+
+3: ' ' (line 5)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+
+4: ''' (line 5)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.quoted.single.ts
+  - punctuation.definition.string.begin.ts
+
+5: 'app-cart-button' (line 5)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.quoted.single.ts
+
+6: ''' (line 5)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.quoted.single.ts
+  - punctuation.definition.string.end.ts
+
+7: ',' (line 5)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - punctuation.separator.comma.ts
+
+0: '  ' (line 6)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+
+1: 'standalone' (line 6)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.object-literal.key.ts
+
+2: ':' (line 6)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.object-literal.key.ts
+  - punctuation.separator.key-value.ts
+
+3: ' ' (line 6)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+
+4: 'true' (line 6)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - constant.language.boolean.true.ts
+
+5: ',' (line 6)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - punctuation.separator.comma.ts
+
+0: '  ' (line 7)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+
+1: 'imports' (line 7)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.object-literal.key.ts
+
+2: ':' (line 7)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.object-literal.key.ts
+  - punctuation.separator.key-value.ts
+
+3: ' ' (line 7)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.array.literal.ts
+
+4: '[' (line 7)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.array.literal.ts
+  - meta.brace.square.ts
+
+5: 'RouterLink' (line 7)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.array.literal.ts
+  - variable.other.readwrite.ts
+
+6: ']' (line 7)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.array.literal.ts
+  - meta.brace.square.ts
+
+7: ',' (line 7)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - punctuation.separator.comma.ts
+
+0: '  ' (line 8)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+
+1: 'template' (line 8)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.object-literal.key.ts
+
+2: ':' (line 8)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.object-literal.key.ts
+  - punctuation.separator.key-value.ts
+
+3: ' ' (line 8)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+
+4: '`' (line 8)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+  - punctuation.definition.string.template.begin.ts
+
+0: '    <button type="button" [routerLink]="'/cart'">' (line 9)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+
+0: '      @if (cartService.length > 0) {' (line 10)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+
+0: '        <div>' (line 11)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+
+0: '          @let hello = "world";' (line 12)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+
+0: '          {{ cartService.length }}' (line 13)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+
+0: '        </div>' (line 14)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+
+0: '      }' (line 15)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+
+0: '      Cart' (line 16)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+
+0: '    </button>' (line 17)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+
+0: '  ' (line 18)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+
+1: '`' (line 18)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+  - punctuation.definition.string.template.end.ts
+
+2: ',' (line 18)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - punctuation.separator.comma.ts
+
+0: '  ' (line 19)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+
+1: 'styles' (line 19)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.object-literal.key.ts
+
+2: ':' (line 19)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - meta.object-literal.key.ts
+  - punctuation.separator.key-value.ts
+
+3: ' ' (line 19)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+
+4: '`' (line 19)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+  - punctuation.definition.string.template.begin.ts
+
+0: '    div { display: block; }' (line 20)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+
+0: '  ' (line 21)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+
+1: '`' (line 21)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - meta.object.member.ts
+  - string.template.ts
+  - punctuation.definition.string.template.end.ts
+
+2: ',' (line 21)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - punctuation.separator.comma.ts
+
+0: '}' (line 22)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.objectliteral.ts
+  - punctuation.definition.block.ts
+
+1: ')' (line 22)
+  - source.ts.ng
+  - meta.decorator.ts
+  - meta.brace.round.ts
+
+0: 'export' (line 23)
+  - source.ts.ng
+  - meta.class.ts
+  - keyword.control.export.ts
+
+1: ' ' (line 23)
+  - source.ts.ng
+  - meta.class.ts
+
+2: 'class' (line 23)
+  - source.ts.ng
+  - meta.class.ts
+  - storage.type.class.ts
+
+3: ' ' (line 23)
+  - source.ts.ng
+  - meta.class.ts
+
+4: 'CartButtonComponent' (line 23)
+  - source.ts.ng
+  - meta.class.ts
+  - entity.name.type.class.ts
+
+5: ' ' (line 23)
+  - source.ts.ng
+  - meta.class.ts
+
+6: '{' (line 23)
+  - source.ts.ng
+  - meta.class.ts
+  - punctuation.definition.block.ts
+
+0: '  ' (line 24)
+  - source.ts.ng
+  - meta.class.ts
+
+1: 'protected' (line 24)
+  - source.ts.ng
+  - meta.class.ts
+  - storage.modifier.ts
+
+2: ' ' (line 24)
+  - source.ts.ng
+  - meta.class.ts
+  - meta.field.declaration.ts
+
+3: 'cartService' (line 24)
+  - source.ts.ng
+  - meta.class.ts
+  - meta.field.declaration.ts
+  - meta.definition.property.ts
+  - variable.object.property.ts
+
+4: ' ' (line 24)
+  - source.ts.ng
+  - meta.class.ts
+  - meta.field.declaration.ts
+
+5: '=' (line 24)
+  - source.ts.ng
+  - meta.class.ts
+  - meta.field.declaration.ts
+  - keyword.operator.assignment.ts
+
+6: ' ' (line 24)
+  - source.ts.ng
+  - meta.class.ts
+  - meta.field.declaration.ts
+
+7: 'inject' (line 24)
+  - source.ts.ng
+  - meta.class.ts
+  - meta.field.declaration.ts
+  - meta.function-call.ts
+  - entity.name.function.ts
+
+8: '(' (line 24)
+  - source.ts.ng
+  - meta.class.ts
+  - meta.field.declaration.ts
+  - meta.brace.round.ts
+
+9: 'CartService' (line 24)
+  - source.ts.ng
+  - meta.class.ts
+  - meta.field.declaration.ts
+  - variable.other.readwrite.ts
+
+10: ')' (line 24)
+  - source.ts.ng
+  - meta.class.ts
+  - meta.field.declaration.ts
+  - meta.brace.round.ts
+
+11: ';' (line 24)
+  - source.ts.ng
+  - meta.class.ts
+  - punctuation.terminator.statement.ts
+
+0: '}' (line 25)
+  - source.ts.ng
+  - meta.class.ts
+  - punctuation.definition.block.ts
+
+0: '//' (line 27)
+  - source.ts.ng
+  - comment.line.double-slash.ts
+  - punctuation.definition.comment.ts
+
+1: ' From https://github.com/niklas-wortmann/signals-observable-example/blob/main/src/app/cart/cart-button.component.ts' (line 27)
+  - source.ts.ng
+  - comment.line.double-slash.ts
+

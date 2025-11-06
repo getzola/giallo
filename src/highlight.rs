@@ -11,6 +11,22 @@ pub struct TokenWithStyle {
     pub style: Style,
 }
 
+/// Options for token merging behavior
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MergingOptions {
+    pub merge_whitespaces: bool,
+    pub merge_same_style_tokens: bool,
+}
+
+impl Default for MergingOptions {
+    fn default() -> Self {
+        Self {
+            merge_whitespaces: true,
+            merge_same_style_tokens: true,
+        }
+    }
+}
+
 /// Internal rule for highlighting - one selector per rule
 #[derive(Debug, Clone)]
 struct HighlightRule {
@@ -64,7 +80,11 @@ impl Highlighter {
 
     /// Apply highlighting to tokenized lines, preserving line structure.
     /// Merges adjacent tokens with the same style for optimization.
-    pub fn highlight_tokens(&self, tokens: Vec<Vec<Token>>) -> Vec<Vec<TokenWithStyle>> {
+    pub fn highlight_tokens(
+        &self,
+        tokens: Vec<Vec<Token>>,
+        options: MergingOptions,
+    ) -> Vec<Vec<TokenWithStyle>> {
         let mut result = Vec::with_capacity(tokens.len());
 
         for line_tokens in tokens {
@@ -87,12 +107,25 @@ impl Highlighter {
                     }
                 }
 
-                // Different style or first token - create new TokenWithStyle
                 line_result.push(TokenWithStyle {
                     range: token.span.clone(),
                     style,
                 });
             }
+
+            let num_tokens = line_result.len();
+
+            // first merge all ws by prepending to the next non-ws token
+            if options.merge_whitespaces {
+                let mut merged = Vec::with_capacity(num_tokens);
+                for (i, token) in line_result.iter().enumerate() {
+                    let could_merge = !token.style.has_decorations();
+                }
+                line_result = merged;
+            }
+
+            // then merge same style tokens after we did the WS
+            if options.merge_same_style_tokens {}
 
             result.push(line_result);
         }
@@ -192,7 +225,7 @@ mod tests {
             vec![token(0, 2, "comment")],
         ];
 
-        let highlighted = highlighter.highlight_tokens(tokens);
+        let highlighted = highlighter.highlight_tokens(tokens, MergingOptions::default());
 
         assert_eq!(highlighted.len(), 2);
         assert_eq!(highlighted[0].len(), 2);
