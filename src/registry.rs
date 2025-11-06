@@ -7,15 +7,12 @@ use crate::grammars::{
     CompiledGrammar, GlobalRuleRef, GrammarId, InjectionPrecedence, Match, NO_OP_GLOBAL_RULE_REF,
     ROOT_RULE_ID, RawGrammar, Rule,
 };
-use crate::highlight::{Highlighter, TokenWithStyle};
+use crate::highlight::{HighlightedText, Highlighter};
 use crate::scope::Scope;
 use crate::scope::ScopeRepository;
 use crate::themes::{CompiledTheme, RawTheme};
 use crate::tokenizer::{Token, Tokenizer};
 
-// TODO: once theme matching works, we will create scopes in all rules + themes when compiling
-// TODO: and add that to the dump. This means we will need to write only to the scope registry only
-// TODO: for runtime scopes, eg capturing names
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 struct Dump {
     registry: Registry,
@@ -35,10 +32,15 @@ impl<'a> Default for HighlightOptions<'a> {
         Self {
             lang: "",
             theme: "",
-            merge_whitespaces: false,
-            merge_same_style_tokens: false,
+            merge_whitespaces: true,
+            merge_same_style_tokens: true,
         }
     }
+}
+
+#[inline]
+pub(crate) fn normalize_string(s: &str) -> String {
+    s.replace("\r\n", "\n").replace('\r', "\n")
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -136,7 +138,7 @@ impl Registry {
         &self,
         content: &str,
         options: HighlightOptions,
-    ) -> Result<Vec<Vec<TokenWithStyle>>, Box<dyn std::error::Error>> {
+    ) -> Result<Vec<Vec<HighlightedText>>, Box<dyn std::error::Error>> {
         let grammar_id = *self
             .grammar_id_by_name
             .get(options.lang)
@@ -146,7 +148,9 @@ impl Registry {
             .get(options.theme)
             .ok_or_else(|| format!("no themes found for {}", options.theme))?;
 
-        let tokens = self.tokenize(grammar_id, content)?;
+        let normalized_content = normalize_string(content);
+
+        let tokens = self.tokenize(grammar_id, &normalized_content)?;
 
         // Create merging options from HighlightOptions
         let merging_options = crate::highlight::MergingOptions {
@@ -156,7 +160,8 @@ impl Registry {
 
         // Create highlighter from theme and apply highlighting (with merging)
         let highlighter = Highlighter::new(theme);
-        let highlighted_tokens = highlighter.highlight_tokens(tokens, merging_options);
+        let highlighted_tokens =
+            highlighter.highlight_tokens(&normalized_content, tokens, merging_options);
 
         Ok(highlighted_tokens)
     }
@@ -320,7 +325,7 @@ impl Registry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::highlight::{Highlighter, TokenWithStyle};
+    use crate::highlight::{HighlightedText, Highlighter};
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::path::PathBuf;
@@ -362,7 +367,7 @@ mod tests {
 
     /// Format highlighted tokens as snapshot string matching grammars-themes format
     fn format_highlighted_tokens(
-        highlighted_tokens: &[Vec<TokenWithStyle>],
+        highlighted_tokens: &[Vec<HighlightedText>],
         content: &str,
     ) -> String {
         let lines: Vec<&str> = content.lines().collect();
@@ -376,11 +381,10 @@ mod tests {
             let line_content = lines[line_idx];
 
             for token in line_tokens {
-                let token_content = &line_content[token.range.start..token.range.end];
                 // Use proper hex format that includes alpha channel when needed
                 let hex_color = token.style.foreground.as_hex();
                 // Format: {hex_color_15_chars}{content}
-                result.push_str(&format!("{:<15}{}\n", hex_color, token_content));
+                result.push_str(&format!("{:<15}{}\n", hex_color, token.text));
             }
         }
 
@@ -608,15 +612,13 @@ mod tests {
         };
 
         // Use the new highlight function
-        let highlighted_tokens = match registry.highlight(
-            &sample_content,
-            HighlightOptions {
-                lang: grammar,
-                theme: "vitesse-black",
-                merge_same_style_tokens: false,
-                ..Default::default()
-            },
-        ) {
+        let options = HighlightOptions {
+            lang: grammar,
+            theme: "vitesse-black",
+            ..Default::default()
+        };
+        println!("{options:?}");
+        let highlighted_tokens = match registry.highlight(&sample_content, options) {
             Ok(tokens) => tokens,
             Err(e) => {
                 panic!("Failed to highlight {}: {}", grammar, e);
@@ -626,33 +628,6 @@ mod tests {
         // Format and print both outputs for comparison
         let actual_formatted = format_highlighted_tokens(&highlighted_tokens, &sample_content);
 
-        // Debug: Check if we have the exact same tokens that should produce the expected output
-        let total_tokens: usize = highlighted_tokens.iter().map(|line| line.len()).sum();
-        println!("DEBUG: We produced {} tokens total", total_tokens);
-        println!(
-            "DEBUG: Expected {} lines in snapshot",
-            expected_snapshot.lines().count()
-        );
-
-        // Identify the 11 extra tokens we produce
-        let expected_lines: Vec<&str> = expected_snapshot.lines().collect();
-        let actual_lines: Vec<&str> = actual_formatted.lines().collect();
-
-        println!("DEBUG: First difference at line 47:");
-        if let (Some(expected), Some(actual)) = (expected_lines.get(47), actual_lines.get(47)) {
-            println!("  Expected[47]: {:?}", expected);
-            println!("  Actual[47]:   {:?}", actual);
-        }
-
-        // Show the extra 11 tokens at the end
-        if actual_lines.len() > expected_lines.len() {
-            let extra_start = expected_lines.len();
-            println!("DEBUG: Our 11 extra tokens:");
-            for (i, line) in actual_lines[extra_start..].iter().enumerate() {
-                println!("  Extra[{}]: {:?}", i, line);
-            }
-        }
-
-        assert_eq!(actual_formatted.trim(), expected_snapshot.trim());
+        assert_eq!(expected_snapshot.trim(), actual_formatted.trim());
     }
 }

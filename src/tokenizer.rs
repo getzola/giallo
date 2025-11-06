@@ -991,9 +991,8 @@ impl<'g> Tokenizer<'g> {
         Ok((accumulator, stack))
     }
 
-    pub fn tokenize_string(&mut self, text: &str) -> Result<Vec<Vec<Token>>, TokenizeError> {
-        let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
-        if normalized.is_empty() {
+    pub(crate) fn tokenize_string(&mut self, text: &str) -> Result<Vec<Vec<Token>>, TokenizeError> {
+        if text.is_empty() {
             return Ok(vec![]);
         }
 
@@ -1005,7 +1004,7 @@ impl<'g> Tokenizer<'g> {
         let mut is_first_line = true;
 
         // Split by lines and tokenize each line
-        for line in normalized.split('\n') {
+        for line in text.split('\n') {
             // Always add a new line, some regex expect it
             let line = format!("{line}\n");
             let stack_for_line = stack.reset_enter_position();

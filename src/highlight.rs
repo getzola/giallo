@@ -1,13 +1,13 @@
-use std::ops::Range;
-
 use crate::scope::Scope;
 use crate::themes::{CompiledTheme, Style, ThemeSelector};
 use crate::tokenizer::Token;
+use serde::{Deserialize, Serialize};
+use std::ops::Range;
 
 /// A token with associated styling information
-#[derive(Debug, Clone, PartialEq)]
-pub struct TokenWithStyle {
-    pub range: Range<usize>,
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct HighlightedText {
+    pub text: String,
     pub style: Style,
 }
 
@@ -79,55 +79,112 @@ impl Highlighter {
     }
 
     /// Apply highlighting to tokenized lines, preserving line structure.
-    /// Merges adjacent tokens with the same style for optimization.
     pub fn highlight_tokens(
         &self,
+        content: &str,
         tokens: Vec<Vec<Token>>,
         options: MergingOptions,
-    ) -> Vec<Vec<TokenWithStyle>> {
+    ) -> Vec<Vec<HighlightedText>> {
         let mut result = Vec::with_capacity(tokens.len());
 
-        for line_tokens in tokens {
+        let lines = content.split('\n').collect::<Vec<_>>();
+
+        for (line_tokens, line) in tokens.into_iter().zip(lines) {
             if line_tokens.is_empty() {
                 result.push(Vec::new());
                 continue;
             }
 
-            let mut line_result: Vec<TokenWithStyle> = Vec::with_capacity(line_tokens.len());
+            let mut line_result = line_tokens
+                .into_iter()
+                .map(|x| (x.span, self.match_scopes(&x.scopes)))
+                .collect::<Vec<_>>();
 
-            for token in line_tokens {
-                let style = self.match_scopes(&token.scopes);
+            // for token in line_tokens {
+            //     let style = self.match_scopes(&token.scopes);
+            //     line_result.push((token.span, style));
 
-                // Try to merge with the last token in line_result
-                if let Some(last_token) = line_result.last_mut() {
-                    if last_token.style == style {
-                        // Same style - extend the range to include this token
-                        last_token.range.end = token.span.end;
-                        continue; // Skip creating a new token
-                    }
-                }
-
-                line_result.push(TokenWithStyle {
-                    range: token.span.clone(),
-                    style,
-                });
-            }
-
-            let num_tokens = line_result.len();
+            // // Try to merge with the last token in line_result
+            // if let Some(last_token) = line_result.last_mut() {
+            //     if last_token.style == style {
+            //         // Same style - extend the range to include this token
+            //         last_token.range.end = token.span.end;
+            //         continue; // Skip creating a new token
+            //     }
+            // }
+            // }
 
             // first merge all ws by prepending to the next non-ws token
             if options.merge_whitespaces {
+                let num_tokens = line_result.len();
                 let mut merged = Vec::with_capacity(num_tokens);
-                for (i, token) in line_result.iter().enumerate() {
-                    let could_merge = !token.style.has_decorations();
+                let mut carry_on_range: Option<Range<usize>> = None;
+
+                for (idx, (span, style)) in line_result.into_iter().enumerate() {
+                    let could_merge = !style.has_decorations();
+                    let token_content = &line[span.clone()];
+                    let is_whitespace_with_next = could_merge
+                        && token_content.chars().all(|c| c.is_whitespace())
+                        && idx + 1 < num_tokens;
+
+                    if is_whitespace_with_next {
+                        // Extend or initialize the carried range
+                        carry_on_range = Some(match carry_on_range {
+                            Some(range) => range.start..span.end,
+                            None => span.clone(),
+                        });
+                    } else {
+                        // We've hit a non-whitespace token or the last token in the line
+                        if let Some(carried_range) = &carry_on_range {
+                            if could_merge {
+                                // We can prepend all the WS to that token
+                                merged.push((carried_range.start..span.end, style))
+                            } else {
+                                // We need to push 2 tokens here, one for the carried WS and one
+                                // for the current token
+                                merged.push((carried_range.clone(), Style::default()));
+                                merged.push((span, style));
+                            }
+                            carry_on_range = None;
+                        } else {
+                            merged.push((span, style));
+                        }
+                    }
                 }
+
                 line_result = merged;
             }
 
             // then merge same style tokens after we did the WS
-            if options.merge_same_style_tokens {}
+            if options.merge_same_style_tokens {
+                let num_tokens = line_result.len();
+                let mut merged: Vec<(Range<usize>, Style)> = Vec::with_capacity(num_tokens);
 
-            result.push(line_result);
+                for (span, style) in line_result {
+                    if let Some((prev_span, prev_style)) = merged.last_mut() {
+                        if style == *prev_style {
+                            prev_span.end = span.end;
+                        } else {
+                            merged.push((span, style));
+                        }
+                    } else {
+                        merged.push((span, style));
+                    }
+                }
+
+                line_result = merged;
+            }
+
+            // then transform into HighlightedText
+            result.push(
+                line_result
+                    .into_iter()
+                    .map(|(span, style)| HighlightedText {
+                        style,
+                        text: line[span].to_string(),
+                    })
+                    .collect(),
+            );
         }
 
         result
@@ -224,23 +281,24 @@ mod tests {
             vec![token(0, 2, "keyword"), token(3, 8, "unknown")],
             vec![token(0, 2, "comment")],
         ];
+        let content = "if hello\n//";
 
-        let highlighted = highlighter.highlight_tokens(tokens, MergingOptions::default());
+        let highlighted = highlighter.highlight_tokens(content, tokens, MergingOptions::default());
 
         assert_eq!(highlighted.len(), 2);
         assert_eq!(highlighted[0].len(), 2);
         assert_eq!(highlighted[1].len(), 1);
 
         // Keyword token
-        assert_eq!(highlighted[0][0].range, Range { start: 0, end: 2 });
+        assert_eq!(highlighted[0][0].text, "if");
         assert_eq!(highlighted[0][0].style.foreground, color("#569CD6"));
 
         // Unknown token uses default
-        assert_eq!(highlighted[0][1].range, Range { start: 3, end: 8 });
+        assert_eq!(highlighted[0][1].text, "hello");
         assert_eq!(highlighted[0][1].style.foreground, color("#D4D4D4"));
 
         // Comment token
-        assert_eq!(highlighted[1][0].range, Range { start: 0, end: 2 });
+        assert_eq!(highlighted[1][0].text, "//");
         assert_eq!(highlighted[1][0].style.foreground, color("#6A9955"));
     }
 
