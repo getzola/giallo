@@ -309,73 +309,51 @@ impl<'g> Tokenizer<'g> {
     /// Returns (is_left_precedence, PatternSetMatch) for the best match
     fn match_injections(
         &mut self,
-        target_grammar_id: GrammarId,
-        scope_stack: &[Scope],
+        stack: &StateStack,
         line: &str,
         pos: usize,
-    ) -> Result<Option<(bool, PatternSetMatch)>, TokenizeError> {
+        is_first_line: bool,
+        anchor_position: Option<usize>,
+    ) -> Result<Option<(InjectionPrecedence, PatternSetMatch)>, TokenizeError> {
         let injection_patterns = self
             .registry
-            .collect_injection_patterns(self.base_grammar_id, scope_stack);
+            .collect_injection_patterns(self.base_grammar_id, &stack.content_scopes);
 
         if injection_patterns.is_empty() {
             return Ok(None);
         }
 
-        let mut best_match: Option<(bool, PatternSetMatch)> = None;
+        let mut best_match: Option<(InjectionPrecedence, PatternSetMatch)> = None;
 
         // Process injections in the order returned by registry (already sorted by precedence)
-        for (precedence, patterns) in injection_patterns {
-            if patterns.is_empty() {
-                continue;
-            }
-
-            // Create a PatternSet for this injection rule (convert &str to String)
-            let patterns_owned: Vec<(GlobalRuleRef, String)> = patterns
-                .into_iter()
-                .map(|(rule_ref, pattern)| (rule_ref, pattern.to_string()))
-                .collect();
-            let pattern_set = PatternSet::new(patterns_owned);
+        for (precedence, rule) in injection_patterns {
+            let mut s = stack.clone();
+            s.rule_ref = rule;
+            s.end_pattern = None;
             if cfg!(feature = "debug") {
-                eprintln!(
-                    "Scope stack {scope_stack:?} matched injection pattern set:\n{pattern_set:?}"
-                );
+                println!("Building pattern set for injection");
             }
 
-            // Try to find a match at current position
-            if let Some(match_result) = pattern_set.find_at(line, pos)? {
-                let is_left_precedence = precedence == InjectionPrecedence::Left;
-                let candidate = (is_left_precedence, match_result);
+            let pattern_set =
+                self.get_or_create_pattern_set(&s, pos, is_first_line, anchor_position);
 
-                match &best_match {
-                    None => {
-                        best_match = Some(candidate);
-                    }
-                    Some((current_is_left, current_match)) => {
-                        // vscode-textmate comparison logic:
-                        // Left precedence wins ties, others lose ties
-                        let should_replace = if is_left_precedence && !current_is_left {
-                            // Left beats non-left
-                            true
-                        } else if !is_left_precedence && *current_is_left {
-                            // Non-left loses to left
-                            false
-                        } else {
-                            // Same precedence level - later wins (replace on >=)
-                            candidate.1.start <= current_match.start
-                        };
-
-                        if should_replace {
-                            best_match = Some(candidate);
-                        }
-                    }
+            if let Some(found) = pattern_set.find_at(line, pos)? {
+                if cfg!(feature = "debug") {
+                    println!("found a match in injection: {:?}", found);
                 }
-            }
-        }
 
-        if cfg!(feature = "debug") {
-            if let Some((left, m)) = &best_match {
-                eprintln!("Scope stack {scope_stack:?} matched {m:?}, left: {left}");
+                if let Some((_, current_best_match)) = &best_match {
+                    if found.start >= current_best_match.start {
+                        continue;
+                    }
+                    let is_done = found.start == pos;
+                    best_match = Some((precedence, found));
+                    if is_done {
+                        break;
+                    }
+                } else {
+                    best_match = Some((precedence, found));
+                }
             }
         }
 
@@ -399,33 +377,23 @@ impl<'g> Tokenizer<'g> {
 
         // Get injection matches
         let injection_match =
-            self.match_injections(stack.rule_ref.grammar, &stack.content_scopes, line, pos)?;
+            self.match_injections(stack, line, pos, is_first_line, anchor_position)?;
 
         // Compare and return the winner
         match (regular_match, injection_match) {
             (None, None) => Ok(None),
             (Some(regular), None) => Ok(Some(regular)),
             (None, Some((_, injection))) => Ok(Some(injection)),
-            (Some(regular), Some((is_left_precedence, injection))) => {
-                // vscode-textmate comparison logic
-                let winner = if regular.start < injection.start {
-                    // Regular rule starts earlier - wins
-                    regular
-                } else if injection.start < regular.start {
-                    // Injection starts earlier - wins
-                    injection
+            (Some(regular), Some((precedence, injection))) => {
+                let match_score = regular.start;
+                let injection_score = injection.start;
+                if injection_score < match_score
+                    || (injection_score == match_score && precedence == InjectionPrecedence::Left)
+                {
+                    Ok(Some(injection))
                 } else {
-                    // Same start position - apply precedence rules
-                    if is_left_precedence {
-                        // Left precedence injection wins ties
-                        injection
-                    } else {
-                        // Regular rule wins ties against non-left injections
-                        regular
-                    }
-                };
-
-                Ok(Some(winner))
+                    Ok(Some(regular))
+                }
             }
         }
     }
@@ -599,8 +567,7 @@ impl<'g> Tokenizer<'g> {
                 rule_ref.rule
             );
             eprintln!(
-                "[get_or_create_pattern_set] Scanning for: pos={pos}, anchor_position={:?}",
-                stack.anchor_position
+                "[get_or_create_pattern_set] Scanning for: pos={pos}, anchor_position={anchor_position:?}"
             );
         }
 
@@ -623,9 +590,9 @@ impl<'g> Tokenizer<'g> {
         if !self.pattern_cache.contains_key(&rule_w_anchor) {
             let raw_patterns = self.registry.collect_patterns(rule_ref);
 
-            if cfg!(feature = "debug") {
-                eprintln!("[get_or_create_pattern_set] Creating new ps with stack: {stack:#?}");
-            }
+            // if cfg!(feature = "debug") {
+            //     eprintln!("[get_or_create_pattern_set] Creating new ps with stack: {stack:#?}");
+            // }
 
             let patterns: Vec<_> = raw_patterns
                 .into_iter()
@@ -692,7 +659,7 @@ impl<'g> Tokenizer<'g> {
             let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
             eprintln!(
                 "[get_or_create_pattern_set] Active patterns for rule {:?}.\n{p:?}",
-                rule.original_name()
+                rule.original_name().unwrap_or("No name")
             );
         }
 
@@ -852,8 +819,11 @@ impl<'g> Tokenizer<'g> {
             {
                 if cfg!(feature = "debug") {
                     eprintln!(
-                        "[tokenize_line] Matched rule: {:?} from pos {} to {}",
-                        m.rule_ref.rule, m.start, m.end
+                        "[tokenize_line] Matched rule: {:?} from pos {} to {} => {:?}",
+                        m.rule_ref.rule,
+                        m.start,
+                        m.end,
+                        &line[m.start..m.end]
                     );
                 }
 
@@ -916,7 +886,10 @@ impl<'g> Tokenizer<'g> {
                         if cfg!(feature = "debug") {
                             let rule =
                                 &self.registry.grammars[m.rule_ref.grammar].rules[m.rule_ref.rule];
-                            eprintln!("[tokenize_line] Pushing name='{rule:?}'",);
+                            eprintln!(
+                                "[tokenize_line] Pushing begin rule={:?}",
+                                rule.original_name().unwrap_or("No name")
+                            );
                         }
 
                         self.resolve_captures(
@@ -1129,14 +1102,16 @@ mod tests {
 
         let grammar = "fortran-fixed-form";
         // let sample_content = r#"<x-app-layout :title="$post->title"></x-app-layout>"#;
-        let sample_content = fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
+        let sample_content =
+            fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
         let expected = fs::read_to_string(format!("src/fixtures/tokens/{grammar}.txt")).unwrap();
 
         let tokens = registry
             .tokenize(registry.grammar_id_by_name[grammar], &sample_content)
             .unwrap();
         let out = format_tokens(&sample_content, tokens);
-        println!("{out}");
+        // println!("{out}");
         assert_eq!(out.trim(), expected.trim());
+        // assert!(false);
     }
 }

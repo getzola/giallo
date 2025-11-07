@@ -9,10 +9,12 @@ use crate::grammars::{
 };
 use crate::highlight::{HighlightedText, Highlighter};
 use crate::scope::Scope;
+#[cfg(feature = "dump")]
 use crate::scope::ScopeRepository;
 use crate::themes::{CompiledTheme, RawTheme};
 use crate::tokenizer::{Token, Tokenizer};
 
+#[cfg(feature = "dump")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 struct Dump {
     registry: Registry,
@@ -244,7 +246,7 @@ impl Registry {
         &self,
         target_grammar_id: GrammarId,
         scope_stack: &[Scope],
-    ) -> Vec<(InjectionPrecedence, Vec<(GlobalRuleRef, &str)>)> {
+    ) -> Vec<(InjectionPrecedence, GlobalRuleRef)> {
         let mut result = Vec::new();
 
         for (matchers, rule) in &self.grammars[target_grammar_id].injections {
@@ -255,8 +257,7 @@ impl Registry {
                             "Scope stack {scope_stack:?} matched injection selector {matcher:?}"
                         );
                     }
-                    let patterns = self.collect_patterns(*rule);
-                    result.push((matcher.precedence(), patterns));
+                    result.push((matcher.precedence(), *rule));
                 }
             }
         }
@@ -271,11 +272,13 @@ impl Registry {
                 .find(|matcher| matcher.matches(scope_stack))
             {
                 // in injector grammars, there should be just a root rule and we inject it all
-                let patterns = self.collect_patterns(GlobalRuleRef {
-                    grammar: injector_id,
-                    rule: ROOT_RULE_ID,
-                });
-                result.push((matcher.precedence(), patterns));
+                result.push((
+                    matcher.precedence(),
+                    GlobalRuleRef {
+                        grammar: injector_id,
+                        rule: ROOT_RULE_ID,
+                    },
+                ));
             }
         }
 
