@@ -64,18 +64,31 @@ impl Highlighter {
         }
     }
 
-    /// Match a scope stack against theme rules, returning the most specific style
+    /// Match a scope stack against theme rules, building styles hierarchically
+    /// like vscode-textmate does
     pub fn match_scopes(&self, scopes: &[Scope]) -> Style {
-        // Linear scan through rules (already sorted by specificity)
-        // Return first match since rules are ordered most-specific first
-        for rule in &self.rules {
-            if rule.selector.matches(scopes) {
-                return rule.style.clone();
+        let mut current_style = self.default_style.clone();
+
+        // Build up scope path incrementally, simulating vscode-textmate's approach
+        // Each scope level can override the accumulated style
+        for i in 1..=scopes.len() {
+            let current_scope_path = &scopes[0..i];
+
+            // Try to find a rule that matches this current scope path
+            for rule in &self.rules {
+                if rule.selector.matches(current_scope_path) {
+                    let current_font_style = current_style.font_style;
+                    current_style = rule.style.clone(); // Override with new style
+                    if current_style.font_style.is_empty() {
+                        current_style.font_style = current_font_style;
+                    }
+                    break; // First match wins (rules sorted by specificity)
+                }
             }
+            // If no match found, current_style remains unchanged (inheritance!)
         }
 
-        // No match found, return default style
-        self.default_style.clone()
+        current_style
     }
 
     /// Apply highlighting to tokenized lines, preserving line structure.
@@ -195,12 +208,10 @@ impl Highlighter {
 mod tests {
     use super::*;
     use crate::scope::Scope;
-    use crate::themes::{
-        Color, CompiledTheme, CompiledThemeRule, FontStyle, StyleModifier, ThemeType,
-        parse_selector,
-    };
+    use crate::themes::{Color, CompiledTheme, CompiledThemeRule, FontStyle, StyleModifier, ThemeType, parse_selector, RawTheme};
     use crate::tokenizer::Token;
     use std::ops::Range;
+    use std::path::PathBuf;
 
     // Helper functions
     fn scope(name: &str) -> Scope {
@@ -272,6 +283,16 @@ mod tests {
         // Test unmatched scope returns default
         let unknown_style = highlighter.match_scopes(&[scope("unknown")]);
         assert_eq!(unknown_style, highlighter.default_style);
+    }
+
+    #[test]
+    fn debug_test() {
+        let theme_path =
+            PathBuf::from("grammars-themes/packages/tm-themes/themes/vitesse-black.json");
+        let theme = CompiledTheme::from_raw_theme(RawTheme::load_from_file(theme_path).unwrap()).unwrap();
+        let highlighter = Highlighter::new(&theme);
+        let keyword_style = highlighter.match_scopes(&[scope("markup.bold.asciidoc")]);
+        assert_eq!(keyword_style.font_style, FontStyle::BOLD);
     }
 
     #[test]

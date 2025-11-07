@@ -1,0 +1,3063 @@
+0: '<' (line 0)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - punctuation.definition.tag.begin.html
+
+1: 'x-app-layout' (line 0)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - entity.name.tag.html
+
+2: ' ' (line 0)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+
+3: ':title' (line 0)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.unrecognized.:title.html
+  - entity.other.attribute-name.html
+
+4: '=' (line 0)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.unrecognized.:title.html
+  - punctuation.separator.key-value.html
+
+5: '"' (line 0)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.unrecognized.:title.html
+  - string.quoted.double.html
+
+6: '$' (line 0)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+7: 'post' (line 0)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - source.php
+  - variable.other.php
+
+8: '->' (line 0)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - source.php
+  - keyword.operator.class.php
+
+9: 'title' (line 0)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - source.php
+  - variable.other.property.php
+
+10: '"' (line 0)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+11: '>' (line 0)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - punctuation.definition.tag.end.html
+
+0: '    ' (line 1)
+  - text.html.php.blade
+
+1: '<' (line 1)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - punctuation.definition.tag.begin.html
+
+2: 'x-ad' (line 1)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - entity.name.tag.html
+
+3: '/>' (line 1)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - punctuation.definition.tag.end.html
+
+0: '    ' (line 3)
+  - text.html.php.blade
+
+1: '<' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - punctuation.definition.tag.begin.html
+
+2: 'x-post-header' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - entity.name.tag.html
+
+3: ' ' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+
+4: ':post' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.unrecognized.:post.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.unrecognized.:post.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.unrecognized.:post.html
+  - string.quoted.double.html
+
+7: '$' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+8: 'post' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - source.php
+  - variable.other.php
+
+9: '"' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+10: ' ' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+
+11: 'class' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.class.html
+  - entity.other.attribute-name.html
+
+12: '=' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.class.html
+  - punctuation.separator.key-value.html
+
+13: '"' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.class.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+14: 'mb-8' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.class.html
+  - string.quoted.double.html
+
+15: '"' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.class.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+16: '>' (line 3)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 5)
+  - text.html.php.blade
+
+1: '{!!' (line 5)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - support.function.construct.begin.blade
+
+2: ' ' (line 5)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - source.php
+
+3: '$' (line 5)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+4: 'post' (line 5)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+
+5: '->' (line 5)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - source.php
+  - keyword.operator.class.php
+
+6: 'html' (line 5)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.property.php
+
+7: ' ' (line 5)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - source.php
+
+8: '!!}' (line 5)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - support.function.construct.end.blade
+
+0: '        ' (line 7)
+  - text.html.php.blade
+
+1: '@unless' (line 7)
+  - text.html.php.blade
+  - meta.directive.blade
+  - keyword.blade
+
+2: '(' (line 7)
+  - text.html.php.blade
+  - meta.directive.blade
+  - begin.bracket.round.blade.php
+
+3: '$' (line 7)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+4: 'post' (line 7)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - variable.other.php
+
+5: '->' (line 7)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - meta.method-call.php
+  - keyword.operator.class.php
+
+6: 'isTweet' (line 7)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - meta.method-call.php
+  - entity.name.function.php
+
+7: '(' (line 7)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - meta.method-call.php
+  - punctuation.definition.arguments.begin.bracket.round.php
+
+8: ')' (line 7)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - meta.method-call.php
+  - punctuation.definition.arguments.end.bracket.round.php
+
+9: ')' (line 7)
+  - text.html.php.blade
+  - meta.directive.blade
+  - end.bracket.round.blade.php
+
+0: '            ' (line 8)
+  - text.html.php.blade
+
+1: '@if' (line 8)
+  - text.html.php.blade
+  - meta.directive.blade
+  - keyword.blade
+
+2: '(' (line 8)
+  - text.html.php.blade
+  - meta.directive.blade
+  - begin.bracket.round.blade.php
+
+3: '$' (line 8)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+4: 'post' (line 8)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - variable.other.php
+
+5: '->' (line 8)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - keyword.operator.class.php
+
+6: 'external_url' (line 8)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - variable.other.property.php
+
+7: ')' (line 8)
+  - text.html.php.blade
+  - meta.directive.blade
+  - end.bracket.round.blade.php
+
+0: '                ' (line 9)
+  - text.html.php.blade
+
+1: '<' (line 9)
+  - text.html.php.blade
+  - meta.tag.structure.p.start.html
+  - punctuation.definition.tag.begin.html
+
+2: 'p' (line 9)
+  - text.html.php.blade
+  - meta.tag.structure.p.start.html
+  - entity.name.tag.html
+
+3: ' ' (line 9)
+  - text.html.php.blade
+  - meta.tag.structure.p.start.html
+
+4: 'class' (line 9)
+  - text.html.php.blade
+  - meta.tag.structure.p.start.html
+  - meta.attribute.class.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 9)
+  - text.html.php.blade
+  - meta.tag.structure.p.start.html
+  - meta.attribute.class.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 9)
+  - text.html.php.blade
+  - meta.tag.structure.p.start.html
+  - meta.attribute.class.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'mt-6' (line 9)
+  - text.html.php.blade
+  - meta.tag.structure.p.start.html
+  - meta.attribute.class.html
+  - string.quoted.double.html
+
+8: '"' (line 9)
+  - text.html.php.blade
+  - meta.tag.structure.p.start.html
+  - meta.attribute.class.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: '>' (line 9)
+  - text.html.php.blade
+  - meta.tag.structure.p.start.html
+  - punctuation.definition.tag.end.html
+
+0: '                    ' (line 10)
+  - text.html.php.blade
+
+1: '<' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - punctuation.definition.tag.begin.html
+
+2: 'a' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - entity.name.tag.html
+
+3: ' ' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+
+4: 'href' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - meta.attribute.href.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - meta.attribute.href.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - meta.attribute.href.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: '{{' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - meta.attribute.href.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.begin.blade
+
+8: ' ' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - meta.attribute.href.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+9: '$' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - meta.attribute.href.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+10: 'post' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - meta.attribute.href.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+
+11: '->' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - meta.attribute.href.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - keyword.operator.class.php
+
+12: 'external_url' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - meta.attribute.href.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.property.php
+
+13: ' ' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - meta.attribute.href.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+14: '}}' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - meta.attribute.href.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.end.blade
+
+15: '"' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - meta.attribute.href.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+16: '>' (line 10)
+  - text.html.php.blade
+  - meta.tag.inline.a.start.html
+  - punctuation.definition.tag.end.html
+
+0: '                        Read more' (line 11)
+  - text.html.php.blade
+
+1: '</' (line 11)
+  - text.html.php.blade
+  - meta.tag.inline.a.end.html
+  - punctuation.definition.tag.begin.html
+
+2: 'a' (line 11)
+  - text.html.php.blade
+  - meta.tag.inline.a.end.html
+  - entity.name.tag.html
+
+3: '>' (line 11)
+  - text.html.php.blade
+  - meta.tag.inline.a.end.html
+  - punctuation.definition.tag.end.html
+
+0: '                    ' (line 12)
+  - text.html.php.blade
+
+1: '<' (line 12)
+  - text.html.php.blade
+  - meta.tag.inline.span.start.html
+  - punctuation.definition.tag.begin.html
+
+2: 'span' (line 12)
+  - text.html.php.blade
+  - meta.tag.inline.span.start.html
+  - entity.name.tag.html
+
+3: ' ' (line 12)
+  - text.html.php.blade
+  - meta.tag.inline.span.start.html
+
+4: 'class' (line 12)
+  - text.html.php.blade
+  - meta.tag.inline.span.start.html
+  - meta.attribute.class.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 12)
+  - text.html.php.blade
+  - meta.tag.inline.span.start.html
+  - meta.attribute.class.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 12)
+  - text.html.php.blade
+  - meta.tag.inline.span.start.html
+  - meta.attribute.class.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'text-xs text-gray-700' (line 12)
+  - text.html.php.blade
+  - meta.tag.inline.span.start.html
+  - meta.attribute.class.html
+  - string.quoted.double.html
+
+8: '"' (line 12)
+  - text.html.php.blade
+  - meta.tag.inline.span.start.html
+  - meta.attribute.class.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: '>' (line 12)
+  - text.html.php.blade
+  - meta.tag.inline.span.start.html
+  - punctuation.definition.tag.end.html
+
+10: '[' (line 12)
+  - text.html.php.blade
+
+11: '{{' (line 12)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - support.function.construct.begin.blade
+
+12: ' ' (line 12)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - source.php
+
+13: '$' (line 12)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+14: 'post' (line 12)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+
+15: '->' (line 12)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - source.php
+  - keyword.operator.class.php
+
+16: 'external_url_host' (line 12)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.property.php
+
+17: ' ' (line 12)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - source.php
+
+18: '}}' (line 12)
+  - text.html.php.blade
+  - meta.function.echo.blade
+  - support.function.construct.end.blade
+
+19: ']' (line 12)
+  - text.html.php.blade
+
+20: '</' (line 12)
+  - text.html.php.blade
+  - meta.tag.inline.span.end.html
+  - punctuation.definition.tag.begin.html
+
+21: 'span' (line 12)
+  - text.html.php.blade
+  - meta.tag.inline.span.end.html
+  - entity.name.tag.html
+
+22: '>' (line 12)
+  - text.html.php.blade
+  - meta.tag.inline.span.end.html
+  - punctuation.definition.tag.end.html
+
+0: '                ' (line 13)
+  - text.html.php.blade
+
+1: '</' (line 13)
+  - text.html.php.blade
+  - meta.tag.structure.p.end.html
+  - punctuation.definition.tag.begin.html
+
+2: 'p' (line 13)
+  - text.html.php.blade
+  - meta.tag.structure.p.end.html
+  - entity.name.tag.html
+
+3: '>' (line 13)
+  - text.html.php.blade
+  - meta.tag.structure.p.end.html
+  - punctuation.definition.tag.end.html
+
+0: '            ' (line 14)
+  - text.html.php.blade
+
+1: '@endif' (line 14)
+  - text.html.php.blade
+  - keyword.blade
+
+0: '        ' (line 15)
+  - text.html.php.blade
+
+1: '@endunless' (line 15)
+  - text.html.php.blade
+  - keyword.blade
+
+0: '    ' (line 16)
+  - text.html.php.blade
+
+1: '</' (line 16)
+  - text.html.php.blade
+  - meta.tag.custom.end.html
+  - punctuation.definition.tag.begin.html
+
+2: 'x-post-header' (line 16)
+  - text.html.php.blade
+  - meta.tag.custom.end.html
+  - entity.name.tag.html
+
+3: '>' (line 16)
+  - text.html.php.blade
+  - meta.tag.custom.end.html
+  - punctuation.definition.tag.end.html
+
+0: '    ' (line 18)
+  - text.html.php.blade
+
+1: '@include' (line 18)
+  - text.html.php.blade
+  - meta.directive.blade
+  - keyword.blade
+
+2: '(' (line 18)
+  - text.html.php.blade
+  - meta.directive.blade
+  - begin.bracket.round.blade.php
+
+3: ''' (line 18)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - string.quoted.single.php
+  - punctuation.definition.string.begin.php
+
+4: 'front.newsletter.partials.block' (line 18)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - string.quoted.single.php
+
+5: ''' (line 18)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - string.quoted.single.php
+  - punctuation.definition.string.end.php
+
+6: ',' (line 18)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - punctuation.separator.delimiter.php
+
+7: ' ' (line 18)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+
+8: '[' (line 18)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - punctuation.section.array.begin.php
+
+0: '        ' (line 19)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+
+1: ''' (line 19)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - string.quoted.single.php
+  - punctuation.definition.string.begin.php
+
+2: 'class' (line 19)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - string.quoted.single.php
+
+3: ''' (line 19)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - string.quoted.single.php
+  - punctuation.definition.string.end.php
+
+4: ' ' (line 19)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+
+5: '=>' (line 19)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - keyword.operator.key.php
+
+6: ' ' (line 19)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+
+7: ''' (line 19)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - string.quoted.single.php
+  - punctuation.definition.string.begin.php
+
+8: 'mb-8' (line 19)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - string.quoted.single.php
+
+9: ''' (line 19)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - string.quoted.single.php
+  - punctuation.definition.string.end.php
+
+10: ',' (line 19)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - punctuation.separator.delimiter.php
+
+0: '    ' (line 20)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+
+1: ']' (line 20)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - punctuation.section.array.end.php
+
+2: ')' (line 20)
+  - text.html.php.blade
+  - meta.directive.blade
+  - end.bracket.round.blade.php
+
+0: '    ' (line 22)
+  - text.html.php.blade
+
+1: '<' (line 22)
+  - text.html.php.blade
+  - meta.tag.structure.div.start.html
+  - punctuation.definition.tag.begin.html
+
+2: 'div' (line 22)
+  - text.html.php.blade
+  - meta.tag.structure.div.start.html
+  - entity.name.tag.html
+
+3: ' ' (line 22)
+  - text.html.php.blade
+  - meta.tag.structure.div.start.html
+
+4: 'class' (line 22)
+  - text.html.php.blade
+  - meta.tag.structure.div.start.html
+  - meta.attribute.class.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 22)
+  - text.html.php.blade
+  - meta.tag.structure.div.start.html
+  - meta.attribute.class.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 22)
+  - text.html.php.blade
+  - meta.tag.structure.div.start.html
+  - meta.attribute.class.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'mb-8' (line 22)
+  - text.html.php.blade
+  - meta.tag.structure.div.start.html
+  - meta.attribute.class.html
+  - string.quoted.double.html
+
+8: '"' (line 22)
+  - text.html.php.blade
+  - meta.tag.structure.div.start.html
+  - meta.attribute.class.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: '>' (line 22)
+  - text.html.php.blade
+  - meta.tag.structure.div.start.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 23)
+  - text.html.php.blade
+
+1: '@include' (line 23)
+  - text.html.php.blade
+  - meta.directive.blade
+  - keyword.blade
+
+2: '(' (line 23)
+  - text.html.php.blade
+  - meta.directive.blade
+  - begin.bracket.round.blade.php
+
+3: ''' (line 23)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - string.quoted.single.php
+  - punctuation.definition.string.begin.php
+
+4: 'front.posts.partials.comments' (line 23)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - string.quoted.single.php
+
+5: ''' (line 23)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - string.quoted.single.php
+  - punctuation.definition.string.end.php
+
+6: ')' (line 23)
+  - text.html.php.blade
+  - meta.directive.blade
+  - end.bracket.round.blade.php
+
+0: '    ' (line 24)
+  - text.html.php.blade
+
+1: '</' (line 24)
+  - text.html.php.blade
+  - meta.tag.structure.div.end.html
+  - punctuation.definition.tag.begin.html
+
+2: 'div' (line 24)
+  - text.html.php.blade
+  - meta.tag.structure.div.end.html
+  - entity.name.tag.html
+
+3: '>' (line 24)
+  - text.html.php.blade
+  - meta.tag.structure.div.end.html
+  - punctuation.definition.tag.end.html
+
+0: '    ' (line 26)
+  - text.html.php.blade
+
+1: '<' (line 26)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - punctuation.definition.tag.begin.html
+
+2: 'x-slot' (line 26)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - entity.name.tag.html
+
+3: ' ' (line 26)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+
+4: 'name' (line 26)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.name.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 26)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.name.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 26)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'seo' (line 26)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+
+8: '"' (line 26)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: '>' (line 26)
+  - text.html.php.blade
+  - meta.tag.custom.start.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 27)
+  - text.html.php.blade
+
+1: '<' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.begin.html
+
+2: 'meta' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - entity.name.tag.html
+
+3: ' ' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+4: 'property' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'og:title' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+
+8: '"' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: ' ' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+10: 'content' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - entity.other.attribute-name.html
+
+11: '=' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - punctuation.separator.key-value.html
+
+12: '"' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+13: '{{' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.begin.blade
+
+14: ' ' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+15: '$' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+16: 'post' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+
+17: '->' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - keyword.operator.class.php
+
+18: 'title' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.property.php
+
+19: ' ' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+20: '}}' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.end.blade
+
+21: ' | freek.dev' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+
+22: '"' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+23: '/>' (line 27)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 28)
+  - text.html.php.blade
+
+1: '<' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.begin.html
+
+2: 'meta' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - entity.name.tag.html
+
+3: ' ' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+4: 'property' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'og:description' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+
+8: '"' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: ' ' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+10: 'content' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - entity.other.attribute-name.html
+
+11: '=' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - punctuation.separator.key-value.html
+
+12: '"' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+13: '{{' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.begin.blade
+
+14: ' ' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+15: '$' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+16: 'post' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+
+17: '->' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - keyword.operator.class.php
+
+18: 'plain_text_excerpt' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.property.php
+
+19: ' ' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+20: '}}' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.end.blade
+
+21: '"' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+22: '/>' (line 28)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 29)
+  - text.html.php.blade
+
+1: '<' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.begin.html
+
+2: 'meta' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - entity.name.tag.html
+
+3: ' ' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+4: 'name' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'og:image' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+
+8: '"' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: ' ' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+10: 'content' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - entity.other.attribute-name.html
+
+11: '=' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - punctuation.separator.key-value.html
+
+12: '"' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+13: '{{' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.begin.blade
+
+14: ' ' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+15: 'url' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - entity.name.function.php
+
+16: '(' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - punctuation.definition.arguments.begin.bracket.round.php
+
+17: '$' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+18: 'post' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - variable.other.php
+
+19: '->' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - keyword.operator.class.php
+
+20: 'getFirstMediaUrl' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - entity.name.function.php
+
+21: '(' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - punctuation.definition.arguments.begin.bracket.round.php
+
+22: ''' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - string.quoted.single.php
+  - punctuation.definition.string.begin.php
+
+23: 'ogImage' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - string.quoted.single.php
+
+24: ''' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - string.quoted.single.php
+  - punctuation.definition.string.end.php
+
+25: ')' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - punctuation.definition.arguments.end.bracket.round.php
+
+26: ')' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - punctuation.definition.arguments.end.bracket.round.php
+
+27: ' ' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+28: '}}' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.end.blade
+
+29: '"' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+30: '/>' (line 29)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 31)
+  - text.html.php.blade
+
+1: '@foreach' (line 31)
+  - text.html.php.blade
+  - meta.directive.blade
+  - keyword.blade
+
+2: '(' (line 31)
+  - text.html.php.blade
+  - meta.directive.blade
+  - begin.bracket.round.blade.php
+
+3: '$' (line 31)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+4: 'post' (line 31)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - variable.other.php
+
+5: '->' (line 31)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - keyword.operator.class.php
+
+6: 'tags' (line 31)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - variable.other.property.php
+
+7: ' ' (line 31)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+
+8: 'as' (line 31)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - keyword.operator.logical.php
+
+9: ' ' (line 31)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+
+10: '$' (line 31)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+11: 'tag' (line 31)
+  - text.html.php.blade
+  - meta.directive.blade
+  - source.php
+  - variable.other.php
+
+12: ')' (line 31)
+  - text.html.php.blade
+  - meta.directive.blade
+  - end.bracket.round.blade.php
+
+0: '            ' (line 32)
+  - text.html.php.blade
+
+1: '<' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.begin.html
+
+2: 'meta' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - entity.name.tag.html
+
+3: ' ' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+4: 'property' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'article:tag' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+
+8: '"' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: ' ' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+10: 'content' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - entity.other.attribute-name.html
+
+11: '=' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - punctuation.separator.key-value.html
+
+12: '"' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+13: '{{' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.begin.blade
+
+14: ' ' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+15: '$' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+16: 'tag' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+
+17: '->' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - keyword.operator.class.php
+
+18: 'name' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.property.php
+
+19: ' ' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+20: '}}' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.end.blade
+
+21: '"' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+22: '/>' (line 32)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 33)
+  - text.html.php.blade
+
+1: '@endforeach' (line 33)
+  - text.html.php.blade
+  - keyword.blade
+
+0: '        ' (line 35)
+  - text.html.php.blade
+
+1: '<' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.begin.html
+
+2: 'meta' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - entity.name.tag.html
+
+3: ' ' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+4: 'property' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'article:published_time' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+
+8: '"' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: ' ' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+10: 'content' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - entity.other.attribute-name.html
+
+11: '=' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - punctuation.separator.key-value.html
+
+12: '"' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+13: '{{' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.begin.blade
+
+14: ' ' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+15: 'optional' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - entity.name.function.php
+
+16: '(' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - punctuation.definition.arguments.begin.bracket.round.php
+
+17: '$' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+18: 'post' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - variable.other.php
+
+19: '->' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - keyword.operator.class.php
+
+20: 'publish_date' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - variable.other.property.php
+
+21: ')' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - punctuation.definition.arguments.end.bracket.round.php
+
+22: '->' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.method-call.php
+  - keyword.operator.class.php
+
+23: 'toIso8601String' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.method-call.php
+  - entity.name.function.php
+
+24: '(' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.method-call.php
+  - punctuation.definition.arguments.begin.bracket.round.php
+
+25: ')' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.method-call.php
+  - punctuation.definition.arguments.end.bracket.round.php
+
+26: ' ' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+27: '}}' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.end.blade
+
+28: '"' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+29: '/>' (line 35)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 36)
+  - text.html.php.blade
+
+1: '<' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.begin.html
+
+2: 'meta' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - entity.name.tag.html
+
+3: ' ' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+4: 'property' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'og:updated_time' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+
+8: '"' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.unrecognized.property.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: ' ' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+10: 'content' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - entity.other.attribute-name.html
+
+11: '=' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - punctuation.separator.key-value.html
+
+12: '"' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+13: '{{' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.begin.blade
+
+14: ' ' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+15: '$' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+16: 'post' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+
+17: '->' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - keyword.operator.class.php
+
+18: 'updated_at' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.property.php
+
+19: '->' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.method-call.php
+  - keyword.operator.class.php
+
+20: 'toIso8601String' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.method-call.php
+  - entity.name.function.php
+
+21: '(' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.method-call.php
+  - punctuation.definition.arguments.begin.bracket.round.php
+
+22: ')' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.method-call.php
+  - punctuation.definition.arguments.end.bracket.round.php
+
+23: ' ' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+24: '}}' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.end.blade
+
+25: '"' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+26: '/>' (line 36)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 37)
+  - text.html.php.blade
+
+1: '<' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.begin.html
+
+2: 'meta' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - entity.name.tag.html
+
+3: ' ' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+4: 'name' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'twitter:card' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+
+8: '"' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: ' ' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+10: 'content' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - entity.other.attribute-name.html
+
+11: '=' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - punctuation.separator.key-value.html
+
+12: '"' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+13: 'summary_large_image' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+
+14: '"' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+15: '/>' (line 37)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 38)
+  - text.html.php.blade
+
+1: '<' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.begin.html
+
+2: 'meta' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - entity.name.tag.html
+
+3: ' ' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+4: 'name' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'twitter:description' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+
+8: '"' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: ' ' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+10: 'content' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - entity.other.attribute-name.html
+
+11: '=' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - punctuation.separator.key-value.html
+
+12: '"' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+13: '{{' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.begin.blade
+
+14: ' ' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+15: '$' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+16: 'post' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+
+17: '->' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - keyword.operator.class.php
+
+18: 'plain_text_excerpt' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.property.php
+
+19: ' ' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+20: '}}' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.end.blade
+
+21: '"' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+22: '/>' (line 38)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 39)
+  - text.html.php.blade
+
+1: '<' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.begin.html
+
+2: 'meta' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - entity.name.tag.html
+
+3: ' ' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+4: 'name' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'twitter:title' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+
+8: '"' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: ' ' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+10: 'content' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - entity.other.attribute-name.html
+
+11: '=' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - punctuation.separator.key-value.html
+
+12: '"' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+13: '{{' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.begin.blade
+
+14: ' ' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+15: '$' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+16: 'post' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.php
+
+17: '->' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - keyword.operator.class.php
+
+18: 'title' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - variable.other.property.php
+
+19: ' ' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+20: '}}' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.end.blade
+
+21: ' | freek.dev' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+
+22: '"' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+23: '/>' (line 39)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 40)
+  - text.html.php.blade
+
+1: '<' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.begin.html
+
+2: 'meta' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - entity.name.tag.html
+
+3: ' ' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+4: 'name' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'twitter:site' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+
+8: '"' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: ' ' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+10: 'content' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - entity.other.attribute-name.html
+
+11: '=' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - punctuation.separator.key-value.html
+
+12: '"' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+13: '@freekmurze' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - entity.name.function.blade
+
+14: '"' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+15: '/>' (line 40)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 41)
+  - text.html.php.blade
+
+1: '<' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.begin.html
+
+2: 'meta' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - entity.name.tag.html
+
+3: ' ' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+4: 'name' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'twitter:image' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+
+8: '"' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: ' ' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+10: 'content' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - entity.other.attribute-name.html
+
+11: '=' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - punctuation.separator.key-value.html
+
+12: '"' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+13: '{{' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.begin.blade
+
+14: ' ' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+15: 'url' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - entity.name.function.php
+
+16: '(' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - punctuation.definition.arguments.begin.bracket.round.php
+
+17: '$' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - variable.other.php
+  - punctuation.definition.variable.php
+
+18: 'post' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - variable.other.php
+
+19: '->' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - keyword.operator.class.php
+
+20: 'getFirstMediaUrl' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - entity.name.function.php
+
+21: '(' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - punctuation.definition.arguments.begin.bracket.round.php
+
+22: ''' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - string.quoted.single.php
+  - punctuation.definition.string.begin.php
+
+23: 'ogImage' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - string.quoted.single.php
+
+24: ''' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - string.quoted.single.php
+  - punctuation.definition.string.end.php
+
+25: ')' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - meta.method-call.php
+  - punctuation.definition.arguments.end.bracket.round.php
+
+26: ')' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+  - meta.function-call.php
+  - punctuation.definition.arguments.end.bracket.round.php
+
+27: ' ' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - source.php
+
+28: '}}' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - meta.function.echo.blade
+  - support.function.construct.end.blade
+
+29: '"' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+30: '/>' (line 41)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.end.html
+
+0: '        ' (line 42)
+  - text.html.php.blade
+
+1: '<' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.begin.html
+
+2: 'meta' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - entity.name.tag.html
+
+3: ' ' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+4: 'name' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - entity.other.attribute-name.html
+
+5: '=' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - punctuation.separator.key-value.html
+
+6: '"' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+7: 'twitter:creator' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+
+8: '"' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.name.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+9: ' ' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+
+10: 'content' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - entity.other.attribute-name.html
+
+11: '=' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - punctuation.separator.key-value.html
+
+12: '"' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.begin.html
+
+13: '@freekmurze' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - entity.name.function.blade
+
+14: '"' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - meta.attribute.content.html
+  - string.quoted.double.html
+  - punctuation.definition.string.end.html
+
+15: '/>' (line 42)
+  - text.html.php.blade
+  - meta.tag.metadata.meta.void.html
+  - punctuation.definition.tag.end.html
+
+0: '    ' (line 43)
+  - text.html.php.blade
+
+1: '</' (line 43)
+  - text.html.php.blade
+  - meta.tag.custom.end.html
+  - punctuation.definition.tag.begin.html
+
+2: 'x-slot' (line 43)
+  - text.html.php.blade
+  - meta.tag.custom.end.html
+  - entity.name.tag.html
+
+3: '>' (line 43)
+  - text.html.php.blade
+  - meta.tag.custom.end.html
+  - punctuation.definition.tag.end.html
+
+0: '</' (line 44)
+  - text.html.php.blade
+  - meta.tag.custom.end.html
+  - punctuation.definition.tag.begin.html
+
+1: 'x-app-layout' (line 44)
+  - text.html.php.blade
+  - meta.tag.custom.end.html
+  - entity.name.tag.html
+
+2: '>' (line 44)
+  - text.html.php.blade
+  - meta.tag.custom.end.html
+  - punctuation.definition.tag.end.html
+
+0: '#From https://freek.dev/2024-how-to-render-markdown-with-perfectly-highlighted-code-snippets' (line 46)
+  - text.html.php.blade
+

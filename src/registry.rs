@@ -383,8 +383,34 @@ mod tests {
             for token in line_tokens {
                 // Use proper hex format that includes alpha channel when needed
                 let hex_color = token.style.foreground.as_hex();
-                // Format: {hex_color_15_chars}{content}
-                result.push_str(&format!("{:<15}{}\n", hex_color, token.text));
+
+                // Create font style abbreviation to match JavaScript format
+                // JavaScript bit mapping: bit 1=italic, bit 2=bold, bit 4=underline, bit 8=strikethrough
+                let font_style_abbr = if token.style.font_style.is_empty() {
+                    "      ".to_string() // 6 spaces for empty style
+                } else {
+                    let mut abbr = String::from("[");
+
+                    // Check each style flag and add corresponding character
+                    if token.style.font_style.contains(crate::themes::FontStyle::BOLD) {
+                        abbr.push('b');
+                    }
+                    if token.style.font_style.contains(crate::themes::FontStyle::ITALIC) {
+                        abbr.push('i');
+                    }
+                    if token.style.font_style.contains(crate::themes::FontStyle::UNDERLINE) {
+                        abbr.push('u');
+                    }
+                    if token.style.font_style.contains(crate::themes::FontStyle::STRIKETHROUGH) {
+                        abbr.push('s');
+                    }
+
+                    abbr.push(']');
+                    format!("{:<6}", abbr) // Pad to 6 characters
+                };
+
+                // Format: {color_padded_to_10}{fontStyleAbbr_padded_to_6}{tokenText}
+                result.push_str(&format!("{:<10}{}{}\n", hex_color, font_style_abbr, token.text));
             }
         }
 
@@ -429,35 +455,9 @@ mod tests {
         let mut skipped = Vec::new();
 
         println!("Running snapshot tests for {} samples", sample_files.len());
+        let registry = load_grammars_themes_registry().unwrap();
 
         for (grammar_name, sample_path) in sample_files {
-            // Create isolated registry for this sample (match Shiki behavior)
-            let mut registry = Registry::default();
-
-            // Load only the specific grammar file for this sample
-            let grammar_path = PathBuf::from(format!(
-                "grammars-themes/packages/tm-grammars/grammars/{}.json",
-                grammar_name
-            ));
-
-            if let Err(e) = registry.add_grammar_from_path(&grammar_path) {
-                eprintln!("Warning: Failed to load grammar {}: {}", grammar_name, e);
-                skipped.push(grammar_name);
-                continue;
-            }
-
-            // Load vitesse-black theme
-            let theme_path =
-                PathBuf::from("grammars-themes/packages/tm-themes/themes/vitesse-black.json");
-            if let Err(e) = registry.add_theme_from_path("vitesse-black", &theme_path) {
-                eprintln!("Warning: Failed to load theme: {}", e);
-                skipped.push(grammar_name);
-                continue;
-            }
-
-            // Link grammars to resolve internal rule references
-            registry.link_grammars();
-
             // Read sample content
             let sample_content = match fs::read_to_string(&sample_path) {
                 Ok(content) => content,
@@ -474,7 +474,7 @@ mod tests {
 
             // Check if snapshot file exists
             let snapshot_path = PathBuf::from(format!(
-                "grammars-themes/test/__snapshots__/{}.txt",
+                "snapshots/{}.txt",
                 grammar_name
             ));
             let expected_snapshot = match fs::read_to_string(&snapshot_path) {
@@ -493,6 +493,8 @@ mod tests {
                 HighlightOptions {
                     lang: &grammar_name,
                     theme: "vitesse-black",
+                    merge_whitespaces: false,
+                    merge_same_style_tokens: false,
                     ..Default::default()
                 },
             ) {
@@ -574,22 +576,10 @@ mod tests {
 
     #[test]
     fn test_render_specific_sample() {
-        let grammar = "angular-ts";
+        let grammar = "blade";
 
         // Load registry with grammars and theme
-        let mut registry = Registry::default();
-        registry
-            .add_grammar_from_path(&format!(
-                "grammars-themes/packages/tm-grammars/grammars/{}.json",
-                grammar
-            ))
-            .unwrap();
-        registry
-            .add_theme_from_path(
-                "vitesse-black",
-                "grammars-themes/packages/tm-themes/themes/vitesse-black.json",
-            )
-            .unwrap();
+        let registry = load_grammars_themes_registry().unwrap();
         // Load the actual sample file
         let sample_path = PathBuf::from(format!("grammars-themes/samples/{}.sample", grammar));
         let sample_content = match fs::read_to_string(&sample_path) {
@@ -601,7 +591,7 @@ mod tests {
 
         // Load the expected snapshot
         let snapshot_path = PathBuf::from(format!(
-            "grammars-themes/test/__snapshots__/{}.txt",
+            "snapshots/{}.txt",
             grammar
         ));
         let expected_snapshot = match fs::read_to_string(&snapshot_path) {
@@ -615,9 +605,10 @@ mod tests {
         let options = HighlightOptions {
             lang: grammar,
             theme: "vitesse-black",
-            ..Default::default()
+            merge_whitespaces: false,
+            merge_same_style_tokens: false,
         };
-        println!("{options:?}");
+
         let highlighted_tokens = match registry.highlight(&sample_content, options) {
             Ok(tokens) => tokens,
             Err(e) => {
