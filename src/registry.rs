@@ -250,6 +250,11 @@ impl Registry {
         for (matchers, rule) in &self.grammars[target_grammar_id].injections {
             for matcher in matchers {
                 if matcher.matches(scope_stack) {
+                    if cfg!(feature = "debug") {
+                        eprintln!(
+                            "Scope stack {scope_stack:?} matched injection selector {matcher:?}"
+                        );
+                    }
                     let patterns = self.collect_patterns(*rule);
                     result.push((matcher.precedence(), patterns));
                 }
@@ -392,16 +397,32 @@ mod tests {
                     let mut abbr = String::from("[");
 
                     // Check each style flag and add corresponding character
-                    if token.style.font_style.contains(crate::themes::FontStyle::BOLD) {
+                    if token
+                        .style
+                        .font_style
+                        .contains(crate::themes::FontStyle::BOLD)
+                    {
                         abbr.push('b');
                     }
-                    if token.style.font_style.contains(crate::themes::FontStyle::ITALIC) {
+                    if token
+                        .style
+                        .font_style
+                        .contains(crate::themes::FontStyle::ITALIC)
+                    {
                         abbr.push('i');
                     }
-                    if token.style.font_style.contains(crate::themes::FontStyle::UNDERLINE) {
+                    if token
+                        .style
+                        .font_style
+                        .contains(crate::themes::FontStyle::UNDERLINE)
+                    {
                         abbr.push('u');
                     }
-                    if token.style.font_style.contains(crate::themes::FontStyle::STRIKETHROUGH) {
+                    if token
+                        .style
+                        .font_style
+                        .contains(crate::themes::FontStyle::STRIKETHROUGH)
+                    {
                         abbr.push('s');
                     }
 
@@ -410,7 +431,10 @@ mod tests {
                 };
 
                 // Format: {color_padded_to_10}{fontStyleAbbr_padded_to_6}{tokenText}
-                result.push_str(&format!("{:<10}{}{}\n", hex_color, font_style_abbr, token.text));
+                result.push_str(&format!(
+                    "{:<10}{}{}\n",
+                    hex_color, font_style_abbr, token.text
+                ));
             }
         }
 
@@ -473,10 +497,7 @@ mod tests {
             };
 
             // Check if snapshot file exists
-            let snapshot_path = PathBuf::from(format!(
-                "snapshots/{}.txt",
-                grammar_name
-            ));
+            let snapshot_path = PathBuf::from(format!("snapshots/{}.txt", grammar_name));
             let expected_snapshot = match fs::read_to_string(&snapshot_path) {
                 Ok(content) => content,
                 Err(_) => {
@@ -590,10 +611,7 @@ mod tests {
         };
 
         // Load the expected snapshot
-        let snapshot_path = PathBuf::from(format!(
-            "snapshots/{}.txt",
-            grammar
-        ));
+        let snapshot_path = PathBuf::from(format!("snapshots/{}.txt", grammar));
         let expected_snapshot = match fs::read_to_string(&snapshot_path) {
             Ok(content) => content,
             Err(e) => {

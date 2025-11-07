@@ -418,7 +418,12 @@ impl CompiledGrammar {
         // Compile injections
         for (selector, raw_rule) in raw.injections {
             let matchers = parse_injection_selector(&selector);
-            let rule_id = grammar.compile_rule(raw_rule, RepositoryStack::default())?;
+            let mut repo_stack = RepositoryStack::default();
+            if !grammar.repositories.is_empty() {
+                repo_stack = repo_stack.push(RepositoryId(0));
+            }
+            let rule_id = grammar.compile_rule(raw_rule, repo_stack)?;
+
             grammar.injections.push((
                 matchers,
                 GlobalRuleRef {
@@ -645,6 +650,7 @@ impl CompiledGrammar {
                         } else {
                             Scope::new(raw_rule.content_name.as_ref().unwrap())
                         };
+
                     Rule::IncludeOnly(IncludeOnly {
                         id: global_id,
                         name_is_capturing,
@@ -730,8 +736,10 @@ impl CompiledGrammar {
             let rule = &mut self.rules[rep.rule_id];
             let stack = rule.repository_stack();
             let mut found = false;
+
             for repo_id in stack.stack.iter().filter(|x| x.is_some()).rev() {
                 let repo = &self.repositories[repo_id.unwrap()];
+
                 if let Reference::Local(name) = &rep.reference {
                     if let Some(rule_id) = repo.get(name) {
                         found = true;

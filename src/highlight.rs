@@ -208,7 +208,10 @@ impl Highlighter {
 mod tests {
     use super::*;
     use crate::scope::Scope;
-    use crate::themes::{Color, CompiledTheme, CompiledThemeRule, FontStyle, StyleModifier, ThemeType, parse_selector, RawTheme};
+    use crate::themes::{
+        Color, CompiledTheme, CompiledThemeRule, FontStyle, RawTheme, StyleModifier, ThemeType,
+        parse_selector,
+    };
     use crate::tokenizer::Token;
     use std::ops::Range;
     use std::path::PathBuf;
@@ -289,7 +292,8 @@ mod tests {
     fn debug_test() {
         let theme_path =
             PathBuf::from("grammars-themes/packages/tm-themes/themes/vitesse-black.json");
-        let theme = CompiledTheme::from_raw_theme(RawTheme::load_from_file(theme_path).unwrap()).unwrap();
+        let theme =
+            CompiledTheme::from_raw_theme(RawTheme::load_from_file(theme_path).unwrap()).unwrap();
         let highlighter = Highlighter::new(&theme);
         let keyword_style = highlighter.match_scopes(&[scope("markup.bold.asciidoc")]);
         assert_eq!(keyword_style.font_style, FontStyle::BOLD);

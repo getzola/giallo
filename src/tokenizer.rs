@@ -316,7 +316,7 @@ impl<'g> Tokenizer<'g> {
     ) -> Result<Option<(bool, PatternSetMatch)>, TokenizeError> {
         let injection_patterns = self
             .registry
-            .collect_injection_patterns(target_grammar_id, scope_stack);
+            .collect_injection_patterns(self.base_grammar_id, scope_stack);
 
         if injection_patterns.is_empty() {
             return Ok(None);
@@ -336,6 +336,11 @@ impl<'g> Tokenizer<'g> {
                 .map(|(rule_ref, pattern)| (rule_ref, pattern.to_string()))
                 .collect();
             let pattern_set = PatternSet::new(patterns_owned);
+            if cfg!(feature = "debug") {
+                eprintln!(
+                    "Scope stack {scope_stack:?} matched injection pattern set:\n{pattern_set:?}"
+                );
+            }
 
             // Try to find a match at current position
             if let Some(match_result) = pattern_set.find_at(line, pos)? {
@@ -365,6 +370,12 @@ impl<'g> Tokenizer<'g> {
                         }
                     }
                 }
+            }
+        }
+
+        if cfg!(feature = "debug") {
+            if let Some((left, m)) = &best_match {
+                eprintln!("Scope stack {scope_stack:?} matched {m:?}, left: {left}");
             }
         }
 
@@ -1110,5 +1121,22 @@ mod tests {
             let out = format_tokens(&sample_content, tokens);
             assert_eq!(expected.trim(), out.trim());
         }
+    }
+
+    #[test]
+    fn can_tokenize_specific_text() {
+        let registry = get_registry();
+
+        let grammar = "fortran-fixed-form";
+        // let sample_content = r#"<x-app-layout :title="$post->title"></x-app-layout>"#;
+        let sample_content = fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
+        let expected = fs::read_to_string(format!("src/fixtures/tokens/{grammar}.txt")).unwrap();
+
+        let tokens = registry
+            .tokenize(registry.grammar_id_by_name[grammar], &sample_content)
+            .unwrap();
+        let out = format_tokens(&sample_content, tokens);
+        println!("{out}");
+        assert_eq!(out.trim(), expected.trim());
     }
 }

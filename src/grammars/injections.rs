@@ -1,5 +1,6 @@
 //! TextMate grammar injection selector parsing and matching.
 
+use std::fmt;
 use std::sync::LazyLock;
 
 use crate::scope::Scope;
@@ -13,7 +14,7 @@ pub enum InjectionPrecedence {
 }
 
 /// A compiled injection selector matcher with priority
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompiledInjectionMatcher {
     matcher: SelectorMatcher,
     priority: Option<InjectionPrecedence>,
@@ -28,6 +29,17 @@ impl CompiledInjectionMatcher {
     /// Returns the precedence (Left/Right) for this injection matcher
     pub fn precedence(&self) -> InjectionPrecedence {
         self.priority.unwrap_or(InjectionPrecedence::Right)
+    }
+}
+
+impl fmt::Debug for CompiledInjectionMatcher {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let selector = match self.priority {
+            Some(InjectionPrecedence::Left) => format!("L:{}", self.matcher),
+            Some(InjectionPrecedence::Right) => format!("R:{}", self.matcher),
+            None => self.matcher.to_string(),
+        };
+        write!(f, "\"{}\"", selector)
     }
 }
 
@@ -89,6 +101,30 @@ impl SelectorMatcher {
             SelectorMatcher::Not(matcher) => {
                 // Matcher must NOT succeed
                 !matcher.matches(scope_stack)
+            }
+        }
+    }
+}
+
+impl fmt::Display for SelectorMatcher {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SelectorMatcher::Scope(scope) => write!(f, "{}", scope),
+            SelectorMatcher::And(matchers) => {
+                let parts: Vec<String> = matchers.iter().map(|m| m.to_string()).collect();
+                write!(f, "{}", parts.join(" "))
+            }
+            SelectorMatcher::Or(matchers) => {
+                if matchers.len() == 1 {
+                    // If there's only one item in Or, don't wrap in parentheses
+                    write!(f, "{}", matchers[0])
+                } else {
+                    let parts: Vec<String> = matchers.iter().map(|m| m.to_string()).collect();
+                    write!(f, "({})", parts.join(" | "))
+                }
+            }
+            SelectorMatcher::Not(matcher) => {
+                write!(f, "-{}", matcher)
             }
         }
     }
