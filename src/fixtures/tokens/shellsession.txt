@@ -1,0 +1,141 @@
+0: '$' (line 0)
+  - text.shell-session
+  - punctuation.separator.prompt.shell-session
+
+1: ' ' (line 0)
+  - text.shell-session
+
+2: 'echo ' (line 0)
+  - text.shell-session
+  - source.shell
+
+3: '$' (line 0)
+  - text.shell-session
+  - source.shell
+  - punctuation.definition.variable.shell
+  - variable.other.normal.shell
+
+4: 'EDITOR' (line 0)
+  - text.shell-session
+  - source.shell
+  - variable.other.normal.shell
+
+0: 'vim' (line 1)
+  - text.shell-session
+  - meta.output.shell-session
+
+0: '$' (line 2)
+  - text.shell-session
+  - punctuation.separator.prompt.shell-session
+
+1: ' ' (line 2)
+  - text.shell-session
+
+2: 'git checkout mai' (line 2)
+  - text.shell-session
+  - source.shell
+
+3: 'n' (line 2)
+  - text.shell-session
+
+0: 'Switched to branch 'main'' (line 3)
+  - text.shell-session
+  - meta.output.shell-session
+
+0: 'Your branch is up-to-date with 'origin/main'.' (line 4)
+  - text.shell-session
+  - meta.output.shell-session
+
+0: '$' (line 5)
+  - text.shell-session
+  - punctuation.separator.prompt.shell-session
+
+1: ' ' (line 5)
+  - text.shell-session
+
+2: 'git pus' (line 5)
+  - text.shell-session
+  - source.shell
+
+3: 'h' (line 5)
+  - text.shell-session
+
+0: 'Everything up-to-date' (line 6)
+  - text.shell-session
+  - meta.output.shell-session
+
+0: '$' (line 7)
+  - text.shell-session
+  - punctuation.separator.prompt.shell-session
+
+1: ' ' (line 7)
+  - text.shell-session
+
+2: 'echo ' (line 7)
+  - text.shell-session
+  - source.shell
+
+3: ''' (line 7)
+  - text.shell-session
+  - source.shell
+  - string.quoted.single.shell
+  - punctuation.definition.string.begin.shell
+
+4: 'Al' (line 7)
+  - text.shell-session
+  - source.shell
+  - string.quoted.single.shell
+
+5: 'l' (line 7)
+  - text.shell-session
+
+0: '>' (line 8)
+  - text.shell-session
+  - punctuation.separator.prompt.shell-session
+
+1: ' ' (line 8)
+  - text.shell-session
+
+2: 'done' (line 8)
+  - text.shell-session
+  - source.shell
+
+3: '!' (line 8)
+  - text.shell-session
+  - source.shell
+  - keyword.operator.pipe.shell
+
+4: ''' (line 8)
+  - text.shell-session
+  - source.shell
+  - meta.statement.shell
+  - meta.statement.command.shell
+  - meta.statement.command.name.shell
+  - meta.statement.command.name.quoted.shell
+  - string.quoted.single.shell
+  - punctuation.definition.string.begin.shell
+  - entity.name.function.call.shell
+  - entity.name.command.shell
+
+0: 'All' (line 9)
+  - text.shell-session
+  - meta.output.shell-session
+
+0: 'done!' (line 10)
+  - text.shell-session
+  - meta.output.shell-session
+
+0: '#' (line 12)
+  - text.shell-session
+  - punctuation.separator.prompt.shell-session
+
+1: ' ' (line 12)
+  - text.shell-session
+
+2: 'From https://github.com/highlightjs/highlight.js/blob/fcefad4a6bf99b88c54b2b724ca77466e94c374d/test/detect/shell/default.txt#L' (line 12)
+  - text.shell-session
+  - source.shell
+
+3: '4' (line 12)
+  - text.shell-session
+

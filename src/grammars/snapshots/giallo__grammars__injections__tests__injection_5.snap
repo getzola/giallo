@@ -4,31 +4,5 @@ description: "L:meta.tag -meta.attribute -meta.ng-binding -entity.name.tag.pug"
 expression: result
 ---
 [
-    CompiledInjectionMatcher {
-        matcher: And(
-            [
-                Scope(
-                    Scope("meta.tag"),
-                ),
-                Not(
-                    Scope(
-                        Scope("meta.attribute"),
-                    ),
-                ),
-                Not(
-                    Scope(
-                        Scope("meta.ng-binding"),
-                    ),
-                ),
-                Not(
-                    Scope(
-                        Scope("entity.name.tag.pug"),
-                    ),
-                ),
-            ],
-        ),
-        priority: Some(
-            Left,
-        ),
-    },
+    CompiledInjectionMatcher("L:meta.tag -meta.attribute -meta.ng-binding -entity.name.tag.pug"),
 ]

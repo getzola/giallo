@@ -4,8 +4,8 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::grammars::{
-    CompiledGrammar, GlobalRuleRef, GrammarId, InjectionPrecedence, Match, NO_OP_GLOBAL_RULE_REF,
-    ROOT_RULE_ID, RawGrammar, Rule,
+    BASE_GLOBAL_RULE_REF, CompiledGrammar, GlobalRuleRef, GrammarId, InjectionPrecedence, Match,
+    NO_OP_GLOBAL_RULE_REF, ROOT_RULE_ID, RawGrammar, Rule,
 };
 use crate::highlight::{HighlightedText, Highlighter};
 use crate::scope::Scope;
@@ -187,12 +187,19 @@ impl Registry {
 
     fn get_rule_patterns(
         &self,
-        rule_ref: GlobalRuleRef,
+        base_grammar_id: GrammarId,
+        mut rule_ref: GlobalRuleRef,
         visited: &mut HashSet<GlobalRuleRef>,
     ) -> Vec<(GlobalRuleRef, &str)> {
         let mut out = vec![];
         if visited.contains(&rule_ref) || rule_ref == NO_OP_GLOBAL_RULE_REF {
             return out;
+        }
+        if rule_ref == BASE_GLOBAL_RULE_REF {
+            rule_ref = GlobalRuleRef {
+                grammar: base_grammar_id,
+                rule: ROOT_RULE_ID,
+            };
         }
         visited.insert(rule_ref);
 
@@ -206,7 +213,7 @@ impl Registry {
                 }
             }
             Rule::IncludeOnly(i) => {
-                out.extend(self.get_pattern_set_data(&i.patterns, visited));
+                out.extend(self.get_pattern_set_data(base_grammar_id, &i.patterns, visited));
             }
             Rule::BeginEnd(b) => out.push((rule_ref, grammar.regexes[b.begin].pattern())),
             Rule::BeginWhile(b) => out.push((rule_ref, grammar.regexes[b.begin].pattern())),
@@ -217,20 +224,25 @@ impl Registry {
 
     fn get_pattern_set_data(
         &self,
+        base_grammar_id: GrammarId,
         rule_refs: &[GlobalRuleRef],
         visited: &mut HashSet<GlobalRuleRef>,
     ) -> Vec<(GlobalRuleRef, &str)> {
         let mut out = Vec::new();
 
         for r in rule_refs {
-            let rule_patterns = self.get_rule_patterns(*r, visited);
+            let rule_patterns = self.get_rule_patterns(base_grammar_id, *r, visited);
             out.extend(rule_patterns);
         }
 
         out
     }
 
-    pub(crate) fn collect_patterns(&self, rule_ref: GlobalRuleRef) -> Vec<(GlobalRuleRef, &str)> {
+    pub(crate) fn collect_patterns(
+        &self,
+        base_grammar_id: GrammarId,
+        rule_ref: GlobalRuleRef,
+    ) -> Vec<(GlobalRuleRef, &str)> {
         let grammar = &self.grammars[rule_ref.grammar];
         let base_patterns: &[GlobalRuleRef] = match &grammar.rules[rule_ref.rule] {
             Rule::IncludeOnly(a) => &a.patterns,
@@ -239,7 +251,7 @@ impl Registry {
             Rule::Match(_) | Rule::Noop => &[],
         };
         let mut visited = HashSet::new();
-        self.get_pattern_set_data(&base_patterns, &mut visited)
+        self.get_pattern_set_data(base_grammar_id, &base_patterns, &mut visited)
     }
 
     pub(crate) fn collect_injection_patterns(

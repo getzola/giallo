@@ -4,38 +4,5 @@ description: "R:text.html - (comment.block, text.html meta.embedded, meta.tag.*.
 expression: result
 ---
 [
-    CompiledInjectionMatcher {
-        matcher: And(
-            [
-                Scope(
-                    Scope("text.html"),
-                ),
-                Not(
-                    Or(
-                        [
-                            Scope(
-                                Scope("comment.block"),
-                            ),
-                            And(
-                                [
-                                    Scope(
-                                        Scope("text.html"),
-                                    ),
-                                    Scope(
-                                        Scope("meta.embedded"),
-                                    ),
-                                ],
-                            ),
-                            Scope(
-                                Scope("meta.tag"),
-                            ),
-                        ],
-                    ),
-                ),
-            ],
-        ),
-        priority: Some(
-            Right,
-        ),
-    },
+    CompiledInjectionMatcher("R:text.html -(comment.block | text.html meta.embedded | meta.tag)"),
 ]

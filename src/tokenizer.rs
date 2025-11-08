@@ -21,7 +21,7 @@ pub struct Token {
 
 /// Keeps track of nested context as well as how to exit that context and the captures
 /// strings used in backreferences
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 struct StateStack {
     /// Parent stack element (None for root)
     parent: Option<Rc<StateStack>>,
@@ -121,6 +121,81 @@ impl StateStack {
             enter_position: None,
             ..self.clone()
         }
+    }
+}
+
+impl std::fmt::Debug for StateStack {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Collect the entire stack from root to current
+        let mut stack_elements = Vec::new();
+        let mut current = self;
+
+        // Traverse up to root, collecting elements
+        loop {
+            stack_elements.push(current);
+            if let Some(parent) = &current.parent {
+                current = parent;
+            } else {
+                break;
+            }
+        }
+
+        // Reverse to show root first
+        stack_elements.reverse();
+
+        writeln!(f, "StateStack:")?;
+
+        for (depth, element) in stack_elements.iter().enumerate() {
+            // Create indentation
+            let indent = "  ".repeat(depth);
+
+            // Format the basic info
+            write!(f, "{}grammar={}, rule={}",
+                   indent,
+                   element.rule_ref.grammar.0,
+                   element.rule_ref.rule.0)?;
+
+            // Add name scopes if not empty
+            if !element.name_scopes.is_empty() {
+                write!(f, " name=[")?;
+                for (i, scope) in element.name_scopes.iter().enumerate() {
+                    if i > 0 { write!(f, ", ")?; }
+                    write!(f, "{}", scope.build_string())?;
+                }
+                write!(f, "]")?;
+            }
+
+            // Add content scopes if not empty
+            if !element.content_scopes.is_empty() {
+                write!(f, ", content=[")?;
+                for (i, scope) in element.content_scopes.iter().enumerate() {
+                    if i > 0 { write!(f, ", ")?; }
+                    write!(f, "{}", scope.build_string())?;
+                }
+                write!(f, "]")?;
+            }
+
+            // Add end_pattern if present
+            if let Some(pattern) = &element.end_pattern {
+                write!(f, ", end_pattern=\"{}\"", pattern)?;
+            }
+
+            // Add anchor_position if present
+            if let Some(pos) = element.anchor_position {
+                write!(f, ", anchor_pos={}", pos)?;
+            }
+
+            // Add enter_position if present and different from anchor_position
+            if let Some(enter_pos) = element.enter_position {
+                if element.anchor_position != Some(enter_pos) {
+                    write!(f, ", enter_pos={}", enter_pos)?;
+                }
+            }
+
+            writeln!(f)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -563,8 +638,8 @@ impl<'g> Tokenizer<'g> {
 
         if cfg!(feature = "debug") {
             eprintln!(
-                "[get_or_create_pattern_set] Rule ID: {:?} Anchors: {rule_w_anchor:?}",
-                rule_ref.rule
+                "[get_or_create_pattern_set] Rule: {rule_ref:?} (grammar: {}) Anchors: {rule_w_anchor:?}",
+                &self.registry.grammars[rule_ref.grammar].name
             );
             eprintln!(
                 "[get_or_create_pattern_set] Scanning for: pos={pos}, anchor_position={anchor_position:?}"
@@ -588,11 +663,15 @@ impl<'g> Tokenizer<'g> {
         }
 
         if !self.pattern_cache.contains_key(&rule_w_anchor) {
-            let raw_patterns = self.registry.collect_patterns(rule_ref);
+            if cfg!(feature = "debug") {
+                eprintln!(
+                    "[get_or_create_pattern_set] Creating new ps with stack: {stack:#?} for rule {rule_ref:?}"
+                );
+            }
 
-            // if cfg!(feature = "debug") {
-            //     eprintln!("[get_or_create_pattern_set] Creating new ps with stack: {stack:#?}");
-            // }
+            let raw_patterns = self
+                .registry
+                .collect_patterns(self.base_grammar_id, rule_ref);
 
             let patterns: Vec<_> = raw_patterns
                 .into_iter()
@@ -1100,7 +1179,7 @@ mod tests {
     fn can_tokenize_specific_text() {
         let registry = get_registry();
 
-        let grammar = "fortran-fixed-form";
+        let grammar = "shellsession";
         // let sample_content = r#"<x-app-layout :title="$post->title"></x-app-layout>"#;
         let sample_content =
             fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
@@ -1110,6 +1189,9 @@ mod tests {
             .tokenize(registry.grammar_id_by_name[grammar], &sample_content)
             .unwrap();
         let out = format_tokens(&sample_content, tokens);
+
+        // Our new StateStack debug format is working great!
+
         // println!("{out}");
         assert_eq!(out.trim(), expected.trim());
         // assert!(false);

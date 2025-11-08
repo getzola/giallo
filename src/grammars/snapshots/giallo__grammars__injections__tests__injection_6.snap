@@ -4,45 +4,5 @@ description: "L:(meta.script.svelte | meta.style.svelte) (meta.lang.js | meta.la
 expression: result
 ---
 [
-    CompiledInjectionMatcher {
-        matcher: And(
-            [
-                Or(
-                    [
-                        Scope(
-                            Scope("meta.script.svelte"),
-                        ),
-                        Scope(
-                            Scope("meta.style.svelte"),
-                        ),
-                    ],
-                ),
-                Or(
-                    [
-                        Scope(
-                            Scope("meta.lang.js"),
-                        ),
-                        Scope(
-                            Scope("meta.lang.javascript"),
-                        ),
-                    ],
-                ),
-                Not(
-                    And(
-                        [
-                            Scope(
-                                Scope("meta"),
-                            ),
-                            Scope(
-                                Scope("source"),
-                            ),
-                        ],
-                    ),
-                ),
-            ],
-        ),
-        priority: Some(
-            Left,
-        ),
-    },
+    CompiledInjectionMatcher("L:(meta.script.svelte | meta.style.svelte) (meta.lang.js | meta.lang.javascript) -meta source"),
 ]

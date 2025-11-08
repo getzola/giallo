@@ -4,10 +4,5 @@ description: text.html
 expression: result
 ---
 [
-    CompiledInjectionMatcher {
-        matcher: Scope(
-            Scope("text.html"),
-        ),
-        priority: None,
-    },
+    CompiledInjectionMatcher("text.html"),
 ]

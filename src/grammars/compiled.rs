@@ -100,6 +100,11 @@ pub const NO_OP_GLOBAL_RULE_REF: GlobalRuleRef = GlobalRuleRef {
     rule: TEMP_RULE_ID,
 };
 
+pub const BASE_GLOBAL_RULE_REF: GlobalRuleRef = GlobalRuleRef {
+    grammar: GrammarId(u16::MAX - 2),
+    rule: ROOT_RULE_ID,
+};
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct RegexId(u16);
@@ -882,8 +887,8 @@ impl CompiledGrammar {
                 // https://github.com/microsoft/vscode-textmate/blob/f03a6a8790af81372d0e81facae75554ec5e97ef/src/rule.ts#L495
 
                 match reference {
-                    Reference::Self_ | Reference::Base => {
-                        // Self/Base references always resolve to root rule
+                    Reference::Base => out.push(BASE_GLOBAL_RULE_REF),
+                    Reference::Self_ => {
                         out.push(GlobalRuleRef {
                             grammar: self.id,
                             rule: RuleId(0),

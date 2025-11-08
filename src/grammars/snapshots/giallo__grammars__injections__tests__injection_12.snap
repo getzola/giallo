@@ -4,72 +4,8 @@ description: "L:source.css -comment, L:source.postcss -comment, L:source.sass -c
 expression: result
 ---
 [
-    CompiledInjectionMatcher {
-        matcher: And(
-            [
-                Scope(
-                    Scope("source.css"),
-                ),
-                Not(
-                    Scope(
-                        Scope("comment"),
-                    ),
-                ),
-            ],
-        ),
-        priority: Some(
-            Left,
-        ),
-    },
-    CompiledInjectionMatcher {
-        matcher: And(
-            [
-                Scope(
-                    Scope("source.postcss"),
-                ),
-                Not(
-                    Scope(
-                        Scope("comment"),
-                    ),
-                ),
-            ],
-        ),
-        priority: Some(
-            Left,
-        ),
-    },
-    CompiledInjectionMatcher {
-        matcher: And(
-            [
-                Scope(
-                    Scope("source.sass"),
-                ),
-                Not(
-                    Scope(
-                        Scope("comment"),
-                    ),
-                ),
-            ],
-        ),
-        priority: Some(
-            Left,
-        ),
-    },
-    CompiledInjectionMatcher {
-        matcher: And(
-            [
-                Scope(
-                    Scope("source.stylus"),
-                ),
-                Not(
-                    Scope(
-                        Scope("comment"),
-                    ),
-                ),
-            ],
-        ),
-        priority: Some(
-            Left,
-        ),
-    },
+    CompiledInjectionMatcher("L:source.css -comment"),
+    CompiledInjectionMatcher("L:source.postcss -comment"),
+    CompiledInjectionMatcher("L:source.sass -comment"),
+    CompiledInjectionMatcher("L:source.stylus -comment"),
 ]

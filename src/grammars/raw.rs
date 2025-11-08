@@ -14,9 +14,11 @@ use serde::{Deserialize, Serialize};
 ///  * base, e.g. `$base`
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Reference {
+    // Itself
     Self_,
-    // TODO: not entirely how $base differs from $self and what it actually means
-    // seems like only injection, like calling the parent language when nesting
+    // The base grammar the user asked for even if we are in another grammar.
+    // For example, if we are rendering Markdown and then switch to Python for the codeblock, if the
+    // Python grammar include $base, it will actually include the root rule of Markdown grammar.
     Base,
     Local(String),
     OtherComplete(String),

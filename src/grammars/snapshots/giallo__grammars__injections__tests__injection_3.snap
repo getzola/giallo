@@ -4,26 +4,5 @@ description: "L:meta.decorator.ts -comment -text.html"
 expression: result
 ---
 [
-    CompiledInjectionMatcher {
-        matcher: And(
-            [
-                Scope(
-                    Scope("meta.decorator.ts"),
-                ),
-                Not(
-                    Scope(
-                        Scope("comment"),
-                    ),
-                ),
-                Not(
-                    Scope(
-                        Scope("text.html"),
-                    ),
-                ),
-            ],
-        ),
-        priority: Some(
-            Left,
-        ),
-    },
+    CompiledInjectionMatcher("L:meta.decorator.ts -comment -text.html"),
 ]

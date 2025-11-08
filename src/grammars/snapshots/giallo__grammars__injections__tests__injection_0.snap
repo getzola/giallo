@@ -4,12 +4,5 @@ description: "L:text.html.markdown"
 expression: result
 ---
 [
-    CompiledInjectionMatcher {
-        matcher: Scope(
-            Scope("text.html.markdown"),
-        ),
-        priority: Some(
-            Left,
-        ),
-    },
+    "L:text.html.markdown",
 ]
