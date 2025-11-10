@@ -150,16 +150,19 @@ impl std::fmt::Debug for StateStack {
             let indent = "  ".repeat(depth);
 
             // Format the basic info
-            write!(f, "{}grammar={}, rule={}",
-                   indent,
-                   element.rule_ref.grammar.0,
-                   element.rule_ref.rule.0)?;
+            write!(
+                f,
+                "{}grammar={}, rule={}",
+                indent, element.rule_ref.grammar.0, element.rule_ref.rule.0
+            )?;
 
             // Add name scopes if not empty
             if !element.name_scopes.is_empty() {
                 write!(f, " name=[")?;
                 for (i, scope) in element.name_scopes.iter().enumerate() {
-                    if i > 0 { write!(f, ", ")?; }
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
                     write!(f, "{}", scope.build_string())?;
                 }
                 write!(f, "]")?;
@@ -169,7 +172,9 @@ impl std::fmt::Debug for StateStack {
             if !element.content_scopes.is_empty() {
                 write!(f, ", content=[")?;
                 for (i, scope) in element.content_scopes.iter().enumerate() {
-                    if i > 0 { write!(f, ", ")?; }
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
                     write!(f, "{}", scope.build_string())?;
                 }
                 write!(f, "]")?;
@@ -811,29 +816,28 @@ impl<'g> Tokenizer<'g> {
                 retokenization_stack
                     .content_scopes
                     .extend(rule.get_content_scopes(line, captures));
-                let substring = &line[cap_start..cap_end];
+                let substring = &line[0..cap_end];
                 if cfg!(feature = "debug") {
                     eprintln!(
-                        "[resolve_captures] Retokenizing capture at [{cap_start}..{cap_end}]: {:?}",
-                        &line[cap_start..cap_end]
+                        "[resolve_captures] Retokenizing capture at [0..{cap_end}]: {:?}",
+                        &line[0..cap_end]
                     );
                     eprintln!(
-                        "[resolve_captures] Using substring [{cap_start}..{cap_end}]: {:?}",
+                        "[resolve_captures] Using substring [0..{cap_end}]: {:?}",
                         substring
                     );
                 }
                 let (retokenized_acc, _) = self.tokenize_line(
                     retokenization_stack,
                     substring,
+                    cap_start,
                     is_first_line && cap_start == 0,
                     false,
                 )?;
 
-                // Merge retokenized tokens back into accumulator with position adjustment
                 for token in retokenized_acc.tokens {
-                    let adjusted_end = cap_start + token.span.end;
                     // Only include tokens that are within the capture bounds (they should all be valid now)
-                    accumulator.produce(adjusted_end, &token.scopes);
+                    accumulator.produce(token.span.end, &token.scopes);
                 }
                 continue;
             }
@@ -863,11 +867,12 @@ impl<'g> Tokenizer<'g> {
         &mut self,
         stack: StateStack,
         line: &str,
+        line_pos: usize,
         is_first_line: bool,
         check_while_conditions: bool,
     ) -> Result<(TokenAccumulator, StateStack), TokenizeError> {
         let mut accumulator = TokenAccumulator::default();
-        let mut pos = 0;
+        let mut pos = line_pos;
         let mut anchor_position = None;
         let mut is_first_line = is_first_line;
         let mut stack = stack;
@@ -1072,7 +1077,7 @@ impl<'g> Tokenizer<'g> {
             let line = format!("{line}\n");
             let stack_for_line = stack.reset_enter_position();
             let (mut acc, new_state) =
-                self.tokenize_line(stack_for_line, &line, is_first_line, true)?;
+                self.tokenize_line(stack_for_line, &line, 0, is_first_line, true)?;
             acc.finalize(line.len());
             lines_tokens.push(acc.tokens);
             stack = new_state;
@@ -1180,20 +1185,18 @@ mod tests {
         let registry = get_registry();
 
         let grammar = "shellsession";
-        // let sample_content = r#"<x-app-layout :title="$post->title"></x-app-layout>"#;
-        let sample_content =
-            fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
-        let expected = fs::read_to_string(format!("src/fixtures/tokens/{grammar}.txt")).unwrap();
+        let sample_content = r#"$ echo $EDITOR"#;
+        // let sample_content =
+        //     fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
+        // let expected = fs::read_to_string(format!("src/fixtures/tokens/{grammar}.txt")).unwrap();
 
         let tokens = registry
             .tokenize(registry.grammar_id_by_name[grammar], &sample_content)
             .unwrap();
         let out = format_tokens(&sample_content, tokens);
 
-        // Our new StateStack debug format is working great!
-
-        // println!("{out}");
-        assert_eq!(out.trim(), expected.trim());
-        // assert!(false);
+        // assert_eq!(out.trim(), expected.trim());
+        println!("{out}");
+        assert!(false);
     }
 }
