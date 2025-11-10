@@ -43,8 +43,14 @@ impl Regex {
     pub fn new(pattern: String) -> Self {
         // TODO: validate and look for backreference
 
+        // Transform \z to $(?!\n)(?<!\n) to match vscode-textmate behavior
+        // \z in Oniguruma matches absolute end of string, but TextMate grammars
+        // expect it to match end-of-string-or-before-final-newline
+        // This is needed at least for the po grammar sample from shiki
+        let transformed_pattern = transform_z_anchor(&pattern);
+
         Self {
-            pattern,
+            pattern: transformed_pattern,
             compiled: OnceLock::new(),
         }
     }
@@ -154,6 +160,15 @@ impl Regex {
     }
 }
 
+/// Transform \z anchor from Oniguruma "end of string" to TextMate "end without newline"
+/// This matches the behavior in vscode-textmate's RegExpSource constructor
+fn transform_z_anchor(pattern: &str) -> String {
+    pattern
+        .replace("\\\\z", "___TEMP___") // Protect literal \\z
+        .replace("\\z", "$(?!\\n)(?<!\\n)") // Transform \z anchor
+        .replace("___TEMP___", "\\\\z") // Restore literal \\z
+}
+
 impl Serialize for Regex {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -170,5 +185,46 @@ impl<'de> Deserialize<'de> for Regex {
     {
         let pattern = String::deserialize(deserializer)?;
         Ok(Regex::new(pattern))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_transform_z_anchor() {
+        // Test basic \z transformation
+        assert_eq!(transform_z_anchor("\\z"), "$(?!\\n)(?<!\\n)");
+
+        // Test \z at end of pattern
+        assert_eq!(transform_z_anchor("^start\\z"), "^start$(?!\\n)(?<!\\n)");
+
+        // Test \z in middle of pattern
+        assert_eq!(transform_z_anchor("\\zmiddle"), "$(?!\\n)(?<!\\n)middle");
+
+        // Test multiple \z in pattern
+        assert_eq!(
+            transform_z_anchor("\\z.*\\z"),
+            "$(?!\\n)(?<!\\n).*$(?!\\n)(?<!\\n)"
+        );
+
+        // Test no \z in pattern (should return unchanged)
+        assert_eq!(transform_z_anchor("^normal$"), "^normal$");
+
+        // Test literal \\z (escaped backslash + z) should NOT be transformed
+        assert_eq!(transform_z_anchor("\\\\z"), "\\\\z");
+
+        // Test other backslash sequences should remain unchanged
+        assert_eq!(transform_z_anchor("\\A\\G\\n\\t"), "\\A\\G\\n\\t");
+
+        // Test empty pattern
+        assert_eq!(transform_z_anchor(""), "");
+
+        // Test complex pattern from PO grammar
+        assert_eq!(
+            transform_z_anchor("^(?:(?=(msg(?:id(_plural)?|ctxt))\\s*\"[^\"])|\\s*$).*\\z"),
+            "^(?:(?=(msg(?:id(_plural)?|ctxt))\\s*\"[^\"])|\\s*$).*$(?!\\n)(?<!\\n)"
+        );
     }
 }

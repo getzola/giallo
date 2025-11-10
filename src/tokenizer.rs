@@ -1184,19 +1184,22 @@ mod tests {
     fn can_tokenize_specific_text() {
         let registry = get_registry();
 
-        let grammar = "shellsession";
-        let sample_content = r#"$ echo $EDITOR"#;
-        // let sample_content =
-        //     fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
-        // let expected = fs::read_to_string(format!("src/fixtures/tokens/{grammar}.txt")).unwrap();
+        let grammar = "po";
+        //         let sample_content = r#"
+        // msgid ""
+        // "FFmpeg Thumbnailer is a video thumbnail generator for KDE file managers."
+        // msgstr "FFmpeg 縮圖產生工具是用於 KDE 檔案管理器的影片縮圖產生器。""#;
+        let sample_content =
+            fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
+        let expected = fs::read_to_string(format!("src/fixtures/tokens/{grammar}.txt")).unwrap();
 
         let tokens = registry
             .tokenize(registry.grammar_id_by_name[grammar], &sample_content)
             .unwrap();
         let out = format_tokens(&sample_content, tokens);
 
-        // assert_eq!(out.trim(), expected.trim());
-        println!("{out}");
-        assert!(false);
+        assert_eq!(out.trim(), expected.trim());
+        // println!("{out}");
+        // assert!(false);
     }
 }

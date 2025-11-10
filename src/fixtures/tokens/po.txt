@@ -1,0 +1,541 @@
+0: '#' (line 0)
+  - source.po
+  - comment.line.number-sign.po
+  - punctuation.definition.comment.po
+
+1: ' pan93412 <pan93412@gmail.com>, 2019.' (line 0)
+  - source.po
+  - comment.line.number-sign.po
+
+0: 'msgid ""' (line 1)
+  - source.po
+  - comment.line.number-sign.po
+
+0: 'msgstr ""' (line 2)
+  - source.po
+  - comment.line.number-sign.po
+
+0: '"' (line 3)
+  - source.po
+  - meta.header.po
+
+1: 'Project-Id-Version' (line 3)
+  - source.po
+  - meta.header.po
+  - constant.language.po
+
+2: ':' (line 3)
+  - source.po
+  - meta.header.po
+  - punctuation.separator.key-value.po
+
+3: ' ' (line 3)
+  - source.po
+  - meta.header.po
+
+4: 'pan 93412\n' (line 3)
+  - source.po
+  - meta.header.po
+  - string.other.po
+
+5: '"' (line 3)
+  - source.po
+  - meta.header.po
+
+0: '"' (line 4)
+  - source.po
+  - meta.header.po
+
+1: 'POT-Creation-Date' (line 4)
+  - source.po
+  - meta.header.po
+  - constant.language.po
+
+2: ':' (line 4)
+  - source.po
+  - meta.header.po
+  - punctuation.separator.key-value.po
+
+3: ' ' (line 4)
+  - source.po
+  - meta.header.po
+
+4: '2023-11-05 12:30+0000\n' (line 4)
+  - source.po
+  - meta.header.po
+  - string.other.po
+
+5: '"' (line 4)
+  - source.po
+  - meta.header.po
+
+0: '"' (line 5)
+  - source.po
+  - meta.header.po
+
+1: 'PO-Revision-Date' (line 5)
+  - source.po
+  - meta.header.po
+  - constant.language.po
+
+2: ':' (line 5)
+  - source.po
+  - meta.header.po
+  - punctuation.separator.key-value.po
+
+3: ' ' (line 5)
+  - source.po
+  - meta.header.po
+
+4: '2019-10-09 20:54+0800\n' (line 5)
+  - source.po
+  - meta.header.po
+  - string.other.po
+
+5: '"' (line 5)
+  - source.po
+  - meta.header.po
+
+0: '"' (line 6)
+  - source.po
+  - meta.header.po
+
+1: 'Last-Translator' (line 6)
+  - source.po
+  - meta.header.po
+  - constant.language.po
+
+2: ':' (line 6)
+  - source.po
+  - meta.header.po
+  - punctuation.separator.key-value.po
+
+3: ' ' (line 6)
+  - source.po
+  - meta.header.po
+
+4: 'pan93412 <pan93412@gmail.com>\n' (line 6)
+  - source.po
+  - meta.header.po
+  - string.other.po
+
+5: '"' (line 6)
+  - source.po
+  - meta.header.po
+
+0: '"' (line 7)
+  - source.po
+  - meta.header.po
+
+1: 'Language-Team' (line 7)
+  - source.po
+  - meta.header.po
+  - constant.language.po
+
+2: ':' (line 7)
+  - source.po
+  - meta.header.po
+  - punctuation.separator.key-value.po
+
+3: ' ' (line 7)
+  - source.po
+  - meta.header.po
+
+4: 'Chinese <zh-l10n@lists.linux.org.tw>\n' (line 7)
+  - source.po
+  - meta.header.po
+  - string.other.po
+
+5: '"' (line 7)
+  - source.po
+  - meta.header.po
+
+0: '"' (line 8)
+  - source.po
+  - meta.header.po
+
+1: 'Language' (line 8)
+  - source.po
+  - meta.header.po
+  - constant.language.po
+
+2: ':' (line 8)
+  - source.po
+  - meta.header.po
+  - punctuation.separator.key-value.po
+
+3: ' ' (line 8)
+  - source.po
+  - meta.header.po
+
+4: 'zh_TW\n' (line 8)
+  - source.po
+  - meta.header.po
+  - string.other.po
+
+5: '"' (line 8)
+  - source.po
+  - meta.header.po
+
+0: '"' (line 9)
+  - source.po
+  - meta.header.po
+
+1: 'MIME-Version' (line 9)
+  - source.po
+  - meta.header.po
+  - constant.language.po
+
+2: ':' (line 9)
+  - source.po
+  - meta.header.po
+  - punctuation.separator.key-value.po
+
+3: ' ' (line 9)
+  - source.po
+  - meta.header.po
+
+4: '1.0\n' (line 9)
+  - source.po
+  - meta.header.po
+  - string.other.po
+
+5: '"' (line 9)
+  - source.po
+  - meta.header.po
+
+0: '"' (line 10)
+  - source.po
+  - meta.header.po
+
+1: 'Content-Type' (line 10)
+  - source.po
+  - meta.header.po
+  - constant.language.po
+
+2: ':' (line 10)
+  - source.po
+  - meta.header.po
+  - punctuation.separator.key-value.po
+
+3: ' ' (line 10)
+  - source.po
+  - meta.header.po
+
+4: 'text/plain; charset=UTF-8\n' (line 10)
+  - source.po
+  - meta.header.po
+  - string.other.po
+
+5: '"' (line 10)
+  - source.po
+  - meta.header.po
+
+0: '"' (line 11)
+  - source.po
+  - meta.header.po
+
+1: 'Content-Transfer-Encoding' (line 11)
+  - source.po
+  - meta.header.po
+  - constant.language.po
+
+2: ':' (line 11)
+  - source.po
+  - meta.header.po
+  - punctuation.separator.key-value.po
+
+3: ' ' (line 11)
+  - source.po
+  - meta.header.po
+
+4: '8bit\n' (line 11)
+  - source.po
+  - meta.header.po
+  - string.other.po
+
+5: '"' (line 11)
+  - source.po
+  - meta.header.po
+
+0: '"' (line 12)
+  - source.po
+  - meta.header.po
+
+1: 'Plural-Forms' (line 12)
+  - source.po
+  - meta.header.po
+  - constant.language.po
+
+2: ':' (line 12)
+  - source.po
+  - meta.header.po
+  - punctuation.separator.key-value.po
+
+3: ' ' (line 12)
+  - source.po
+  - meta.header.po
+
+4: 'nplurals=1; plural=0;\n' (line 12)
+  - source.po
+  - meta.header.po
+  - string.other.po
+
+5: '"' (line 12)
+  - source.po
+  - meta.header.po
+
+0: '"' (line 13)
+  - source.po
+  - meta.header.po
+
+1: 'X-Generator' (line 13)
+  - source.po
+  - meta.header.po
+  - constant.language.po
+
+2: ':' (line 13)
+  - source.po
+  - meta.header.po
+  - punctuation.separator.key-value.po
+
+3: ' ' (line 13)
+  - source.po
+  - meta.header.po
+
+4: 'Lokalize 19.08.1\n' (line 13)
+  - source.po
+  - meta.header.po
+  - string.other.po
+
+5: '"' (line 13)
+  - source.po
+  - meta.header.po
+
+0: '#.' (line 15)
+  - source.po
+  - comment.line.number-sign.extracted.po
+  - punctuation.definition.comment.po
+
+1: ' (itstool) path: component/name' (line 15)
+  - source.po
+  - comment.line.number-sign.extracted.po
+
+0: '#:' (line 16)
+  - source.po
+  - comment.line.number-sign.reference.po
+  - punctuation.definition.comment.po
+
+1: ' ' (line 16)
+  - source.po
+  - comment.line.number-sign.reference.po
+
+2: 'org.kde.ffmpegthumbs.metainfo.xml:9' (line 16)
+  - source.po
+  - comment.line.number-sign.reference.po
+  - storage.type.class.po
+
+0: 'msgid' (line 17)
+  - source.po
+  - meta.scope.msgid.po
+  - keyword.control.msgid.po
+
+1: ' ' (line 17)
+  - source.po
+  - meta.scope.msgid.po
+
+2: '"' (line 17)
+  - source.po
+  - meta.scope.msgid.po
+  - string.quoted.double.po
+
+3: 'FFmpeg Thumbnailer' (line 17)
+  - source.po
+  - meta.scope.msgid.po
+  - string.quoted.double.po
+
+4: '"' (line 17)
+  - source.po
+  - meta.scope.msgid.po
+  - string.quoted.double.po
+
+0: 'msgstr' (line 18)
+  - source.po
+  - meta.scope.msgstr.po
+  - keyword.control.msgstr.po
+
+1: ' ' (line 18)
+  - source.po
+  - meta.scope.msgstr.po
+
+2: '"' (line 18)
+  - source.po
+  - meta.scope.msgstr.po
+  - string.quoted.double.po
+
+3: 'FFmpeg 縮圖產生工具' (line 18)
+  - source.po
+  - meta.scope.msgstr.po
+  - string.quoted.double.po
+
+4: '"' (line 18)
+  - source.po
+  - meta.scope.msgstr.po
+  - string.quoted.double.po
+
+0: '#.' (line 20)
+  - source.po
+  - comment.line.number-sign.extracted.po
+  - punctuation.definition.comment.po
+
+1: ' (itstool) path: component/summary' (line 20)
+  - source.po
+  - comment.line.number-sign.extracted.po
+
+0: '#:' (line 21)
+  - source.po
+  - comment.line.number-sign.reference.po
+  - punctuation.definition.comment.po
+
+1: ' ' (line 21)
+  - source.po
+  - comment.line.number-sign.reference.po
+
+2: 'org.kde.ffmpegthumbs.metainfo.xml:10' (line 21)
+  - source.po
+  - comment.line.number-sign.reference.po
+  - storage.type.class.po
+
+0: 'msgid' (line 22)
+  - source.po
+  - meta.scope.msgid.po
+  - keyword.control.msgid.po
+
+1: ' ' (line 22)
+  - source.po
+  - meta.scope.msgid.po
+
+2: '"' (line 22)
+  - source.po
+  - meta.scope.msgid.po
+  - string.quoted.double.po
+
+3: 'Video thumbnail generator using FFmpeg' (line 22)
+  - source.po
+  - meta.scope.msgid.po
+  - string.quoted.double.po
+
+4: '"' (line 22)
+  - source.po
+  - meta.scope.msgid.po
+  - string.quoted.double.po
+
+0: 'msgstr' (line 23)
+  - source.po
+  - meta.scope.msgstr.po
+  - keyword.control.msgstr.po
+
+1: ' ' (line 23)
+  - source.po
+  - meta.scope.msgstr.po
+
+2: '"' (line 23)
+  - source.po
+  - meta.scope.msgstr.po
+  - string.quoted.double.po
+
+3: '使用 FFmpeg 的影片縮圖產生工具' (line 23)
+  - source.po
+  - meta.scope.msgstr.po
+  - string.quoted.double.po
+
+4: '"' (line 23)
+  - source.po
+  - meta.scope.msgstr.po
+  - string.quoted.double.po
+
+0: '#.' (line 25)
+  - source.po
+  - comment.line.number-sign.extracted.po
+  - punctuation.definition.comment.po
+
+1: ' (itstool) path: description/p' (line 25)
+  - source.po
+  - comment.line.number-sign.extracted.po
+
+0: '#:' (line 26)
+  - source.po
+  - comment.line.number-sign.reference.po
+  - punctuation.definition.comment.po
+
+1: ' ' (line 26)
+  - source.po
+  - comment.line.number-sign.reference.po
+
+2: 'org.kde.ffmpegthumbs.metainfo.xml:12' (line 26)
+  - source.po
+  - comment.line.number-sign.reference.po
+  - storage.type.class.po
+
+0: 'msgid' (line 27)
+  - source.po
+  - meta.scope.msgid.po
+  - keyword.control.msgid.po
+
+1: ' ' (line 27)
+  - source.po
+  - meta.scope.msgid.po
+
+2: '"' (line 27)
+  - source.po
+  - meta.scope.msgid.po
+  - string.quoted.double.po
+
+3: '"' (line 27)
+  - source.po
+  - meta.scope.msgid.po
+  - string.quoted.double.po
+
+0: '"' (line 28)
+  - source.po
+  - meta.scope.msgid.po
+  - string.quoted.double.po
+
+1: 'FFmpeg Thumbnailer is a video thumbnail generator for KDE file managers.' (line 28)
+  - source.po
+  - meta.scope.msgid.po
+  - string.quoted.double.po
+
+2: '"' (line 28)
+  - source.po
+  - meta.scope.msgid.po
+  - string.quoted.double.po
+
+0: 'msgstr' (line 29)
+  - source.po
+  - meta.scope.msgstr.po
+  - keyword.control.msgstr.po
+
+1: ' ' (line 29)
+  - source.po
+  - meta.scope.msgstr.po
+
+2: '"' (line 29)
+  - source.po
+  - meta.scope.msgstr.po
+  - string.quoted.double.po
+
+3: 'FFmpeg 縮圖產生工具是用於 KDE 檔案管理器的影片縮圖產生器。' (line 29)
+  - source.po
+  - meta.scope.msgstr.po
+  - string.quoted.double.po
+
+4: '"' (line 29)
+  - source.po
+  - meta.scope.msgstr.po
+  - string.quoted.double.po
+
+0: '// From https://websvn.kde.org/trunk/l10n-kf5/zh_TW/messages/ffmpegthumbs/org.kde.ffmpegthumbs.metainfo.po?view=markup' (line 31)
+  - source.po
+  - invalid.illegal.po
+
