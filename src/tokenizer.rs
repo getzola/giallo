@@ -1184,11 +1184,11 @@ mod tests {
     fn can_tokenize_specific_text() {
         let registry = get_registry();
 
-        let grammar = "po";
-        //         let sample_content = r#"
-        // msgid ""
-        // "FFmpeg Thumbnailer is a video thumbnail generator for KDE file managers."
-        // msgstr "FFmpeg 縮圖產生工具是用於 KDE 檔案管理器的影片縮圖產生器。""#;
+        let grammar = "ini";
+        //         let sample_content = r#"%lex
+        //
+        // %%
+        // \s+"#;
         let sample_content =
             fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
         let expected = fs::read_to_string(format!("src/fixtures/tokens/{grammar}.txt")).unwrap();

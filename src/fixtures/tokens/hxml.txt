@@ -1,0 +1,166 @@
+0: '#' (line 0)
+  - source.hxml
+  - comment.line.number-sign.hxml
+  - punctuation.definition.comment.hxml
+
+1: ' @install: lix --silent download "haxelib:/hxnodejs#12.1.0" into hxnodejs/12.1.0/haxelib' (line 0)
+  - source.hxml
+  - comment.line.number-sign.hxml
+
+0: '-cp' (line 1)
+  - source.hxml
+  - keyword.other.hxml
+
+1: ' ${HAXE_LIBCACHE}/hxnodejs/12.1.0/haxelib/src' (line 1)
+  - source.hxml
+
+0: '-D' (line 2)
+  - source.hxml
+  - keyword.other.hxml
+
+1: ' hxnodejs=12.1.0' (line 2)
+  - source.hxml
+
+0: '--macro' (line 3)
+  - source.hxml
+  - keyword.other.hxml
+
+1: ' ' (line 3)
+  - source.hxml
+
+2: 'allowPackage' (line 3)
+  - source.hxml
+  - entity.name.function.hx
+
+3: '(' (line 3)
+  - source.hxml
+  - meta.brace.round.hx
+
+4: ''' (line 3)
+  - source.hxml
+  - string.quoted.single.hx
+  - punctuation.definition.string.begin.hx
+
+5: 's' (line 3)
+  - source.hxml
+  - string.quoted.single.hx
+
+6: 'y' (line 3)
+  - source.hxml
+  - string.quoted.single.hx
+
+7: 's' (line 3)
+  - source.hxml
+  - string.quoted.single.hx
+
+8: ''' (line 3)
+  - source.hxml
+  - string.quoted.single.hx
+  - punctuation.definition.string.end.hx
+
+9: ')' (line 3)
+  - source.hxml
+  - meta.brace.round.hx
+
+0: '#' (line 4)
+  - source.hxml
+  - comment.line.number-sign.hxml
+  - punctuation.definition.comment.hxml
+
+1: ' should behave like other target defines and not be defined in macro context' (line 4)
+  - source.hxml
+  - comment.line.number-sign.hxml
+
+0: '--macro' (line 5)
+  - source.hxml
+  - keyword.other.hxml
+
+1: ' ' (line 5)
+  - source.hxml
+
+2: 'define' (line 5)
+  - source.hxml
+  - entity.name.function.hx
+
+3: '(' (line 5)
+  - source.hxml
+  - meta.brace.round.hx
+
+4: ''' (line 5)
+  - source.hxml
+  - string.quoted.single.hx
+  - punctuation.definition.string.begin.hx
+
+5: 'n' (line 5)
+  - source.hxml
+  - string.quoted.single.hx
+
+6: 'o' (line 5)
+  - source.hxml
+  - string.quoted.single.hx
+
+7: 'd' (line 5)
+  - source.hxml
+  - string.quoted.single.hx
+
+8: 'e' (line 5)
+  - source.hxml
+  - string.quoted.single.hx
+
+9: 'j' (line 5)
+  - source.hxml
+  - string.quoted.single.hx
+
+10: 's' (line 5)
+  - source.hxml
+  - string.quoted.single.hx
+
+11: ''' (line 5)
+  - source.hxml
+  - string.quoted.single.hx
+  - punctuation.definition.string.end.hx
+
+12: ')' (line 5)
+  - source.hxml
+  - meta.brace.round.hx
+
+0: '--macro' (line 6)
+  - source.hxml
+  - keyword.other.hxml
+
+1: ' ' (line 6)
+  - source.hxml
+
+2: '_internal.' (line 6)
+  - source.hxml
+  - support.package.hx
+
+3: 'SuppressDeprecated' (line 6)
+  - source.hxml
+  - entity.name.type.hx
+
+4: '.' (line 6)
+  - source.hxml
+  - punctuation.accessor.hx
+
+5: 'run' (line 6)
+  - source.hxml
+  - entity.name.function.hx
+
+6: '(' (line 6)
+  - source.hxml
+  - meta.brace.round.hx
+
+7: ')' (line 6)
+  - source.hxml
+  - meta.brace.round.hx
+
+0: '#' (line 8)
+  - source.hxml
+  - comment.line.number-sign.hxml
+  - punctuation.definition.comment.hxml
+
+1: ' From https://github.com/vshaxe/vscode-checkstyle/blob/master/haxe_libraries/hxnodejs.hxml' (line 8)
+  - source.hxml
+  - comment.line.number-sign.hxml
+

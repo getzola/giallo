@@ -5,4 +5,12 @@ List of issues in grammar:
 - jison.json referring to source.jisonlex
 - text.html.markdown.source.gfm.apib in mdx.json
 - nextflow missing nextflow-groovy from https://github.com/nextflow-io/vscode-language-nextflow
-- markdown syntax does not have Scope text.html.markdown.math#math not found (wikitext.json) 
+- markdown syntax does not have Scope text.html.markdown.math#math not found (wikitext.json)
+
+❌ FAILED GRAMMARS:
+- haxe
+- hxml
+- jison
+- po
+- razor
+- yaml

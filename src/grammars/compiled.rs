@@ -105,6 +105,11 @@ pub const BASE_GLOBAL_RULE_REF: GlobalRuleRef = GlobalRuleRef {
     rule: ROOT_RULE_ID,
 };
 
+pub const PRE_CROSS_LINKING_RULE_REF: GlobalRuleRef = GlobalRuleRef {
+    grammar: GrammarId(u16::MAX - 3),
+    rule: TEMP_RULE_ID,
+};
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct RegexId(u16);
@@ -286,13 +291,17 @@ impl Rule {
         }
     }
 
-    pub fn has_patterns(&self) -> bool {
+    fn patterns(&self) -> &[GlobalRuleRef] {
         match self {
-            Rule::Match(_) | Rule::Noop => false,
-            Rule::IncludeOnly(b) => !b.patterns.is_empty(),
-            Rule::BeginEnd(b) => !b.patterns.is_empty(),
-            Rule::BeginWhile(b) => !b.patterns.is_empty(),
+            Rule::BeginEnd(b) => &b.patterns,
+            Rule::BeginWhile(b) => &b.patterns,
+            Rule::IncludeOnly(b) => &b.patterns,
+            Rule::Match(_) | Rule::Noop => &[],
         }
+    }
+
+    pub fn has_patterns(&self) -> bool {
+        !self.patterns().is_empty()
     }
 
     fn repository_stack(&self) -> RepositoryStack {
@@ -312,6 +321,15 @@ impl Rule {
             Rule::IncludeOnly(b) => b.patterns[position] = rule_ref,
             Rule::Match(_) => (),
             Rule::Noop => (),
+        }
+    }
+
+    fn has_only_empty_patterns(&self) -> bool {
+        let patterns = self.patterns();
+        if patterns.is_empty() {
+            false
+        } else {
+            patterns.iter().all(|p| *p == NO_OP_GLOBAL_RULE_REF)
         }
     }
 
@@ -461,21 +479,31 @@ impl CompiledGrammar {
 
         // https://github.com/microsoft/vscode-textmate/blob/f03a6a8790af81372d0e81facae75554ec5e97ef/src/rule.ts#L389-L447
         let rule = if let Some(pat) = raw_rule.match_ {
-            let name_is_capturing = has_captures(name.as_deref());
-            let scopes = if name_is_capturing || name.is_none() {
-                Vec::new()
+            // vscode-textmate does filter regex with empty match patterns
+            // eg in haxe
+            //  {
+            //    "match": "",
+            //    "name": "constant.character.escape.hx"
+            //  },
+            if pat.is_empty() {
+                Rule::Noop
             } else {
-                Scope::new(name.as_ref().unwrap())
-            };
-            Rule::Match(Match {
-                id: global_id,
-                name_is_capturing,
-                name,
-                scopes,
-                regex_id: Some(self.compile_regex(pat).0),
-                captures: self.compile_captures(raw_rule.captures, repository_stack)?,
-                repository_stack,
-            })
+                let name_is_capturing = has_captures(name.as_deref());
+                let scopes = if name_is_capturing || name.is_none() {
+                    Vec::new()
+                } else {
+                    Scope::new(name.as_ref().unwrap())
+                };
+                Rule::Match(Match {
+                    id: global_id,
+                    name_is_capturing,
+                    name,
+                    scopes,
+                    regex_id: Some(self.compile_regex(pat).0),
+                    captures: self.compile_captures(raw_rule.captures, repository_stack)?,
+                    repository_stack,
+                })
+            }
         } else if let Some(begin_pat) = raw_rule.begin {
             let content_name = raw_rule.content_name;
             let apply_end_pattern_last = raw_rule.apply_end_pattern_last;
@@ -836,40 +864,47 @@ impl CompiledGrammar {
         self.remove_empty_rules();
     }
 
-    /// We match the logic from
+    /// We match the logic from vscode-textmate
     pub(crate) fn remove_empty_rules(&mut self) {
-        let mut empty_rules = Vec::new();
-
-        for (i, rule) in self.rules.iter().enumerate() {
-            let patterns = match rule {
-                Rule::IncludeOnly(b) => &b.patterns,
-                Rule::BeginEnd(b) => &b.patterns,
-                Rule::BeginWhile(b) => &b.patterns,
-                Rule::Noop | Rule::Match(_) => continue,
-            };
-            if patterns.is_empty() {
-                continue;
-            }
-
-            let has_only_missing = patterns
-                .iter()
-                .filter(|p| *p == &NO_OP_GLOBAL_RULE_REF)
-                .count()
-                == patterns.len();
-            if has_only_missing {
-                if cfg!(feature = "debug") {
-                    eprintln!(
-                        "Rule '{:?}' in grammar '{}' has only missing patterns, making it a no-op",
-                        rule.original_name(),
-                        self.name
-                    );
+        loop {
+            let mut empty_rules = Vec::new();
+            for (i, rule) in self.rules.iter().enumerate() {
+                if matches!(rule, Rule::Noop | Rule::Match(_)) {
+                    continue;
                 }
-                empty_rules.push(i);
-            }
-        }
 
-        for i in empty_rules {
-            self.rules[i] = Rule::Noop;
+                if rule.has_only_empty_patterns() {
+                    empty_rules.push(i);
+                    continue;
+                }
+
+                let patterns = rule.patterns();
+                if patterns.is_empty() {
+                    continue;
+                }
+
+                let num_patterns = patterns.len();
+                let mut num_noop = 0;
+                for p in patterns {
+                    if p.rule == TEMP_RULE_ID || p.grammar != self.id {
+                        break;
+                    }
+                    if matches!(self.rules[p.rule], Rule::Noop) {
+                        num_noop += 1;
+                    }
+                }
+                if num_noop == num_patterns {
+                    empty_rules.push(i);
+                }
+            }
+
+            for i in &empty_rules {
+                self.rules[*i] = Rule::Noop;
+            }
+
+            if empty_rules.is_empty() {
+                break;
+            }
         }
     }
 
@@ -894,13 +929,19 @@ impl CompiledGrammar {
                             rule: RuleId(0),
                         });
                     }
-                    Reference::Local(_)
-                    | Reference::OtherComplete(_)
-                    | Reference::OtherSpecific(_, _) => {
+                    Reference::Local(_) => {
                         out.push(GlobalRuleRef {
                             grammar: self.id,
                             rule: TEMP_RULE_ID,
                         });
+                        self.references.push(RefToReplace {
+                            rule_id,
+                            index,
+                            reference,
+                        });
+                    }
+                    Reference::OtherComplete(_) | Reference::OtherSpecific(_, _) => {
+                        out.push(PRE_CROSS_LINKING_RULE_REF);
                         self.references.push(RefToReplace {
                             rule_id,
                             index,

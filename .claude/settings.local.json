@@ -71,7 +71,8 @@
       "Bash(git log:*)",
       "Bash(ls:*)",
       "Bash(node:*)",
-      "Bash(sort:*)"
+      "Bash(sort:*)",
+      "Bash(RUST_LOG=debug cargo test:*)"
     ],
     "deny": [],
     "ask": []
