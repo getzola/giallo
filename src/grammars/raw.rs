@@ -106,7 +106,7 @@ where
 /// }
 /// ```
 ///
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Captures(pub(crate) BTreeMap<usize, RawRule>);
 
 /// Helper enum for deserializing captures in both object and array formats
@@ -172,14 +172,34 @@ where
     let raw_map = BTreeMap::<String, RawRuleValue>::deserialize(deserializer)?;
     let mut result = BTreeMap::new();
 
+    let default = RawRule::default();
+
     for (key, val) in raw_map {
-        let rule = match val {
+        let mut rule = match val {
             RawRuleValue::Vec(rules) => RawRule {
                 patterns: rules,
                 ..Default::default()
             },
             RawRuleValue::Single(rule) => rule,
         };
+
+        // Some grammars have empty patterns but still decide to put [{}] in there, which messes
+        // up our logic later
+        // eg berry
+        //     "comment-block": {
+        //       "begin": "#-",
+        //       "end": "-#",
+        //       "name": "comment.berry",
+        //       "patterns": [
+        //         {
+        //         }
+        //       ]
+        //     },
+        rule.patterns = rule
+            .patterns
+            .into_iter()
+            .filter(|x| x != &default)
+            .collect();
         result.insert(key, rule);
     }
 
@@ -245,7 +265,7 @@ impl Deref for Captures {
 ///   }
 /// }
 /// ```
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRule {
     // Include reference - for including other patterns by reference

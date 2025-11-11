@@ -43,8 +43,11 @@ pub fn replace_captures(
                     Some("upcase") => result.to_uppercase(),
                     _ => result,
                 }
+            } else if let Some(None) = captures_pos.get(capture_num) {
+                // Capture exists but didn't match (None capture), replace with empty string
+                String::new()
             } else {
-                // Invalid capture bounds or None capture, return original match
+                // Invalid capture bounds (index out of bounds), return original match
                 caps.at(0).unwrap().to_string()
             }
         })
@@ -324,7 +327,7 @@ impl Rule {
         }
     }
 
-    fn has_only_empty_patterns(&self) -> bool {
+    fn has_only_missing_patterns(&self) -> bool {
         let patterns = self.patterns();
         if patterns.is_empty() {
             false
@@ -781,6 +784,7 @@ impl CompiledGrammar {
                             rule: *rule_id,
                         };
                         rule.replace_pattern(rep.index, global_ref);
+                        break;
                     }
                 }
             }
@@ -873,7 +877,7 @@ impl CompiledGrammar {
                     continue;
                 }
 
-                if rule.has_only_empty_patterns() {
+                if rule.has_only_missing_patterns() {
                     empty_rules.push(i);
                     continue;
                 }
