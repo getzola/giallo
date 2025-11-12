@@ -4,5 +4,5 @@ description: "L:text.html -comment"
 expression: result
 ---
 [
-    CompiledInjectionMatcher("L:text.html -comment"),
+    "L:text.html -comment",
 ]

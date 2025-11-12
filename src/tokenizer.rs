@@ -111,20 +111,21 @@ impl StateStack {
         }
     }
 
-    /// Resets enter_position for all stack elements to None
-    fn reset_enter_position(&self) -> StateStack {
+    /// Resets enter_position/anchor_position for all stack elements to None
+    fn reset(&self) -> StateStack {
         StateStack {
             parent: self
                 .parent
                 .as_ref()
-                .map(|parent| Rc::new(parent.reset_enter_position())),
+                .map(|parent| Rc::new(parent.reset())),
             enter_position: None,
+            anchor_position: None,
             ..self.clone()
         }
     }
 }
 
-impl std::fmt::Debug for StateStack {
+impl fmt::Debug for StateStack {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Collect the entire stack from root to current
         let mut stack_elements = Vec::new();
@@ -185,10 +186,7 @@ impl std::fmt::Debug for StateStack {
                 write!(f, ", end_pattern=\"{}\"", pattern)?;
             }
 
-            // Add anchor_position if present
-            if let Some(pos) = element.anchor_position {
-                write!(f, ", anchor_pos={}", pos)?;
-            }
+            write!(f, ", anchor_pos={:?}", element.anchor_position)?;
 
             // Add enter_position if present and different from anchor_position
             if let Some(enter_pos) = element.enter_position {
@@ -196,6 +194,8 @@ impl std::fmt::Debug for StateStack {
                     write!(f, ", enter_pos={}", enter_pos)?;
                 }
             }
+
+            write!(f, ", begin_rule_has_captured_eol={}", element.begin_rule_has_captured_eol)?;
 
             writeln!(f)?;
         }
@@ -285,8 +285,21 @@ impl AnchorActiveRule {
         current_pos: usize,
     ) -> AnchorActiveRule {
         let g_active = if let Some(a_pos) = anchor_position {
-            a_pos == current_pos
+            let result = a_pos == current_pos;
+            if cfg!(feature = "debug") {
+                eprintln!(
+                    "[AnchorActiveRule::new] CRITICAL: pos={}, anchor_position={:?}, g_active={}, is_first_line={}",
+                    current_pos, anchor_position, result, is_first_line
+                );
+            }
+            result
         } else {
+            if cfg!(feature = "debug") {
+                eprintln!(
+                    "[AnchorActiveRule::new] CRITICAL: pos={}, anchor_position=None, g_active=false, is_first_line={}",
+                    current_pos, is_first_line
+                );
+            }
             false
         };
 
@@ -554,7 +567,19 @@ impl<'g> Tokenizer<'g> {
             } else {
                 unreachable!()
             };
+            if cfg!(feature = "debug") {
+                eprintln!(
+                    "[check_while_conditions] Testing while pattern: original={:?}, active_anchor={:?}, pos={}",
+                    initial_pat, active_anchor, *pos
+                );
+            }
             let while_pat = active_anchor.replace_anchors(initial_pat);
+            if cfg!(feature = "debug") {
+                eprintln!(
+                    "[check_while_conditions] After anchor replacement: {:?}",
+                    while_pat
+                );
+            }
 
             let re = if let Some(re) = self.end_regex_cache.get(&while_pat) {
                 re
@@ -693,6 +718,12 @@ impl<'g> Tokenizer<'g> {
             if let Some(pat) = end_pattern
                 && let Rule::BeginEnd(_) = rule
             {
+                if cfg!(feature = "debug") {
+                    eprintln!(
+                        "[get_or_create_pattern_set] Pushing END pattern: {:?}, apply_last={}",
+                        pat, rule.apply_end_pattern_last()
+                    );
+                }
                 if rule.apply_end_pattern_last() {
                     p.push_back(
                         GlobalRuleRef {
@@ -914,6 +945,9 @@ impl<'g> Tokenizer<'g> {
                 // Track whether this match has advanced the position
                 let has_advanced = m.end > pos;
 
+                if cfg!(feature = "debug") && m.rule_ref.rule == END_RULE_ID {
+                    eprintln!("[tokenize_line] END RULE MATCHED at pos={}, m.start={}, m.end={}", pos, m.start, m.end);
+                }
                 // We matched the `end` for this rule, can only happen for BeginEnd rules
                 if m.rule_ref.rule == END_RULE_ID
                     && let Rule::BeginEnd(b) =
@@ -924,9 +958,14 @@ impl<'g> Tokenizer<'g> {
                             "[tokenize_line] End rule matched, popping '{}'",
                             b.name.clone().unwrap_or_default()
                         );
+                        eprintln!("[BEFORE POP] Current anchor_position: {:?}", anchor_position);
+                        eprintln!("[BEFORE POP] Stack: {:?}", stack);
                     }
                     accumulator.produce(m.start, &stack.content_scopes);
                     let popped = stack.clone();
+                    if cfg!(feature = "debug") {
+                        eprintln!("[POPPED RULE] Stack: {:?}", popped);
+                    }
                     stack = stack.with_content_scopes(stack.name_scopes.clone());
                     self.resolve_captures(
                         &stack,
@@ -939,8 +978,12 @@ impl<'g> Tokenizer<'g> {
                     accumulator.produce(m.end, &stack.content_scopes);
 
                     // Pop to parent state and update anchor position
-                    anchor_position = popped.anchor_position;
                     stack = stack.pop().expect("to have a parent stack");
+                    anchor_position = popped.anchor_position;
+                    if cfg!(feature = "debug") {
+                        eprintln!("[AFTER POP] Restored anchor_position: {:?}", anchor_position);
+                        eprintln!("[AFTER POP] New stack: {:?}", stack);
+                    }
 
                     // Grammar pushed & popped a rule without advancing - infinite loop protection
                     // It happens eg for astro grammar
@@ -1075,12 +1118,11 @@ impl<'g> Tokenizer<'g> {
         for line in text.split('\n') {
             // Always add a new line, some regex expect it
             let line = format!("{line}\n");
-            let stack_for_line = stack.reset_enter_position();
             let (mut acc, new_state) =
-                self.tokenize_line(stack_for_line, &line, 0, is_first_line, true)?;
+                self.tokenize_line(stack, &line, 0, is_first_line, true)?;
             acc.finalize(line.len());
             lines_tokens.push(acc.tokens);
-            stack = new_state;
+            stack = new_state.reset();
             is_first_line = false;
         }
 
@@ -1196,8 +1238,8 @@ mod tests {
         let tokens = registry.tokenize(grammar_id, &sample_content).unwrap();
         let out = format_tokens(&sample_content, tokens);
 
-        // assert_eq!(out.trim(), expected.trim());
-        println!("{out}");
-        assert!(false);
+        assert_eq!(out.trim(), expected.trim());
+        // println!("{out}");
+        // assert!(false);
     }
 }

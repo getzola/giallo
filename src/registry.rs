@@ -612,7 +612,7 @@ mod tests {
 
     #[test]
     fn test_render_specific_sample() {
-        let grammar = "blade";
+        let grammar = "razor";
 
         // Load registry with grammars and theme
         let registry = load_grammars_themes_registry().unwrap();

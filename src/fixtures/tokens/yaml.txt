@@ -1,0 +1,834 @@
+0: 'n' (line 0)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+1: 'ame' (line 0)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: ':' (line 0)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+3: ' ' (line 0)
+  - source.yaml
+
+4: 'C' (line 0)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+5: 'heck dist/' (line 0)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: 'on' (line 2)
+  - source.yaml
+  - constant.language.boolean.yaml
+
+1: ':' (line 2)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+0: '  ' (line 3)
+  - source.yaml
+
+1: 'p' (line 3)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'ush' (line 3)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 3)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+0: '    ' (line 4)
+  - source.yaml
+
+1: 'b' (line 4)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'ranches' (line 4)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 4)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+0: '      ' (line 5)
+  - source.yaml
+
+1: '-' (line 5)
+  - source.yaml
+  - punctuation.definition.block.sequence.item.yaml
+
+2: ' ' (line 5)
+  - source.yaml
+
+3: 'm' (line 5)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+4: 'ain' (line 5)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '    ' (line 6)
+  - source.yaml
+
+1: 'p' (line 6)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'aths-ignore' (line 6)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 6)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+0: '      ' (line 7)
+  - source.yaml
+
+1: '-' (line 7)
+  - source.yaml
+  - punctuation.definition.block.sequence.item.yaml
+
+2: ' ' (line 7)
+  - source.yaml
+
+3: ''' (line 7)
+  - source.yaml
+  - string.quoted.single.yaml
+  - punctuation.definition.string.begin.yaml
+
+4: '**.md' (line 7)
+  - source.yaml
+  - string.quoted.single.yaml
+
+5: ''' (line 7)
+  - source.yaml
+  - string.quoted.single.yaml
+  - punctuation.definition.string.end.yaml
+
+0: '  ' (line 8)
+  - source.yaml
+
+1: 'p' (line 8)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'ull_request' (line 8)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 8)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+0: '    ' (line 9)
+  - source.yaml
+
+1: 'p' (line 9)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'aths-ignore' (line 9)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 9)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+0: '      ' (line 10)
+  - source.yaml
+
+1: '-' (line 10)
+  - source.yaml
+  - punctuation.definition.block.sequence.item.yaml
+
+2: ' ' (line 10)
+  - source.yaml
+
+3: ''' (line 10)
+  - source.yaml
+  - string.quoted.single.yaml
+  - punctuation.definition.string.begin.yaml
+
+4: '**.md' (line 10)
+  - source.yaml
+  - string.quoted.single.yaml
+
+5: ''' (line 10)
+  - source.yaml
+  - string.quoted.single.yaml
+  - punctuation.definition.string.end.yaml
+
+0: 'j' (line 12)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+1: 'obs' (line 12)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: ':' (line 12)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+0: '  ' (line 13)
+  - source.yaml
+
+1: 'c' (line 13)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'heck-dist' (line 13)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 13)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+0: '    ' (line 14)
+  - source.yaml
+
+1: 'r' (line 14)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'uns-on' (line 14)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 14)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+4: ' ' (line 14)
+  - source.yaml
+
+5: 'u' (line 14)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+6: 'buntu-latest' (line 14)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '    ' (line 16)
+  - source.yaml
+
+1: 's' (line 16)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'teps' (line 16)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 16)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+0: '      ' (line 17)
+  - source.yaml
+
+1: '-' (line 17)
+  - source.yaml
+  - punctuation.definition.block.sequence.item.yaml
+
+2: ' ' (line 17)
+  - source.yaml
+
+3: 'u' (line 17)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+4: 'ses' (line 17)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+5: ':' (line 17)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+6: ' ' (line 17)
+  - source.yaml
+
+7: 'a' (line 17)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+8: 'ctions/checkout@v3' (line 17)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '      ' (line 19)
+  - source.yaml
+
+1: '-' (line 19)
+  - source.yaml
+  - punctuation.definition.block.sequence.item.yaml
+
+2: ' ' (line 19)
+  - source.yaml
+
+3: 'n' (line 19)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+4: 'ame' (line 19)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+5: ':' (line 19)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+6: ' ' (line 19)
+  - source.yaml
+
+7: 'S' (line 19)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+8: 'et Node.js 16.x' (line 19)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '        ' (line 20)
+  - source.yaml
+
+1: 'u' (line 20)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'ses' (line 20)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 20)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+4: ' ' (line 20)
+  - source.yaml
+
+5: 'a' (line 20)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+6: 'ctions/setup-node@v3' (line 20)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '        ' (line 21)
+  - source.yaml
+
+1: 'w' (line 21)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'ith' (line 21)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 21)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+0: '          ' (line 22)
+  - source.yaml
+
+1: 'n' (line 22)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'ode-version' (line 22)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 22)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+4: ' ' (line 22)
+  - source.yaml
+
+5: '1' (line 22)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+6: '6.x' (line 22)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '          ' (line 23)
+  - source.yaml
+
+1: 'c' (line 23)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'ache' (line 23)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 23)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+4: ' ' (line 23)
+  - source.yaml
+
+5: 'n' (line 23)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+6: 'pm' (line 23)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '      ' (line 25)
+  - source.yaml
+
+1: '-' (line 25)
+  - source.yaml
+  - punctuation.definition.block.sequence.item.yaml
+
+2: ' ' (line 25)
+  - source.yaml
+
+3: 'n' (line 25)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+4: 'ame' (line 25)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+5: ':' (line 25)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+6: ' ' (line 25)
+  - source.yaml
+
+7: 'I' (line 25)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+8: 'nstall dependencies' (line 25)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '        ' (line 26)
+  - source.yaml
+
+1: 'r' (line 26)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'un' (line 26)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 26)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+4: ' ' (line 26)
+  - source.yaml
+
+5: 'n' (line 26)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+6: 'pm ci' (line 26)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '      ' (line 28)
+  - source.yaml
+
+1: '-' (line 28)
+  - source.yaml
+  - punctuation.definition.block.sequence.item.yaml
+
+2: ' ' (line 28)
+  - source.yaml
+
+3: 'n' (line 28)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+4: 'ame' (line 28)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+5: ':' (line 28)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+6: ' ' (line 28)
+  - source.yaml
+
+7: 'R' (line 28)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+8: 'ebuild the dist/ directory' (line 28)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '        ' (line 29)
+  - source.yaml
+
+1: 'r' (line 29)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'un' (line 29)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 29)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+4: ' ' (line 29)
+  - source.yaml
+
+5: '|' (line 29)
+  - source.yaml
+  - keyword.control.flow.block-scalar.literal.yaml
+
+0: '          ' (line 30)
+  - source.yaml
+  - string.unquoted.block.yaml
+
+1: 'npm run build:compile' (line 30)
+  - source.yaml
+  - string.unquoted.block.yaml
+
+0: '          npm run build:package' (line 31)
+  - source.yaml
+  - string.unquoted.block.yaml
+
+0: '      ' (line 33)
+  - source.yaml
+
+1: '-' (line 33)
+  - source.yaml
+  - punctuation.definition.block.sequence.item.yaml
+
+2: ' ' (line 33)
+  - source.yaml
+
+3: 'n' (line 33)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+4: 'ame' (line 33)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+5: ':' (line 33)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+6: ' ' (line 33)
+  - source.yaml
+
+7: 'C' (line 33)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+8: 'ompare the expected and actual dist/ directories' (line 33)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '        ' (line 34)
+  - source.yaml
+
+1: 'r' (line 34)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'un' (line 34)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 34)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+4: ' ' (line 34)
+  - source.yaml
+
+5: '|' (line 34)
+  - source.yaml
+  - keyword.control.flow.block-scalar.literal.yaml
+
+0: '          ' (line 35)
+  - source.yaml
+  - string.unquoted.block.yaml
+
+1: 'if [ "$(git diff --ignore-space-at-eol dist/ | wc -l)" -gt "0" ]; then' (line 35)
+  - source.yaml
+  - string.unquoted.block.yaml
+
+0: '            echo "Detected uncommitted changes after build.  See status below:"' (line 36)
+  - source.yaml
+  - string.unquoted.block.yaml
+
+0: '            git diff' (line 37)
+  - source.yaml
+  - string.unquoted.block.yaml
+
+0: '            exit 1' (line 38)
+  - source.yaml
+  - string.unquoted.block.yaml
+
+0: '          fi' (line 39)
+  - source.yaml
+  - string.unquoted.block.yaml
+
+0: '        ' (line 40)
+  - source.yaml
+
+1: 'i' (line 40)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'd' (line 40)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 40)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+4: ' ' (line 40)
+  - source.yaml
+
+5: 'd' (line 40)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+6: 'iff' (line 40)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '      ' (line 42)
+  - source.yaml
+  - punctuation.whitespace.comment.leading.yaml
+
+1: '#' (line 42)
+  - source.yaml
+  - comment.line.number-sign.yaml
+  - punctuation.definition.comment.yaml
+
+2: ' If index.js was different than expected, upload the expected version as an artifact' (line 42)
+  - source.yaml
+  - comment.line.number-sign.yaml
+
+0: '      ' (line 43)
+  - source.yaml
+
+1: '-' (line 43)
+  - source.yaml
+  - punctuation.definition.block.sequence.item.yaml
+
+2: ' ' (line 43)
+  - source.yaml
+
+3: 'u' (line 43)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+4: 'ses' (line 43)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+5: ':' (line 43)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+6: ' ' (line 43)
+  - source.yaml
+
+7: 'a' (line 43)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+8: 'ctions/upload-artifact@v3' (line 43)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '        ' (line 44)
+  - source.yaml
+
+1: 'i' (line 44)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'f' (line 44)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 44)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+4: ' ' (line 44)
+  - source.yaml
+
+5: '$' (line 44)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+6: '{{ failure() && steps.diff.conclusion == 'failure' }}' (line 44)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '        ' (line 45)
+  - source.yaml
+
+1: 'w' (line 45)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'ith' (line 45)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 45)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+0: '          ' (line 46)
+  - source.yaml
+
+1: 'n' (line 46)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'ame' (line 46)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 46)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+4: ' ' (line 46)
+  - source.yaml
+
+5: 'd' (line 46)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+6: 'ist' (line 46)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '          ' (line 47)
+  - source.yaml
+
+1: 'p' (line 47)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+2: 'ath' (line 47)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+  - entity.name.tag.yaml
+
+3: ':' (line 47)
+  - source.yaml
+  - punctuation.separator.key-value.mapping.yaml
+
+4: ' ' (line 47)
+  - source.yaml
+
+5: 'd' (line 47)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+6: 'ist/' (line 47)
+  - source.yaml
+  - string.unquoted.plain.out.yaml
+
+0: '#' (line 49)
+  - source.yaml
+  - comment.line.number-sign.yaml
+  - punctuation.definition.comment.yaml
+
+1: ' From https://github.com/actions/add-to-project/blob/main/.github/workflows/check-dist.yml' (line 49)
+  - source.yaml
+  - comment.line.number-sign.yaml
+

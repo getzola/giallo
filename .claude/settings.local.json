@@ -72,7 +72,14 @@
       "Bash(ls:*)",
       "Bash(node:*)",
       "Bash(sort:*)",
-      "Bash(RUST_LOG=debug cargo test:*)"
+      "Bash(RUST_LOG=debug cargo test:*)",
+      "Bash(RUST_BACKTRACE=1 timeout 10 cargo test:*)",
+      "Bash(/tmp/simple_test.html)",
+      "Bash(rustc:*)",
+      "Bash(VSCODE_TEXTMATE_DEBUG=1 node test-yaml-anchor.js:*)",
+      "Bash(debug-output.txt)",
+      "Bash(/tmp/yaml_output.txt)",
+      "Bash(/tmp/yaml_complete_output.txt)"
     ],
     "deny": [],
     "ask": []
