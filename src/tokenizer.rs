@@ -939,7 +939,7 @@ impl<'g> Tokenizer<'g> {
                     accumulator.produce(m.end, &stack.content_scopes);
 
                     // Pop to parent state and update anchor position
-                    anchor_position = stack.anchor_position;
+                    anchor_position = popped.anchor_position;
                     stack = stack.pop().expect("to have a parent stack");
 
                     // Grammar pushed & popped a rule without advancing - infinite loop protection
@@ -1184,7 +1184,7 @@ mod tests {
     fn can_tokenize_specific_text() {
         let registry = get_registry();
 
-        let grammar = "razor";
+        let grammar = "yaml";
         // let sample_content = r#"<svg><rect x="0" /></svg>"#;
         let sample_content =
             fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
@@ -1196,8 +1196,8 @@ mod tests {
         let tokens = registry.tokenize(grammar_id, &sample_content).unwrap();
         let out = format_tokens(&sample_content, tokens);
 
-        assert_eq!(out.trim(), expected.trim());
-        // println!("{out}");
-        // assert!(false);
+        // assert_eq!(out.trim(), expected.trim());
+        println!("{out}");
+        assert!(false);
     }
 }

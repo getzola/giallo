@@ -10,7 +10,9 @@ use std::fmt;
 use std::sync::{Mutex, MutexGuard};
 
 pub const MAX_ATOMS: usize = 8;
-pub const MAX_REPOSITORY_SIZE: usize = 65534; // 2^16 - 2, leaving room for 0 and max
+pub const MAX_REPOSITORY_SIZE: usize = u16::MAX as usize - 1; // 2^16 - 2, leaving room for 0 and max
+pub const EMPTY_ATOM_INDEX: usize = u16::MAX as usize - 1; // Repository index for empty atoms
+pub const EMPTY_ATOM_NUMBER: u16 = u16::MAX; // Stored atom number for empty atoms
 
 /// A scope represents a hierarchical position in source code like "source.rust.meta.function"
 /// Internally stored as a single u128 with up to 8 atoms packed as 16-bit indices
@@ -120,6 +122,11 @@ impl ScopeRepository {
 
     /// Get existing index or register new atom, returning repository index
     fn atom_to_index(&mut self, atom: &str) -> usize {
+        // Handle empty atoms specially - return reserved index
+        if atom.is_empty() {
+            return EMPTY_ATOM_INDEX;
+        }
+
         // Fast path: atom already registered
         if let Some(&index) = self.atom_index_map.get(atom) {
             return index;
@@ -156,10 +163,7 @@ impl ScopeRepository {
         let mut atoms = 0u128;
 
         for (i, &atom_str) in parts.iter().take(atoms_to_process).enumerate() {
-            if atom_str.is_empty() {
-                continue; // Skip empty parts from "a..b"
-            }
-
+            // Process ALL atoms including empty ones (now handled by atom_to_index)
             let index = self.atom_to_index(atom_str);
             // Store as index + 1 so that 0 can mean "unused slot"
             let atom_value = (index + 1) as u128;
@@ -181,7 +185,12 @@ impl ScopeRepository {
             if atom_number == 0 {
                 break; // Hit unused slot
             }
-            parts.push(self.atom_str(atom_number));
+            // Handle empty atoms specially
+            if atom_number == EMPTY_ATOM_NUMBER {
+                parts.push("");
+            } else {
+                parts.push(self.atom_str(atom_number));
+            }
         }
 
         parts.join(".")
@@ -270,5 +279,21 @@ mod tests {
 
         assert_eq!(scope1, scope2);
         assert_ne!(scope1, scope3);
+    }
+
+    #[test]
+    fn test_empty_atom_preservation() {
+        // Test the main bug fix: scope names with double dots should be preserved
+        let scope = Scope::new("meta.tag.object.svg..end.html")[0];
+        assert_eq!(scope.build_string(), "meta.tag.object.svg..end.html");
+        assert_eq!(scope.len(), 7);
+    }
+
+    #[test]
+    fn test_empty_atoms_various_positions() {
+        // Test empty atoms in different positions
+        assert_eq!(Scope::new("a...b")[0].build_string(), "a...b");
+        assert_eq!(Scope::new(".start.end")[0].build_string(), ".start.end");
+        assert_eq!(Scope::new("start.end.")[0].build_string(), "start.end.");
     }
 }
