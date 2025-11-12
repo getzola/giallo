@@ -1,0 +1,173 @@
+#758575DD       /*
+#758575DD        A C-style comment. 
+#758575DD       */
+#758575DD       # A Python-style comment.
+#DBD7CACC       {
+#DBD7CACC         
+#BD976A         cocktails:
+#DBD7CACC        {
+#DBD7CACC           
+#758575DD       // Ingredient quantities are in fl oz.
+#DBD7CACC           
+#C98A7D         '
+#C98A7D         Tom Collins
+#C98A7D         '
+#CB7676         :
+#DBD7CACC        {
+#DBD7CACC             
+#BD976A         ingredients:
+#DBD7CACC        [
+#DBD7CACC               { 
+#BD976A         kind:
+#DBD7CACC        
+#C98A7D         "
+#C98A7D         Farmer's Gin
+#C98A7D         "
+#DBD7CACC       , 
+#BD976A         qty:
+#DBD7CACC        
+#4C9A91         1
+#4C9A91         .5
+#DBD7CACC        },
+#DBD7CACC               { 
+#BD976A         kind:
+#DBD7CACC        
+#C98A7D         '
+#C98A7D         Lemon
+#C98A7D         '
+#DBD7CACC       , 
+#BD976A         qty:
+#DBD7CACC        
+#4C9A91         1
+#DBD7CACC        },
+#DBD7CACC               { 
+#BD976A         kind:
+#DBD7CACC        
+#C98A7D         '
+#C98A7D         Simple Syrup
+#C98A7D         '
+#DBD7CACC       , 
+#BD976A         qty:
+#DBD7CACC        
+#4C9A91         0
+#4C9A91         .5
+#DBD7CACC        },
+#DBD7CACC               { 
+#BD976A         kind:
+#DBD7CACC        
+#C98A7D         '
+#C98A7D         Soda
+#C98A7D         '
+#DBD7CACC       , 
+#BD976A         qty:
+#DBD7CACC        
+#4C9A91         2
+#DBD7CACC        },
+#DBD7CACC               { 
+#BD976A         kind:
+#DBD7CACC        
+#C98A7D         '
+#C98A7D         Angostura
+#C98A7D         '
+#DBD7CACC       , 
+#BD976A         qty:
+#DBD7CACC        
+#C98A7D         '
+#C98A7D         dash
+#C98A7D         '
+#DBD7CACC        },
+#DBD7CACC             ],
+#DBD7CACC             
+#BD976A         garnish:
+#DBD7CACC        
+#C98A7D         '
+#C98A7D         Maraschino Cherry
+#C98A7D         '
+#DBD7CACC       ,
+#DBD7CACC             
+#BD976A         served:
+#DBD7CACC        
+#C98A7D         '
+#C98A7D         Tall
+#C98A7D         '
+#DBD7CACC       ,
+#DBD7CACC             
+#BD976A         description:
+#DBD7CACC        
+#C98A7D         |||
+#C98A7D                 The Tom Collins is essentially gin and
+#C98A7D                 lemonade.  The bitters add complexity.
+#C98A7D               
+#C98A7D         |||
+#DBD7CACC       ,
+#DBD7CACC           },
+#DBD7CACC           
+#BD976A         Manhattan:
+#DBD7CACC        {
+#DBD7CACC             
+#BD976A         ingredients:
+#DBD7CACC        [
+#DBD7CACC               { 
+#BD976A         kind:
+#DBD7CACC        
+#C98A7D         '
+#C98A7D         Rye
+#C98A7D         '
+#DBD7CACC       , 
+#BD976A         qty:
+#DBD7CACC        
+#4C9A91         2
+#4C9A91         .5
+#DBD7CACC        },
+#DBD7CACC               { 
+#BD976A         kind:
+#DBD7CACC        
+#C98A7D         '
+#C98A7D         Sweet Red Vermouth
+#C98A7D         '
+#DBD7CACC       , 
+#BD976A         qty:
+#DBD7CACC        
+#4C9A91         1
+#DBD7CACC        },
+#DBD7CACC               { 
+#BD976A         kind:
+#DBD7CACC        
+#C98A7D         '
+#C98A7D         Angostura
+#C98A7D         '
+#DBD7CACC       , 
+#BD976A         qty:
+#DBD7CACC        
+#C98A7D         '
+#C98A7D         dash
+#C98A7D         '
+#DBD7CACC        },
+#DBD7CACC             ],
+#DBD7CACC             
+#BD976A         garnish:
+#DBD7CACC        
+#C98A7D         '
+#C98A7D         Maraschino Cherry
+#C98A7D         '
+#DBD7CACC       ,
+#DBD7CACC             
+#BD976A         served:
+#DBD7CACC        
+#C98A7D         '
+#C98A7D         Straight Up
+#C98A7D         '
+#DBD7CACC       ,
+#DBD7CACC             
+#BD976A         description:
+#DBD7CACC        @
+#C98A7D         '
+#C98A7D         A clear 
+#FDAEB7   [i]   \ 
+#C98A7D         red drink.
+#C98A7D         '
+#DBD7CACC       ,
+#DBD7CACC           },
+#DBD7CACC         },
+#DBD7CACC       }
+#758575DD       # From https://jsonnet.org/learning/tutorial.html

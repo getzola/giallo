@@ -1,0 +1,147 @@
+#758575DD       %
+#758575DD        This is a simple sample document.  For more complicated documents take a look in the exercise tab. Note that everything that comes after a % symbol is treated as comment and ignored when the code is compiled.
+#444444         \
+#4D9375         documentclass
+#444444         {
+#B8A965         article
+#444444         }
+#DBD7CACC        
+#758575DD       %
+#758575DD        \documentclass{} is the first command in any LaTeX code.  It is used to define what kind of document you are creating such as an article or a book, and begins the document preamble
+#444444         \
+#4D9375         usepackage
+#444444         {
+#B8A965         amsmath
+#444444         }
+#DBD7CACC        
+#758575DD       %
+#758575DD        \usepackage is a command that allows you to add functionality to your LaTeX code
+#444444         \
+#B8A965         title
+#DBD7CACC       {Simple Sample} 
+#758575DD       %
+#758575DD        Sets article title
+#444444         \
+#B8A965         author
+#DBD7CACC       {My Name} 
+#758575DD       %
+#758575DD        Sets authors name
+#444444         \
+#B8A965         date
+#DBD7CACC       {
+#444444         \
+#B8A965         today
+#DBD7CACC       } 
+#758575DD       %
+#758575DD        Sets date for date compiled
+#758575DD       %
+#758575DD        The preamble ends with the command \begin{document}
+#444444         \
+#B8A965         begin
+#444444         {
+#DBD7CACC       document
+#444444         }
+#DBD7CACC        
+#758575DD       %
+#758575DD        All begin commands must be paired with an end command somewhere
+#DBD7CACC           
+#444444         \
+#B8A965         maketitle
+#DBD7CACC        
+#758575DD       %
+#758575DD        creates title using information in preamble (title, author, date)
+#DBD7CACC           
+#444444         \
+#B8A965         section
+#444444         {
+#80A665         Hello World!
+#444444         }
+#DBD7CACC        
+#758575DD       %
+#758575DD        creates a section
+#DBD7CACC           
+#444444         \
+#B8A965         textbf
+#444444         {
+#DBD7CACC [b]   Hello World!
+#444444         }
+#DBD7CACC        Today I am learning 
+#444444         \
+#B8A965         LaTeX
+#DBD7CACC       . 
+#758575DD       %
+#758575DD       notice how the command will end at the first non-alphabet charecter such as the . after \LaTeX
+#DBD7CACC            
+#444444         \
+#B8A965         LaTeX
+#DBD7CACC       {} is a great program for writing math. I can write in line math such as 
+#C98A7D77       $
+#B8A965         a
+#444444         ^
+#4C9A91         2
+#444444         +
+#B8A965         b
+#444444         ^
+#4C9A91         2
+#B8A965         =c
+#444444         ^
+#4C9A91         2
+#C98A7D77       $
+#DBD7CACC        
+#758575DD       %
+#758575DD       $ tells LaTexX to compile as math
+#DBD7CACC            . I can also give equations their own space:
+#DBD7CACC           
+#444444         \
+#B8A965         begin
+#444444         {
+#DBD7CACC       equation
+#444444         }
+#B8A965          
+#758575DD       %
+#758575DD        Creates an equation environment and is compiled as math
+#B8A965             
+#444444         \
+#C99076         gamma
+#444444         ^
+#4C9A91         2
+#444444         +
+#444444         \
+#C99076         theta
+#444444         ^
+#4C9A91         2
+#B8A965         =
+#444444         \
+#C99076         omega
+#444444         ^
+#4C9A91         2
+#DBD7CACC           
+#444444         \
+#B8A965         end
+#444444         {
+#DBD7CACC       equation
+#444444         }
+#DBD7CACC           If I do not leave any blank lines 
+#444444         \
+#B8A965         LaTeX
+#DBD7CACC       {} will continue  this text without making it into a new paragraph.  Notice how there was no indentation in the text after equation (1).
+#DBD7CACC           Also notice how even though I hit enter after that sentence and here 
+#C98A7D77       $
+#444444         \
+#C99076         downarrow
+#C98A7D77       $
+#DBD7CACC            
+#444444         \
+#B8A965         LaTeX
+#DBD7CACC       {} formats the sentence without any break.  Also   look  how      it   doesn't     matter          how    many  spaces     I put     between       my    words.
+#DBD7CACC           For a new paragraph I can leave a blank space in my code.
+#444444         \
+#B8A965         end
+#444444         {
+#DBD7CACC       document
+#444444         }
+#DBD7CACC        
+#758575DD       %
+#758575DD        This is the end of the document
+#758575DD       %
+#758575DD        From https://guides.nyu.edu/LaTeX/sample-document

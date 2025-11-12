@@ -1,0 +1,207 @@
+#B8A965         n
+#B8A965         ame
+#444444         :
+#DBD7CACC        
+#C98A7D         C
+#C98A7D         heck dist/
+#4D9375         on
+#444444         :
+#DBD7CACC         
+#B8A965         p
+#B8A965         ush
+#444444         :
+#DBD7CACC           
+#B8A965         b
+#B8A965         ranches
+#444444         :
+#DBD7CACC             
+#444444         -
+#DBD7CACC        
+#C98A7D         m
+#C98A7D         ain
+#DBD7CACC           
+#B8A965         p
+#B8A965         aths-ignore
+#444444         :
+#DBD7CACC             
+#444444         -
+#DBD7CACC        
+#C98A7D77       '
+#C98A7D         **.md
+#C98A7D77       '
+#DBD7CACC         
+#B8A965         p
+#B8A965         ull_request
+#444444         :
+#DBD7CACC           
+#B8A965         p
+#B8A965         aths-ignore
+#444444         :
+#DBD7CACC             
+#444444         -
+#DBD7CACC        
+#C98A7D77       '
+#C98A7D         **.md
+#C98A7D77       '
+#B8A965         j
+#B8A965         obs
+#444444         :
+#DBD7CACC         
+#B8A965         c
+#B8A965         heck-dist
+#444444         :
+#DBD7CACC           
+#B8A965         r
+#B8A965         uns-on
+#444444         :
+#DBD7CACC        
+#C98A7D         u
+#C98A7D         buntu-latest
+#DBD7CACC           
+#B8A965         s
+#B8A965         teps
+#444444         :
+#DBD7CACC             
+#444444         -
+#DBD7CACC        
+#B8A965         u
+#B8A965         ses
+#444444         :
+#DBD7CACC        
+#C98A7D         a
+#C98A7D         ctions/checkout@v3
+#DBD7CACC             
+#444444         -
+#DBD7CACC        
+#B8A965         n
+#B8A965         ame
+#444444         :
+#DBD7CACC        
+#C98A7D         S
+#C98A7D         et Node.js 16.x
+#DBD7CACC               
+#B8A965         u
+#B8A965         ses
+#444444         :
+#DBD7CACC        
+#C98A7D         a
+#C98A7D         ctions/setup-node@v3
+#DBD7CACC               
+#B8A965         w
+#B8A965         ith
+#444444         :
+#DBD7CACC                 
+#B8A965         n
+#B8A965         ode-version
+#444444         :
+#DBD7CACC        
+#C98A7D         1
+#C98A7D         6.x
+#DBD7CACC                 
+#B8A965         c
+#B8A965         ache
+#444444         :
+#DBD7CACC        
+#C98A7D         n
+#C98A7D         pm
+#DBD7CACC             
+#444444         -
+#DBD7CACC        
+#B8A965         n
+#B8A965         ame
+#444444         :
+#DBD7CACC        
+#C98A7D         I
+#C98A7D         nstall dependencies
+#DBD7CACC               
+#B8A965         r
+#B8A965         un
+#444444         :
+#DBD7CACC        
+#C98A7D         n
+#C98A7D         pm ci
+#DBD7CACC             
+#444444         -
+#DBD7CACC        
+#B8A965         n
+#B8A965         ame
+#444444         :
+#DBD7CACC        
+#C98A7D         R
+#C98A7D         ebuild the dist/ directory
+#DBD7CACC               
+#B8A965         r
+#B8A965         un
+#444444         :
+#DBD7CACC        
+#4D9375         |
+#C98A7D                   
+#C98A7D         npm run build:compile
+#C98A7D                   npm run build:package
+#DBD7CACC             
+#444444         -
+#DBD7CACC        
+#B8A965         n
+#B8A965         ame
+#444444         :
+#DBD7CACC        
+#C98A7D         C
+#C98A7D         ompare the expected and actual dist/ directories
+#DBD7CACC               
+#B8A965         r
+#B8A965         un
+#444444         :
+#DBD7CACC        
+#4D9375         |
+#C98A7D                   
+#C98A7D         if [ "$(git diff --ignore-space-at-eol dist/ | wc -l)" -gt "0" ]; then
+#C98A7D                     echo "Detected uncommitted changes after build.  See status below:"
+#C98A7D                     git diff
+#C98A7D                     exit 1
+#C98A7D                   fi
+#DBD7CACC               
+#B8A965         i
+#B8A965         d
+#444444         :
+#DBD7CACC        
+#C98A7D         d
+#C98A7D         iff
+#444444               
+#758575DD       #
+#758575DD        If index.js was different than expected, upload the expected version as an artifact
+#DBD7CACC             
+#444444         -
+#DBD7CACC        
+#B8A965         u
+#B8A965         ses
+#444444         :
+#DBD7CACC        
+#C98A7D         a
+#C98A7D         ctions/upload-artifact@v3
+#DBD7CACC               
+#B8A965         i
+#B8A965         f
+#444444         :
+#DBD7CACC        
+#C98A7D         $
+#C98A7D         {{ failure() && steps.diff.conclusion == 'failure' }}
+#DBD7CACC               
+#B8A965         w
+#B8A965         ith
+#444444         :
+#DBD7CACC                 
+#B8A965         n
+#B8A965         ame
+#444444         :
+#DBD7CACC        
+#C98A7D         d
+#C98A7D         ist
+#DBD7CACC                 
+#B8A965         p
+#B8A965         ath
+#444444         :
+#DBD7CACC        
+#C98A7D         d
+#C98A7D         ist/
+#758575DD       #
+#758575DD        From https://github.com/actions/add-to-project/blob/main/.github/workflows/check-dist.yml

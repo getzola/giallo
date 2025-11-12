@@ -1,0 +1,97 @@
+#444444         ---
+#B8A965         t
+#B8A965         itle
+#444444         :
+#DBD7CACC        
+#C98A7D         I
+#C98A7D         ntroduction
+#444444         ---
+#444444         ::
+#4D9375         card
+#DBD7CACC       ---
+#B8A965         i
+#B8A965         con
+#444444         :
+#DBD7CACC        
+#C98A7D         I
+#C98A7D         con
+#B8A965         t
+#B8A965         itle
+#444444         :
+#DBD7CACC        
+#C98A7D         A
+#C98A7D          complex card.
+#DBD7CACC       ---
+#DBD7CACC       Default slot
+#BD976A         #description
+#DBD7CACC         
+#444444         ::
+#4D9375         alert
+#DBD7CACC           
+#DBD7CACC       Description slot
+#DBD7CACC         
+#444444         ::
+#444444         ::
+#444444         ::
+#4D9375         alert
+#444444         {
+#BD976A         type
+#444444         =
+#C98A7D77       "
+#C98A7D         warning
+#C98A7D77       "
+#DBD7CACC        
+#BD976A         icon
+#444444         =
+#C98A7D77       "
+#C98A7D         exclamation-circle
+#C98A7D77       "
+#444444         }
+#DBD7CACC       Oops! An error occurred
+#444444         ::
+#DBD7CACC       Hello 
+#444444         [
+#C98A7D         World
+#444444         ]
+#DBD7CACC       {style="background-color: var(--color-primary-500)"}!
+#DBD7CACC       Hello 
+#444444         [
+#C98A7D         World
+#444444         ]
+#DBD7CACC       {style="color: green;" .custom-class #custom-id}!
+#DBD7CACC       Attributes work on:
+#D4976C         -
+#DBD7CACC        
+#444444         ![
+#444444         ]
+#444444         (
+#DEDCD590 [u]   /favicon.ico
+#444444         )
+#DBD7CACC       {style="display: inline; margin: 0;"} image,
+#D4976C         -
+#DBD7CACC        
+#444444         [
+#C98A7D         lin
+#DBD7CACC       k
+#444444         ]
+#444444         (
+#DEDCD590 [u]   #attributes
+#444444         )
+#DBD7CACC       {style="background-color: pink;"}, 
+#444444         `
+#DBD7CACC       code
+#444444         `
+#DBD7CACC       {style="color: cyan;"},
+#D4976C         -
+#DBD7CACC        
+#444444   [i]   _
+#DBD7CACC [i]   italic
+#444444   [i]   _
+#DBD7CACC       {style="background-color: yellow; color:black;"} and 
+#444444   [b]   **
+#DBD7CACC [b]   bold
+#444444   [b]   **
+#DBD7CACC       {style="background-color: lightgreen;"} texts.
+#758575DD       <!--
+#758575DD        from: https://content.nuxt.com/usage/markdown 
+#758575DD       -->

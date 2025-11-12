@@ -1,0 +1,389 @@
+#758575DD       /*
+#758575DD        
+#758575DD        
+#758575DD        
+#758575DD        
+#758575DD       S
+#758575DD       P
+#758575DD       D
+#758575DD       X
+#758575DD       -
+#758575DD       F
+#758575DD       i
+#758575DD       l
+#758575DD       e
+#758575DD       C
+#758575DD       o
+#758575DD       p
+#758575DD       y
+#758575DD       r
+#758575DD       i
+#758575DD       g
+#758575DD       h
+#758575DD       t
+#758575DD       T
+#758575DD       e
+#758575DD       x
+#758575DD       t
+#758575DD       :
+#758575DD        
+#758575DD       2
+#758575DD       0
+#758575DD       1
+#758575DD       9
+#758575DD        
+#758575DD       D
+#758575DD       a
+#758575DD       n
+#758575DD        
+#758575DD       L
+#758575DD       e
+#758575DD       i
+#758575DD       n
+#758575DD       i
+#758575DD       r
+#758575DD        
+#758575DD       T
+#758575DD       u
+#758575DD       r
+#758575DD       t
+#758575DD       h
+#758575DD       r
+#758575DD       a
+#758575DD        
+#758575DD       J
+#758575DD       e
+#758575DD       n
+#758575DD       s
+#758575DD       e
+#758575DD       n
+#758575DD        
+#758575DD       <
+#758575DD       a
+#758575DD       d
+#758575DD       m
+#758575DD       i
+#758575DD       n
+#758575DD       @
+#758575DD       l
+#758575DD       e
+#758575DD       i
+#758575DD       n
+#758575DD       i
+#758575DD       r
+#758575DD       .
+#758575DD       d
+#758575DD       k
+#758575DD       >
+#758575DD        
+#758575DD        
+#758575DD        
+#758575DD        
+#758575DD       S
+#758575DD       P
+#758575DD       D
+#758575DD       X
+#758575DD       -
+#758575DD       L
+#758575DD       i
+#758575DD       c
+#758575DD       e
+#758575DD       n
+#758575DD       s
+#758575DD       e
+#758575DD       -
+#758575DD       I
+#758575DD       d
+#758575DD       e
+#758575DD       n
+#758575DD       t
+#758575DD       i
+#758575DD       f
+#758575DD       i
+#758575DD       e
+#758575DD       r
+#758575DD       :
+#758575DD        
+#758575DD       L
+#758575DD       G
+#758575DD       P
+#758575DD       L
+#758575DD       -
+#758575DD       2
+#758575DD       .
+#758575DD       1
+#758575DD       -
+#758575DD       o
+#758575DD       n
+#758575DD       l
+#758575DD       y
+#758575DD        
+#758575DD       O
+#758575DD       R
+#758575DD        
+#758575DD       L
+#758575DD       G
+#758575DD       P
+#758575DD       L
+#758575DD       -
+#758575DD       3
+#758575DD       .
+#758575DD       0
+#758575DD       -
+#758575DD       o
+#758575DD       n
+#758575DD       l
+#758575DD       y
+#758575DD        
+#758575DD       O
+#758575DD       R
+#758575DD        
+#758575DD       L
+#758575DD       i
+#758575DD       c
+#758575DD       e
+#758575DD       n
+#758575DD       s
+#758575DD       e
+#758575DD       R
+#758575DD       e
+#758575DD       f
+#758575DD       -
+#758575DD       K
+#758575DD       D
+#758575DD       E
+#758575DD       -
+#758575DD       A
+#758575DD       c
+#758575DD       c
+#758575DD       e
+#758575DD       p
+#758575DD       t
+#758575DD       e
+#758575DD       d
+#758575DD       -
+#758575DD       L
+#758575DD       G
+#758575DD       P
+#758575DD       L
+#758575DD       */
+#4D9375         import
+#DBD7CACC        
+#BD976A         QtQuick
+#DBD7CACC        
+#4C9A91         2.7
+#4D9375         import
+#DBD7CACC        
+#BD976A         org
+#DBD7CACC       .
+#BD976A         kde
+#DBD7CACC       .
+#BD976A         newstuff
+#DBD7CACC        
+#4C9A91         1.62
+#DBD7CACC        
+#4D9375         as
+#5DA994          NewStuff
+#DBD7CACC       NewStuff.
+#5DA994         Dialog
+#DBD7CACC        {
+#DBD7CACC           
+#4D9375         id
+#DBD7CACC       :
+#DBD7CACC        
+#BD976A         component
+#DBD7CACC           
+#BD976A         configFile
+#DBD7CACC       :
+#DBD7CACC        
+#BD976A         knsrcfile
+#DBD7CACC           
+#5DA994         Component
+#DBD7CACC       .
+#4D9375         onCompleted
+#DBD7CACC       :
+#DBD7CACC        
+#DBD7CACC       {
+#DBD7CACC               
+#80A665         open
+#444444         (
+#444444         )
+#444444         ;
+#DBD7CACC               
+#4D9375         if
+#DBD7CACC        
+#444444         (
+#CB7676         typeof
+#444444         (
+#BD976A         knsProviderId
+#444444         )
+#DBD7CACC        
+#CB7676         !==
+#DBD7CACC        
+#C98A7D77       "
+#C98A7D         undefined
+#C98A7D77       "
+#DBD7CACC        
+#CB7676         &&
+#DBD7CACC        
+#CB7676         typeof
+#444444         (
+#BD976A         knsEntryId
+#444444         )
+#DBD7CACC        
+#CB7676         !==
+#DBD7CACC        
+#C98A7D77       "
+#C98A7D         undefined
+#C98A7D77       "
+#444444         )
+#DBD7CACC        
+#444444         {
+#DBD7CACC                   
+#80A665         showEntryDetails
+#444444         (
+#BD976A         knsProviderId
+#444444         ,
+#DBD7CACC        
+#BD976A         knsEntryId
+#444444         )
+#444444         ;
+#DBD7CACC               
+#444444         }
+#DBD7CACC           
+#DBD7CACC       }
+#DBD7CACC           
+#4D9375         onVisibleChanged
+#DBD7CACC       :
+#DBD7CACC        
+#DBD7CACC       {
+#DBD7CACC               
+#4D9375         if
+#DBD7CACC        
+#444444         (
+#BD976A         visible
+#DBD7CACC        
+#CB7676         ===
+#DBD7CACC        
+#4D9375         false
+#444444         )
+#DBD7CACC        
+#444444         {
+#DBD7CACC                   
+#BD976A         Qt
+#444444         .
+#80A665         quit
+#444444         (
+#444444         )
+#444444         ;
+#DBD7CACC               
+#444444         }
+#DBD7CACC           
+#DBD7CACC       }
+#DBD7CACC       }
+#758575DD       //
+#758575DD        
+#758575DD       F
+#758575DD       r
+#758575DD       o
+#758575DD       m
+#758575DD        
+#758575DD       h
+#758575DD       t
+#758575DD       t
+#758575DD       p
+#758575DD       s
+#758575DD       :
+#758575DD       /
+#758575DD       /
+#758575DD       i
+#758575DD       n
+#758575DD       v
+#758575DD       e
+#758575DD       n
+#758575DD       t
+#758575DD       .
+#758575DD       k
+#758575DD       d
+#758575DD       e
+#758575DD       .
+#758575DD       o
+#758575DD       r
+#758575DD       g
+#758575DD       /
+#758575DD       f
+#758575DD       r
+#758575DD       a
+#758575DD       m
+#758575DD       e
+#758575DD       w
+#758575DD       o
+#758575DD       r
+#758575DD       k
+#758575DD       s
+#758575DD       /
+#758575DD       k
+#758575DD       n
+#758575DD       e
+#758575DD       w
+#758575DD       s
+#758575DD       t
+#758575DD       u
+#758575DD       f
+#758575DD       f
+#758575DD       /
+#758575DD       -
+#758575DD       /
+#758575DD       b
+#758575DD       l
+#758575DD       o
+#758575DD       b
+#758575DD       /
+#758575DD       m
+#758575DD       a
+#758575DD       s
+#758575DD       t
+#758575DD       e
+#758575DD       r
+#758575DD       /
+#758575DD       s
+#758575DD       r
+#758575DD       c
+#758575DD       /
+#758575DD       t
+#758575DD       o
+#758575DD       o
+#758575DD       l
+#758575DD       s
+#758575DD       /
+#758575DD       k
+#758575DD       n
+#758575DD       e
+#758575DD       w
+#758575DD       s
+#758575DD       t
+#758575DD       u
+#758575DD       f
+#758575DD       f
+#758575DD       -
+#758575DD       d
+#758575DD       i
+#758575DD       a
+#758575DD       l
+#758575DD       o
+#758575DD       g
+#758575DD       /
+#758575DD       q
+#758575DD       m
+#758575DD       l
+#758575DD       /
+#758575DD       d
+#758575DD       i
+#758575DD       a
+#758575DD       l
+#758575DD       o
+#758575DD       g
+#758575DD       .
+#758575DD       q
+#758575DD       m
+#758575DD       l

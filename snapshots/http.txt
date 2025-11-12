@@ -1,0 +1,63 @@
+#758575DD       // Basic authentication
+#4D9375         GET
+#DBD7CACC        
+#DBD7CACC       http://example.com
+#4D9375         Authorization
+#4D9375         :
+#DBD7CACC        
+#C98A7D         Basic username password
+#758575DD       ###
+#758575DD       // Digest authentication
+#4D9375         GET
+#DBD7CACC        
+#DBD7CACC       http://example.com
+#4D9375         Authorization
+#4D9375         :
+#DBD7CACC        
+#C98A7D         Digest username password
+#758575DD       // The request body is provided in place
+#4D9375         POST
+#DBD7CACC        
+#DBD7CACC       https://example.com:8080/api/html/post
+#DBD7CACC        
+#4D9375         HTTP
+#DBD7CACC       /
+#4C9A91         1.1
+#4D9375         Content-Type
+#4D9375         :
+#DBD7CACC        
+#C98A7D         application/json
+#4D9375         Cookie
+#4D9375         :
+#DBD7CACC        
+#C98A7D         key=first-value
+#444444         {
+#DBD7CACC        
+#B8A96577       "
+#B8A965         key
+#B8A96577       "
+#DBD7CACC        
+#444444         :
+#DBD7CACC        
+#C98A7D77       "
+#C98A7D         value
+#C98A7D77       "
+#444444         ,
+#DBD7CACC        
+#B8A96577       "
+#B8A965         list
+#B8A96577       "
+#444444         :
+#DBD7CACC        
+#444444         [
+#4C9A91         1
+#444444         ,
+#DBD7CACC        
+#4C9A91         2
+#444444         ,
+#DBD7CACC        
+#4C9A91         3
+#444444         ]
+#DBD7CACC        
+#444444         }
+#758575DD       // From https://www.jetbrains.com/help/idea/exploring-http-syntax.html#use-multipart-form-data

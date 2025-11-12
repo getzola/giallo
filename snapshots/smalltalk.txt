@@ -1,0 +1,79 @@
+#DBD7CACC       exampleWithNumber: x
+#DBD7CACC           
+#444444         |
+#DBD7CACC        
+#BD976A         y
+#DBD7CACC        
+#444444         |
+#DBD7CACC           
+#4D9375         true
+#DBD7CACC        
+#CB7676         &
+#DBD7CACC        
+#4D9375         false
+#DBD7CACC        
+#CB7676         not
+#DBD7CACC        
+#CB7676         &
+#DBD7CACC        (
+#4D9375         nil
+#DBD7CACC        isNil) ifFalse: 
+#444444         [
+#CB7676         self
+#DBD7CACC        halt
+#444444         ]
+#444444         .
+#DBD7CACC           y 
+#444444         :=
+#DBD7CACC        
+#CB7676         self
+#DBD7CACC        
+#B8A965         size
+#DBD7CACC        
+#CB7676         +
+#DBD7CACC        
+#CB7676         super
+#DBD7CACC        
+#B8A965         size
+#444444         .
+#DBD7CACC           
+#444444         #(
+#C99076         $a
+#C99076          
+#444444         #
+#C99076         a
+#C99076          
+#C98A7D77       '
+#C98A7D         a
+#C98A7D77       '
+#C99076          
+#4C9A91         1
+#C99076          
+#4C9A91         1.0
+#444444         )
+#DBD7CACC               do: 
+#444444         [
+#DBD7CACC        
+#BD976A         :each
+#DBD7CACC        
+#444444         |
+#DBD7CACC                   
+#5DA994         Transcript
+#DBD7CACC        show: (each 
+#CB7676         class
+#DBD7CACC        name)
+#444444         ;
+#DBD7CACC                              show: 
+#C98A7D77       '
+#C98A7D          
+#C98A7D77       '
+#444444         ]
+#444444         .
+#DBD7CACC           
+#4D9375         ^
+#DBD7CACC       x 
+#CB7676         <
+#DBD7CACC        y
+#758575DD       "
+#758575DD       From https://en.wikipedia.org/wiki/Smalltalk
+#758575DD       "

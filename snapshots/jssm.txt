@@ -1,0 +1,303 @@
+#4D9375         machine_name      :
+#DBD7CACC        
+#4D9375         "BGP"
+#DBD7CACC       ;
+#4D9375         m
+#4D9375         a
+#4D9375         c
+#4D9375         h
+#4D9375         i
+#4D9375         n
+#4D9375         e
+#4D9375         _
+#4D9375         r
+#4D9375         e
+#4D9375         f
+#4D9375         e
+#4D9375         r
+#4D9375         e
+#4D9375         n
+#4D9375         c
+#4D9375         e
+#DBD7CACC        : 
+#4D9375         "http://www.inetdaemon.com/tutorials/internet/ip/routing/bgp/operation/finite_state_model.shtml"
+#DBD7CACC       ;
+#4D9375         machine_version   :
+#DBD7CACC        
+#4C9A91         1.0.0
+#DBD7CACC       ;
+#4D9375         m
+#4D9375         a
+#4D9375         c
+#4D9375         h
+#4D9375         i
+#4D9375         n
+#4D9375         e
+#4D9375         _
+#4D9375         a
+#4D9375         u
+#4D9375         t
+#4D9375         h
+#4D9375         o
+#4D9375         r
+#DBD7CACC           : 
+#4D9375         "John Haugeland <stonecypher@gmail.com>"
+#DBD7CACC       ;
+#4D9375         m
+#4D9375         a
+#4D9375         c
+#4D9375         h
+#4D9375         i
+#4D9375         n
+#4D9375         e
+#4D9375         _
+#4D9375         l
+#4D9375         i
+#4D9375         c
+#4D9375         e
+#4D9375         n
+#4D9375         s
+#4D9375         e
+#DBD7CACC          : 
+#4D9375         M
+#4D9375         I
+#4D9375         T
+#DBD7CACC       ;
+#4D9375         jssm_version      :
+#DBD7CACC        >= 
+#4C9A91         5.0.0
+#DBD7CACC       ;
+#DBD7CACC              
+#4D9375         I
+#4D9375         d
+#4D9375         l
+#4D9375         e
+#DBD7CACC        
+#4D9375         ->
+#DBD7CACC        [
+#4D9375         I
+#4D9375         d
+#4D9375         l
+#4D9375         e
+#DBD7CACC        
+#4D9375         C
+#4D9375         o
+#4D9375         n
+#4D9375         n
+#4D9375         e
+#4D9375         c
+#4D9375         t
+#DBD7CACC       ];
+#DBD7CACC           
+#4D9375         C
+#4D9375         o
+#4D9375         n
+#4D9375         n
+#4D9375         e
+#4D9375         c
+#4D9375         t
+#DBD7CACC        
+#4D9375         ->
+#DBD7CACC        [
+#4D9375         I
+#4D9375         d
+#4D9375         l
+#4D9375         e
+#DBD7CACC        
+#4D9375         C
+#4D9375         o
+#4D9375         n
+#4D9375         n
+#4D9375         e
+#4D9375         c
+#4D9375         t
+#DBD7CACC        
+#4D9375         O
+#4D9375         p
+#4D9375         e
+#4D9375         n
+#4D9375         S
+#4D9375         e
+#4D9375         n
+#4D9375         t
+#DBD7CACC        
+#4D9375         A
+#4D9375         c
+#4D9375         t
+#4D9375         i
+#4D9375         v
+#4D9375         e
+#DBD7CACC       ];
+#DBD7CACC            
+#4D9375         A
+#4D9375         c
+#4D9375         t
+#4D9375         i
+#4D9375         v
+#4D9375         e
+#DBD7CACC        
+#4D9375         ->
+#DBD7CACC        [
+#4D9375         I
+#4D9375         d
+#4D9375         l
+#4D9375         e
+#DBD7CACC        
+#4D9375         C
+#4D9375         o
+#4D9375         n
+#4D9375         n
+#4D9375         e
+#4D9375         c
+#4D9375         t
+#DBD7CACC        
+#4D9375         O
+#4D9375         p
+#4D9375         e
+#4D9375         n
+#4D9375         S
+#4D9375         e
+#4D9375         n
+#4D9375         t
+#DBD7CACC        
+#4D9375         A
+#4D9375         c
+#4D9375         t
+#4D9375         i
+#4D9375         v
+#4D9375         e
+#DBD7CACC       ];
+#DBD7CACC          
+#4D9375         O
+#4D9375         p
+#4D9375         e
+#4D9375         n
+#4D9375         S
+#4D9375         e
+#4D9375         n
+#4D9375         t
+#DBD7CACC        
+#4D9375         ->
+#DBD7CACC        [
+#4D9375         I
+#4D9375         d
+#4D9375         l
+#4D9375         e
+#DBD7CACC        
+#4D9375         A
+#4D9375         c
+#4D9375         t
+#4D9375         i
+#4D9375         v
+#4D9375         e
+#DBD7CACC        
+#4D9375         O
+#4D9375         p
+#4D9375         e
+#4D9375         n
+#4D9375         C
+#4D9375         o
+#4D9375         n
+#4D9375         f
+#4D9375         i
+#4D9375         r
+#4D9375         m
+#DBD7CACC       ];
+#4D9375         O
+#4D9375         p
+#4D9375         e
+#4D9375         n
+#4D9375         C
+#4D9375         o
+#4D9375         n
+#4D9375         f
+#4D9375         i
+#4D9375         r
+#4D9375         m
+#DBD7CACC        
+#4D9375         ->
+#DBD7CACC        [
+#4D9375         I
+#4D9375         d
+#4D9375         l
+#4D9375         e
+#DBD7CACC        
+#4D9375         O
+#4D9375         p
+#4D9375         e
+#4D9375         n
+#4D9375         S
+#4D9375         e
+#4D9375         n
+#4D9375         t
+#DBD7CACC        
+#4D9375         O
+#4D9375         p
+#4D9375         e
+#4D9375         n
+#4D9375         C
+#4D9375         o
+#4D9375         n
+#4D9375         f
+#4D9375         i
+#4D9375         r
+#4D9375         m
+#DBD7CACC        
+#4D9375         E
+#4D9375         s
+#4D9375         t
+#4D9375         a
+#4D9375         b
+#4D9375         l
+#4D9375         i
+#4D9375         s
+#4D9375         h
+#4D9375         e
+#4D9375         d
+#DBD7CACC       ];
+#4D9375         E
+#4D9375         s
+#4D9375         t
+#4D9375         a
+#4D9375         b
+#4D9375         l
+#4D9375         i
+#4D9375         s
+#4D9375         h
+#4D9375         e
+#4D9375         d
+#DBD7CACC        
+#4D9375         ->
+#DBD7CACC        [
+#4D9375         I
+#4D9375         d
+#4D9375         l
+#4D9375         e
+#DBD7CACC        
+#4D9375         E
+#4D9375         s
+#4D9375         t
+#4D9375         a
+#4D9375         b
+#4D9375         l
+#4D9375         i
+#4D9375         s
+#4D9375         h
+#4D9375         e
+#4D9375         d
+#DBD7CACC       ];
+#4D9375         #
+#DBD7CACC        
+#4D9375         f
+#4D9375         r
+#4D9375         o
+#4D9375         m
+#DBD7CACC        
+#4D9375         h
+#4D9375         t
+#4D9375         t
+#4D9375         p
+#4D9375         s
+#DBD7CACC       :
+#758575DD       //
+#758575DD       github.com/StoneCypher/jssm/blob/main/src/machines/linguist/bgp.fsl

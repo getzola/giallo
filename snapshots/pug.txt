@@ -1,0 +1,69 @@
+#DBD7CACC       doctype html
+#4D9375         html
+#C99076         (
+#BD976A         lang
+#DBD7CACC       =
+#C98A7D77       "
+#C98A7D         en
+#C98A7D77       "
+#C99076         )
+#DBD7CACC         
+#4D9375         head
+#DBD7CACC           
+#4D9375         title
+#C99076         =
+#DBD7CACC        
+#BD976A         pageTitle
+#DBD7CACC           
+#4D9375         script
+#C99076         (
+#BD976A         type
+#DBD7CACC       =
+#C98A7D77       '
+#C98A7D         text/javascript
+#C98A7D77       '
+#C99076         )
+#DBD7CACC       .
+#DBD7CACC             
+#4D9375         if
+#DBD7CACC        
+#444444         (
+#BD976A         foo
+#444444         )
+#DBD7CACC        
+#80A665         bar
+#444444         (
+#4C9A91         1
+#DBD7CACC        
+#CB7676         +
+#DBD7CACC        
+#4C9A91         5
+#444444         )
+#444444         ;
+#DBD7CACC         
+#4D9375         body
+#DBD7CACC           
+#4D9375         h1
+#DBD7CACC        Pug - node template engine
+#DBD7CACC           
+#BD976A         #container
+#BD976A         .col
+#DBD7CACC             
+#CB7676         if
+#DBD7CACC        
+#BD976A         youAreUsingPug
+#DBD7CACC               
+#4D9375         p
+#DBD7CACC        You are amazing
+#DBD7CACC             
+#CB7676         else
+#DBD7CACC               
+#4D9375         p
+#DBD7CACC        Get on it!
+#DBD7CACC             
+#4D9375         p
+#CB7676         .
+#DBD7CACC               Pug is a terse and simple templating language with a
+#DBD7CACC               strong focus on performance and powerful features.
+#758575DD       //-
+#758575DD        From https://github.com/pugjs/pug

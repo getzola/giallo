@@ -1,0 +1,64 @@
+#4D9375         package
+#DBD7CACC        
+#5DA994         main
+#4D9375         templ
+#DBD7CACC        
+#80A665         body
+#444444         (
+#444444         )
+#DBD7CACC        
+#444444         {
+#DBD7CACC         
+#444444         <
+#4D9375         script
+#DBD7CACC        
+#BD976A         type
+#DBD7CACC       =
+#C98A7D77       "
+#C98A7D         text/javascript
+#C98A7D77       "
+#444444         >
+#DBD7CACC           
+#CB7676         function
+#DBD7CACC        
+#80A665         handleClick
+#444444         (
+#BD976A         event
+#444444         )
+#DBD7CACC        
+#444444         {
+#DBD7CACC             
+#80A665         alert
+#444444         (
+#BD976A         event
+#DBD7CACC        
+#CB7676         +
+#DBD7CACC        
+#C98A7D77       '
+#C98A7D          clicked
+#C98A7D77       '
+#444444         )
+#444444         ;
+#DBD7CACC           
+#444444         }
+#DBD7CACC         
+#444444         </
+#4D9375         script
+#444444         >
+#DBD7CACC         
+#444444         <
+#4D9375         button
+#444444          
+#BD976A         onclick
+#444444         =
+#C98A7D77       "
+#C98A7D         handleClick(this)
+#C98A7D77       "
+#444444         >
+#DBD7CACC       Click me
+#444444         </
+#4D9375         button
+#444444         >
+#444444         }
+#758575DD       //
+#758575DD        From https://templ.guide/syntax-and-usage/script-templates

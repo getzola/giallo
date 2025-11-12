@@ -1,0 +1,243 @@
+#758575DD       /*
+#758575DD        description: Parses end executes mathematical expressions. 
+#758575DD       */
+#758575DD       /*
+#758575DD        lexical grammar 
+#758575DD       */
+#FDAEB7   [i]   %lex
+#79B8FF   [b]   %%
+#DBD7CACC       \
+#C99076         s
+#DBD7CACC       +                   
+#758575DD       /*
+#758575DD        skip whitespace 
+#758575DD       */
+#DBD7CACC       [0-9]+("."[0-9]+)?\b  return 'NUMBER'
+#444444         ;
+#DBD7CACC       "*"                   
+#C99076         return
+#DBD7CACC        '*'
+#444444         ;
+#DBD7CACC       "/"                   
+#C99076         return
+#DBD7CACC        '/'
+#444444         ;
+#DBD7CACC       "-"                   
+#C99076         return
+#DBD7CACC        '-'
+#444444         ;
+#DBD7CACC       "+"                   
+#C99076         return
+#DBD7CACC        '+'
+#444444         ;
+#DBD7CACC       "^"                   
+#C99076         return
+#DBD7CACC        '^'
+#444444         ;
+#DBD7CACC       "("                   
+#C99076         return
+#DBD7CACC        '('
+#444444         ;
+#DBD7CACC       ")"                   
+#C99076         return
+#DBD7CACC        ')'
+#444444         ;
+#DBD7CACC       "
+#C99076         PI
+#DBD7CACC       "                  return 'PI'
+#444444         ;
+#DBD7CACC       "
+#C99076         E
+#DBD7CACC       "                   return 'E'
+#444444         ;
+#DBD7CACC       <<
+#C99076         EOF
+#DBD7CACC       >>               return 'EOF'
+#444444         ;
+#DBD7CACC       /
+#C99076         lex
+#758575DD       /*
+#758575DD        operator associations and precedence 
+#758575DD       */
+#DBD7CACC       %left '+' '-'
+#DBD7CACC       %left '*' '/'
+#DBD7CACC       %left '^'
+#DBD7CACC       %left UMINUS
+#DBD7CACC       %start expressions
+#DBD7CACC       %% 
+#758575DD       /*
+#758575DD        language grammar 
+#758575DD       */
+#DBD7CACC       expressions
+#DBD7CACC           
+#CB7676         :
+#DBD7CACC        e 
+#4D9375         EOF
+#DBD7CACC               
+#444444         {
+#80A665         print
+#444444         (
+#B8A965         $1
+#444444         )
+#444444         ;
+#DBD7CACC        
+#4D9375         return
+#DBD7CACC        
+#B8A965         $1
+#444444         ;
+#444444         }
+#DBD7CACC           
+#444444         ;
+#C99076         e
+#DBD7CACC           
+#CB7676         :
+#DBD7CACC        e '+' e
+#DBD7CACC               
+#444444         {
+#C99076         $$
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#B8A965         $1
+#CB7676         +
+#B8A965         $3
+#444444         ;
+#444444         }
+#DBD7CACC           
+#CB7676         |
+#DBD7CACC        e '-' e
+#DBD7CACC               
+#444444         {
+#C99076         $$
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#B8A965         $1
+#CB7676         -
+#B8A965         $3
+#444444         ;
+#444444         }
+#DBD7CACC           
+#CB7676         |
+#DBD7CACC        e '*' e
+#DBD7CACC               
+#444444         {
+#C99076         $$
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#B8A965         $1
+#CB7676         *
+#B8A965         $3
+#444444         ;
+#444444         }
+#DBD7CACC           
+#CB7676         |
+#DBD7CACC        e '/' e
+#DBD7CACC               
+#444444         {
+#C99076         $$
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#B8A965         $1
+#CB7676         /
+#B8A965         $3
+#444444         ;
+#444444         }
+#DBD7CACC           
+#CB7676         |
+#DBD7CACC        e '^' e
+#DBD7CACC               
+#444444         {
+#C99076         $$
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#BD976A         Math
+#444444         .
+#80A665         pow
+#444444         (
+#B8A965         $1
+#444444         ,
+#DBD7CACC        
+#B8A965         $3
+#444444         )
+#444444         ;
+#444444         }
+#DBD7CACC           
+#CB7676         |
+#DBD7CACC        '-' e 
+#4D9375         %prec
+#DBD7CACC        
+#C99076         UMINUS
+#DBD7CACC               
+#444444         {
+#C99076         $$
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#CB7676         -
+#B8A965         $2
+#444444         ;
+#444444         }
+#DBD7CACC           
+#CB7676         |
+#DBD7CACC        '(' e ')'
+#DBD7CACC               
+#444444         {
+#C99076         $$
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#B8A965         $2
+#444444         ;
+#444444         }
+#DBD7CACC           
+#CB7676         |
+#DBD7CACC        NUMBER
+#DBD7CACC               
+#444444         {
+#C99076         $$
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#80A665         Number
+#444444         (
+#C99076         yytext
+#444444         )
+#444444         ;
+#444444         }
+#DBD7CACC           
+#CB7676         |
+#DBD7CACC        E
+#DBD7CACC               
+#444444         {
+#C99076         $$
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#BD976A         Math
+#444444         .
+#BD976A         E
+#444444         ;
+#444444         }
+#DBD7CACC           
+#CB7676         |
+#DBD7CACC        PI
+#DBD7CACC               
+#444444         {
+#C99076         $$
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#BD976A         Math
+#444444         .
+#BD976A         PI
+#444444         ;
+#444444         }
+#DBD7CACC           
+#444444         ;
+#758575DD       /*
+#758575DD        From https://gerhobbelt.github.io/jison/docs/#specifying-a-language 
+#758575DD       */

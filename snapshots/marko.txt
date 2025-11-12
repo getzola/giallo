@@ -1,0 +1,135 @@
+#444444         <
+#4D9375         await
+#444444         (
+#BD976A         slowPromise
+#444444         )
+#DBD7CACC        
+#BD976A         timeout
+#444444         =
+#4C9A91         5000
+#444444         >
+#DBD7CACC         
+#444444         <
+#BD976A         @then
+#444444         >
+#DBD7CACC       D
+#DBD7CACC       o
+#DBD7CACC       n
+#DBD7CACC       e
+#444444         </
+#BD976A         @then
+#444444         >
+#DBD7CACC         
+#444444         <
+#BD976A         @catch
+#444444         |
+#BD976A         err
+#444444         |
+#444444         >
+#DBD7CACC           
+#444444         <
+#4D9375         if
+#444444         (
+#BD976A         err
+#444444         .
+#BD976A         name
+#DBD7CACC        
+#CB7676         ===
+#DBD7CACC        
+#C98A7D77       "
+#C98A7D         TimeoutError
+#C98A7D77       "
+#444444         )
+#444444         >
+#DBD7CACC        
+#DBD7CACC        
+#DBD7CACC        
+#DBD7CACC        
+#DBD7CACC        
+#DBD7CACC        
+#DBD7CACC       T
+#DBD7CACC       o
+#DBD7CACC       o
+#DBD7CACC       k
+#DBD7CACC        
+#DBD7CACC       t
+#DBD7CACC       o
+#DBD7CACC       o
+#DBD7CACC        
+#DBD7CACC       l
+#DBD7CACC       o
+#DBD7CACC       n
+#DBD7CACC       g
+#DBD7CACC        
+#DBD7CACC       t
+#DBD7CACC       o
+#DBD7CACC        
+#DBD7CACC       f
+#DBD7CACC       e
+#DBD7CACC       t
+#DBD7CACC       c
+#DBD7CACC       h
+#DBD7CACC        
+#DBD7CACC       t
+#DBD7CACC       h
+#DBD7CACC       e
+#DBD7CACC        
+#DBD7CACC       d
+#DBD7CACC       a
+#DBD7CACC       t
+#DBD7CACC       a
+#DBD7CACC       !
+#DBD7CACC           
+#444444         </
+#4D9375         if
+#444444         >
+#DBD7CACC           
+#444444         <
+#4D9375         else
+#444444         >
+#DBD7CACC        
+#DBD7CACC        
+#DBD7CACC        
+#DBD7CACC        
+#DBD7CACC        
+#DBD7CACC        
+#DBD7CACC       P
+#DBD7CACC       r
+#DBD7CACC       o
+#DBD7CACC       m
+#DBD7CACC       i
+#DBD7CACC       s
+#DBD7CACC       e
+#DBD7CACC        
+#DBD7CACC       f
+#DBD7CACC       a
+#DBD7CACC       i
+#DBD7CACC       l
+#DBD7CACC       e
+#DBD7CACC       d
+#DBD7CACC        
+#DBD7CACC       w
+#DBD7CACC       i
+#DBD7CACC       t
+#DBD7CACC       h
+#DBD7CACC        
+#4D9375         ${
+#BD976A         err
+#444444         .
+#BD976A         message
+#4D9375         }
+#DBD7CACC       .
+#DBD7CACC           
+#444444         </
+#4D9375         else
+#444444         >
+#DBD7CACC         
+#444444         </
+#BD976A         @catch
+#444444         >
+#444444         </
+#4D9375         await
+#444444         >
+#758575DD       <!--
+#758575DD        from https://markojs.com/docs/core-tags/ 
+#758575DD       -->

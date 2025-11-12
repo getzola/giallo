@@ -1,0 +1,136 @@
+#DBD7CACC       use starknet::ContractAddress;
+#DBD7CACC       #[starknet::interface]
+#DBD7CACC       pub trait IPizzaFactory<TContractState> {
+#DBD7CACC           fn increase_pepperoni(ref self: TContractState, amount: u32);
+#DBD7CACC           fn increase_pineapple(ref self: TContractState, amount: u32);
+#DBD7CACC           fn get_owner(self: @TContractState) -> ContractAddress;
+#DBD7CACC           fn change_owner(ref self: TContractState, new_owner: ContractAddress);
+#DBD7CACC           fn make_pizza(ref self: TContractState);
+#DBD7CACC           fn count_pizza(self: @TContractState) -> u32;
+#DBD7CACC       }
+#DBD7CACC       #[starknet::contract]
+#DBD7CACC       pub mod PizzaFactory {
+#DBD7CACC           use super::IPizzaFactory;
+#DBD7CACC           use starknet::ContractAddress;
+#DBD7CACC           use starknet::get_caller_address;
+#DBD7CACC           #[storage]
+#DBD7CACC           pub 
+#CB7676         struct
+#DBD7CACC        
+#80A665         Storage
+#DBD7CACC        {
+#DBD7CACC               pepperoni: u32,
+#DBD7CACC               pineapple: u32,
+#DBD7CACC               owner: ContractAddress,
+#DBD7CACC               pizzas: u32
+#DBD7CACC           
+#CB7676         }
+#DBD7CACC           #[constructor]
+#DBD7CACC           fn constructor(ref self: ContractState, owner: ContractAddress) {
+#DBD7CACC               self.pepperoni.write(
+#4C9A91         10
+#DBD7CACC       );
+#DBD7CACC               self.pineapple.write(
+#4C9A91         10
+#DBD7CACC       );
+#DBD7CACC               self.owner.write(owner);
+#DBD7CACC           }
+#DBD7CACC           #[event]
+#DBD7CACC           #[derive(Drop, starknet::Event)]
+#DBD7CACC           pub enum Event {
+#DBD7CACC               PizzaEmission: PizzaEmission
+#DBD7CACC           }
+#DBD7CACC           #[derive(Drop, starknet::Event)]
+#DBD7CACC           pub 
+#CB7676         struct
+#DBD7CACC        
+#80A665         PizzaEmission
+#DBD7CACC        {
+#DBD7CACC               pub counter: u32
+#DBD7CACC           
+#CB7676         }
+#DBD7CACC           #[abi(embed_v0)]
+#DBD7CACC           impl PizzaFactoryimpl of super::IPizzaFactory<ContractState> {
+#DBD7CACC               fn increase_pepperoni(ref self: ContractState, amount: u32) {
+#DBD7CACC                   
+#4D9375         assert
+#DBD7CACC       !(amount != 
+#4C9A91         0
+#DBD7CACC       , 
+#C98A7D         "Amount cannot be 0"
+#DBD7CACC       );
+#DBD7CACC                   self.pepperoni.write(self.pepperoni.read() + amount);
+#DBD7CACC               }
+#DBD7CACC               fn increase_pineapple(ref self: ContractState, amount: u32) {
+#DBD7CACC                   
+#4D9375         assert
+#DBD7CACC       !(amount != 
+#4C9A91         0
+#DBD7CACC       , 
+#C98A7D         "Amount cannot be 0"
+#DBD7CACC       );
+#DBD7CACC                   self.pineapple.write(self.pineapple.read() + amount);
+#DBD7CACC               }
+#DBD7CACC               fn make_pizza(ref self: ContractState) {
+#DBD7CACC                   
+#4D9375         assert
+#DBD7CACC       !(self.pepperoni.read() > 
+#4C9A91         0
+#DBD7CACC       , 
+#C98A7D         "Not enough pepperoni"
+#DBD7CACC       );
+#DBD7CACC                   
+#4D9375         assert
+#DBD7CACC       !(self.pineapple.read() > 
+#4C9A91         0
+#DBD7CACC       , 
+#C98A7D         "Not enough pineapple"
+#DBD7CACC       );
+#DBD7CACC                   
+#4D9375         let
+#DBD7CACC        caller: ContractAddress = get_caller_address();
+#DBD7CACC                   
+#4D9375         let
+#DBD7CACC        owner: ContractAddress = self.get_owner();
+#DBD7CACC                   
+#4D9375         assert
+#DBD7CACC       !(caller == owner, 
+#C98A7D         "Only the owner can make pizza"
+#DBD7CACC       );
+#DBD7CACC                   self.pepperoni.write(self.pepperoni.read() - 
+#4C9A91         1
+#DBD7CACC       );
+#DBD7CACC                   self.pineapple.write(self.pineapple.read() - 
+#4C9A91         1
+#DBD7CACC       );
+#DBD7CACC                   self.pizzas.write(self.pizzas.read() + 
+#4C9A91         1
+#DBD7CACC       );
+#DBD7CACC                   self.emit(PizzaEmission { counter: self.pizzas.read() });
+#DBD7CACC               }
+#DBD7CACC               fn get_owner(self: @ContractState) -> ContractAddress {
+#DBD7CACC                   self.owner.read()
+#DBD7CACC               }
+#DBD7CACC               fn change_owner(ref self: ContractState, new_owner: ContractAddress) {
+#DBD7CACC                   self.set_owner(new_owner);
+#DBD7CACC               }
+#DBD7CACC               fn count_pizza(self: @ContractState) -> u32 {
+#DBD7CACC                   self.pizzas.read()
+#DBD7CACC               }
+#DBD7CACC           }
+#DBD7CACC           #[generate_trait]
+#DBD7CACC           pub impl InternalImpl of InternalTrait {
+#DBD7CACC               fn set_owner(ref self: ContractState, new_owner: ContractAddress) {
+#DBD7CACC                   
+#4D9375         let
+#DBD7CACC        caller: ContractAddress = get_caller_address();
+#DBD7CACC                   
+#4D9375         assert
+#DBD7CACC       !(caller == self.get_owner(), 
+#C98A7D         "Only the owner can set ownership"
+#DBD7CACC       );
+#DBD7CACC                   self.owner.write(new_owner);
+#DBD7CACC               }
+#DBD7CACC           }
+#DBD7CACC       }
+#758575DD       // From https://github.com/github-linguist/linguist/blob/main/samples/Cairo/pizza_factory.cairo

@@ -1,0 +1,157 @@
+#758575DD       ---
+#758575DD       //
+#758575DD        Your component script here!
+#4D9375         import
+#DBD7CACC        
+#BD976A         Banner
+#DBD7CACC        
+#4D9375         from
+#DBD7CACC        
+#C98A7D77       '
+#C98A7D         ../components/Banner.astro
+#C98A7D77       '
+#444444         ;
+#4D9375         import
+#DBD7CACC        
+#BD976A         ReactPokemonComponent
+#DBD7CACC        
+#4D9375         from
+#DBD7CACC        
+#C98A7D77       '
+#C98A7D         ../components/ReactPokemonComponent.jsx
+#C98A7D77       '
+#444444         ;
+#CB7676         const
+#CB7676          
+#BD976A         myFavoritePokemon
+#CB7676          
+#444444         =
+#CB7676          
+#444444         [
+#758575DD       /*
+#758575DD        ... 
+#758575DD       */
+#444444         ]
+#444444         ;
+#CB7676         const
+#CB7676          
+#444444         {
+#CB7676          
+#BD976A         title
+#CB7676          
+#444444         }
+#CB7676          
+#444444         =
+#CB7676          
+#BD976A         Astro
+#444444         .
+#BD976A         props
+#444444         ;
+#758575DD       ---
+#758575DD       <!--
+#758575DD        HTML comments supported! 
+#758575DD       -->
+#444444         {
+#758575DD       /*
+#758575DD        JS comment syntax is also valid! 
+#758575DD       */
+#444444         }
+#444444         <
+#B8A965         Banner
+#DBD7CACC        
+#444444         />
+#444444         <
+#4D9375         h1
+#444444         >
+#DBD7CACC       Hello, world!
+#444444         </
+#4D9375         h1
+#444444         >
+#758575DD       <!--
+#758575DD        Use props and other variables from the component script: 
+#758575DD       -->
+#444444         <
+#4D9375         p
+#444444         >
+#444444         {
+#BD976A         title
+#444444         }
+#444444         </
+#4D9375         p
+#444444         >
+#758575DD       <!--
+#758575DD        Include other UI framework components with a `client:` directive to hydrate: 
+#758575DD       -->
+#444444         <
+#B8A965         ReactPokemonComponent
+#DBD7CACC        
+#BD976A         client:visible
+#DBD7CACC        
+#444444         />
+#758575DD       <!--
+#758575DD        Mix HTML with JavaScript expressions, similar to JSX: 
+#758575DD       -->
+#444444         <
+#4D9375         ul
+#444444         >
+#DBD7CACC         
+#444444         {
+#BD976A         myFavoritePokemon
+#444444         .
+#80A665         map
+#444444         (
+#444444         (
+#BD976A         data
+#444444         )
+#DBD7CACC        
+#444444         =>
+#DBD7CACC        
+#444444         <
+#4D9375         li
+#444444         >
+#444444         {
+#BD976A         data
+#444444         .
+#BD976A         name
+#444444         }
+#444444         </
+#4D9375         li
+#444444         >
+#444444         )
+#444444         }
+#444444         </
+#4D9375         ul
+#444444         >
+#758575DD       <!--
+#758575DD        Use a template directive to build class names from multiple strings or even objects! 
+#758575DD       -->
+#444444         <
+#4D9375         p
+#DBD7CACC        
+#BD976A         class:list
+#444444         =
+#444444         {
+#444444         [
+#C98A7D77       "
+#C98A7D         add
+#C98A7D77       "
+#444444         ,
+#DBD7CACC        
+#C98A7D77       "
+#C98A7D         dynamic
+#C98A7D77       "
+#444444         ,
+#DBD7CACC        
+#444444         {
+#B8A965         classNames
+#444444         :
+#DBD7CACC        
+#4D9375         true
+#444444         }
+#444444         ]
+#444444         }
+#DBD7CACC        
+#444444         />
+#758575DD       <!--
+#758575DD        From https://docs.astro.build/en/core-concepts/astro-components/ 
+#758575DD       -->

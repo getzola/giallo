@@ -1,0 +1,116 @@
+#444444         !!!
+#DBD7CACC        5
+#444444         %
+#4D9375         html
+#DBD7CACC       	
+#444444         %
+#4D9375         head
+#DBD7CACC       		
+#444444         %
+#4D9375         title
+#DBD7CACC        Example HAML
+#444444         		
+#758575DD       /[if IE]
+#DBD7CACC       			
+#444444         %
+#4D9375         link
+#DBD7CACC       {
+#DBD7CACC        
+#444444         :
+#4D9375         rel
+#DBD7CACC        
+#444444         =>
+#DBD7CACC        
+#C98A7D77       "
+#C98A7D         stylesheet
+#C98A7D77       "
+#444444         ,
+#DBD7CACC        
+#444444         :
+#4D9375         href
+#DBD7CACC        
+#444444         =>
+#DBD7CACC        
+#C98A7D77       "
+#C98A7D         /css/ie.css
+#C98A7D77       "
+#DBD7CACC        }
+#DBD7CACC       	
+#444444         %
+#4D9375         body
+#DBD7CACC       		
+#BD976A         #container
+#DBD7CACC       			
+#444444         %
+#4D9375         header
+#DBD7CACC       				
+#444444         %
+#4D9375         h1
+#DBD7CACC        Our Awesome HTML5 Template
+#DBD7CACC       			
+#BD976A         #main
+#DBD7CACC       				Did we mention this was awesome?
+#758575DD       				
+#444444         /
+#758575DD        Only this line will be wrapped in a comment
+#DBD7CACC       				
+#444444         %
+#4D9375         blockquote
+#DBD7CACC       					
+#444444         %
+#4D9375         p
+#DBD7CACC        Roads? Where we're going we don't need roads
+#758575DD       				
+#444444         /
+#758575DD       					Now the whole block will be commented out
+#758575DD       					
+#444444         %
+#4D9375         blockquote
+#758575DD       						
+#444444         %
+#4D9375         p
+#758575DD        Roads? Where we're going we don't need roads
+#DBD7CACC       				
+#444444         %
+#4D9375         p
+#DBD7CACC        The line below won't appear in the HTML
+#758575DD       				
+#444444         -#
+#758575DD        The rest of this line is a comment
+#DBD7CACC       				
+#444444         %
+#4D9375         p
+#DBD7CACC        The line above won't appear in the HTML, nor will the lines underneath
+#758575DD       				
+#444444         -#
+#758575DD       					None of this text will appear in our
+#758575DD       					rendered output
+#DBD7CACC       				
+#444444         %
+#4D9375         p
+#DBD7CACC       =
+#DBD7CACC        
+#B8A965         Time
+#444444         .
+#80A665         now
+#DBD7CACC       			
+#444444         %
+#4D9375         footer
+#DBD7CACC       				
+#444444         %
+#4D9375         address
+#DBD7CACC       					
+#BD976A         .hcard
+#DBD7CACC       						
+#BD976A         .fn
+#DBD7CACC        Ian Oxley
+#DBD7CACC       						
+#BD976A         .adr
+#DBD7CACC       							
+#BD976A         .locality
+#DBD7CACC        Newcastle-upon-Tyne
+#DBD7CACC       							
+#BD976A         .country-name
+#DBD7CACC        England
+#444444         /
+#758575DD        From https://gist.github.com/ianoxley/1147666

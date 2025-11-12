@@ -1,0 +1,180 @@
+#444444         <
+#4D9375         script
+#DBD7CACC        
+#BD976A         setup
+#444444         >
+#4D9375         import
+#DBD7CACC        
+#444444         {
+#DBD7CACC        
+#BD976A         ref
+#DBD7CACC        
+#444444         }
+#DBD7CACC        
+#4D9375         from
+#DBD7CACC        
+#C98A7D77       '
+#C98A7D         vue
+#C98A7D77       '
+#CB7676         const
+#DBD7CACC        
+#BD976A         message
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#80A665         ref
+#444444         (
+#C98A7D77       '
+#C98A7D         Hello World!
+#C98A7D77       '
+#444444         )
+#CB7676         function
+#DBD7CACC        
+#80A665         reverseMessage
+#444444         (
+#444444         )
+#DBD7CACC        
+#444444         {
+#444444           
+#758575DD       //
+#758575DD        Access/mutate the value of a ref via
+#444444           
+#758575DD       //
+#758575DD        its .value property.
+#DBD7CACC         
+#BD976A         message
+#444444         .
+#BD976A         value
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#BD976A         message
+#444444         .
+#BD976A         value
+#444444         .
+#80A665         split
+#444444         (
+#C98A7D77       '
+#C98A7D77       '
+#444444         )
+#444444         .
+#80A665         reverse
+#444444         (
+#444444         )
+#444444         .
+#80A665         join
+#444444         (
+#C98A7D77       '
+#C98A7D77       '
+#444444         )
+#444444         }
+#CB7676         function
+#DBD7CACC        
+#80A665         notify
+#444444         (
+#444444         )
+#DBD7CACC        
+#444444         {
+#DBD7CACC         
+#80A665         alert
+#444444         (
+#C98A7D77       '
+#C98A7D         navigation was prevented.
+#C98A7D77       '
+#444444         )
+#444444         }
+#444444         </
+#4D9375         script
+#444444         >
+#444444         <
+#4D9375         template
+#444444         >
+#DBD7CACC         
+#444444         <
+#4D9375         h1
+#444444         >
+#DBD7CACC       {{ message }}
+#444444         </
+#4D9375         h1
+#444444         >
+#DBD7CACC         
+#444444         <
+#4D9375         button
+#DBD7CACC        
+#BD976A         @click
+#444444         =
+#C98A7D77       "
+#C98A7D         reverseMessage
+#C98A7D77       "
+#444444         >
+#DBD7CACC       Reverse Message
+#444444         </
+#4D9375         button
+#444444         >
+#DBD7CACC         
+#444444         <
+#4D9375         button
+#DBD7CACC        
+#BD976A         @click
+#444444         =
+#C98A7D77       "
+#C98A7D         message += '!'
+#C98A7D77       "
+#444444         >
+#DBD7CACC       Append "!"
+#444444         </
+#4D9375         button
+#444444         >
+#DBD7CACC         
+#444444         <
+#4D9375         a
+#DBD7CACC        
+#BD976A         href
+#444444         =
+#C98A7D77       "
+#C98A7D         https://vuejs.org
+#C98A7D77       "
+#DBD7CACC        
+#BD976A         @click.prevent
+#444444         =
+#C98A7D77       "
+#C98A7D         notify
+#C98A7D77       "
+#444444         >
+#DBD7CACC           A link with e.preventDefault()
+#DBD7CACC         
+#444444         </
+#4D9375         a
+#444444         >
+#444444         </
+#4D9375         template
+#444444         >
+#444444         <
+#4D9375         style
+#444444         >
+#4D9375         button
+#444444         ,
+#DBD7CACC        
+#4D9375         a
+#DBD7CACC        
+#444444         {
+#DBD7CACC         
+#B8A965         display
+#444444         :
+#DBD7CACC        
+#C99076         block
+#444444         ;
+#DBD7CACC         
+#B8A965         margin-bottom
+#444444         :
+#DBD7CACC        
+#4C9A91         1
+#CB7676         em
+#444444         ;
+#444444         }
+#444444         </
+#4D9375         style
+#444444         >
+#758575DD       <!--
+#758575DD        from https://vuejs.org/examples/#handling-input 
+#758575DD       -->

@@ -1,0 +1,148 @@
+#4D9375         import
+#DBD7CACC        
+#444444         {
+#DBD7CACC        
+#BD976A         helper
+#DBD7CACC        
+#444444         }
+#DBD7CACC        
+#4D9375         from
+#DBD7CACC        
+#C98A7D77       '
+#C98A7D         @ember/component/helper
+#C98A7D77       '
+#444444         ;
+#4D9375         import
+#DBD7CACC        
+#444444         {
+#DBD7CACC        
+#BD976A         modifier
+#DBD7CACC        
+#444444         }
+#DBD7CACC        
+#4D9375         from
+#DBD7CACC        
+#C98A7D77       '
+#C98A7D         ember-modifier
+#C98A7D77       '
+#444444         ;
+#CB7676         const
+#DBD7CACC        
+#BD976A         plusOne
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#80A665         helper
+#444444         (
+#444444         (
+#444444         [
+#BD976A         num
+#444444         ]
+#444444         )
+#DBD7CACC        
+#444444         =>
+#DBD7CACC        
+#BD976A         num
+#DBD7CACC        
+#CB7676         +
+#DBD7CACC        
+#4C9A91         1
+#444444         )
+#444444         ;
+#CB7676         const
+#DBD7CACC        
+#BD976A         setScrollPosition
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#80A665         modifier
+#444444         (
+#444444         (
+#BD976A         element
+#444444         ,
+#DBD7CACC        
+#444444         [
+#BD976A         position
+#444444         ]
+#444444         )
+#DBD7CACC        
+#444444         =>
+#DBD7CACC        
+#444444         {
+#DBD7CACC         
+#BD976A         element
+#444444         .
+#BD976A         scrollTop
+#DBD7CACC        
+#444444         =
+#DBD7CACC        
+#BD976A         position
+#444444         }
+#444444         )
+#444444         ;
+#444444         <
+#4D9375         template
+#444444         >
+#DBD7CACC         
+#444444         <
+#4D9375         div
+#DBD7CACC        
+#BD976A         clas
+#DBD7CACC       s
+#444444         =
+#C98A7D77       "
+#C98A7D         scroll-container
+#C98A7D77       "
+#DBD7CACC        
+#CB7676         {{
+#4D9375         setScrollPosition
+#CB7676          
+#C99076         @
+#B8A965         scrollPo
+#80A665         s
+#CB7676         }}
+#444444         >
+#DBD7CACC           
+#444444         {{
+#444444         #
+#4D9375         eac
+#80A665         h
+#80A665          
+#C99076         @
+#B8A965         item
+#80A665         s
+#4D9375          as
+#80A665          
+#C99076         |
+#B8A965         item
+#4D9375          
+#B8A965         index
+#C99076         |
+#444444         }}
+#DBD7CACC             Item #
+#CB7676         {{
+#4D9375         plusOne
+#CB7676          
+#B8A965         inde
+#80A665         x
+#CB7676         }}
+#DBD7CACC       : 
+#CB7676         {{
+#B8A965         ite
+#B8A965         m
+#CB7676         }}
+#DBD7CACC           
+#444444         {{
+#444444         /
+#4D9375         eac
+#80A665         h
+#444444         }}
+#DBD7CACC         
+#444444         </
+#4D9375         div
+#444444         >
+#444444         </
+#4D9375         template
+#444444         >
+#758575DD       //
+#758575DD        From https://github.com/ember-template-imports/ember-template-imports
