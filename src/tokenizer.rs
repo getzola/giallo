@@ -114,10 +114,7 @@ impl StateStack {
     /// Resets enter_position/anchor_position for all stack elements to None
     fn reset(&self) -> StateStack {
         StateStack {
-            parent: self
-                .parent
-                .as_ref()
-                .map(|parent| Rc::new(parent.reset())),
+            parent: self.parent.as_ref().map(|parent| Rc::new(parent.reset())),
             enter_position: None,
             anchor_position: None,
             ..self.clone()
@@ -195,7 +192,11 @@ impl fmt::Debug for StateStack {
                 }
             }
 
-            write!(f, ", begin_rule_has_captured_eol={}", element.begin_rule_has_captured_eol)?;
+            write!(
+                f,
+                ", begin_rule_has_captured_eol={}",
+                element.begin_rule_has_captured_eol
+            )?;
 
             writeln!(f)?;
         }
@@ -721,7 +722,8 @@ impl<'g> Tokenizer<'g> {
                 if cfg!(feature = "debug") {
                     eprintln!(
                         "[get_or_create_pattern_set] Pushing END pattern: {:?}, apply_last={}",
-                        pat, rule.apply_end_pattern_last()
+                        pat,
+                        rule.apply_end_pattern_last()
                     );
                 }
                 if rule.apply_end_pattern_last() {
@@ -946,7 +948,10 @@ impl<'g> Tokenizer<'g> {
                 let has_advanced = m.end > pos;
 
                 if cfg!(feature = "debug") && m.rule_ref.rule == END_RULE_ID {
-                    eprintln!("[tokenize_line] END RULE MATCHED at pos={}, m.start={}, m.end={}", pos, m.start, m.end);
+                    eprintln!(
+                        "[tokenize_line] END RULE MATCHED at pos={}, m.start={}, m.end={}",
+                        pos, m.start, m.end
+                    );
                 }
                 // We matched the `end` for this rule, can only happen for BeginEnd rules
                 if m.rule_ref.rule == END_RULE_ID
@@ -958,7 +963,10 @@ impl<'g> Tokenizer<'g> {
                             "[tokenize_line] End rule matched, popping '{}'",
                             b.name.clone().unwrap_or_default()
                         );
-                        eprintln!("[BEFORE POP] Current anchor_position: {:?}", anchor_position);
+                        eprintln!(
+                            "[BEFORE POP] Current anchor_position: {:?}",
+                            anchor_position
+                        );
                         eprintln!("[BEFORE POP] Stack: {:?}", stack);
                     }
                     accumulator.produce(m.start, &stack.content_scopes);
@@ -981,7 +989,10 @@ impl<'g> Tokenizer<'g> {
                     stack = stack.pop().expect("to have a parent stack");
                     anchor_position = popped.anchor_position;
                     if cfg!(feature = "debug") {
-                        eprintln!("[AFTER POP] Restored anchor_position: {:?}", anchor_position);
+                        eprintln!(
+                            "[AFTER POP] Restored anchor_position: {:?}",
+                            anchor_position
+                        );
                         eprintln!("[AFTER POP] New stack: {:?}", stack);
                     }
 
@@ -1118,8 +1129,7 @@ impl<'g> Tokenizer<'g> {
         for line in text.split('\n') {
             // Always add a new line, some regex expect it
             let line = format!("{line}\n");
-            let (mut acc, new_state) =
-                self.tokenize_line(stack, &line, 0, is_first_line, true)?;
+            let (mut acc, new_state) = self.tokenize_line(stack, &line, 0, is_first_line, true)?;
             acc.finalize(line.len());
             lines_tokens.push(acc.tokens);
             stack = new_state.reset();
@@ -1226,7 +1236,7 @@ mod tests {
     fn can_tokenize_specific_text() {
         let registry = get_registry();
 
-        let grammar = "yaml";
+        let grammar = "razor";
         // let sample_content = r#"<svg><rect x="0" /></svg>"#;
         let sample_content =
             fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
@@ -1238,8 +1248,8 @@ mod tests {
         let tokens = registry.tokenize(grammar_id, &sample_content).unwrap();
         let out = format_tokens(&sample_content, tokens);
 
-        assert_eq!(out.trim(), expected.trim());
-        // println!("{out}");
-        // assert!(false);
+        // assert_eq!(out.trim(), expected.trim());
+        println!("{out}");
+        assert!(false);
     }
 }

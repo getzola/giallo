@@ -346,4 +346,64 @@ mod tests {
         assert_eq!(result.background, color("#000000")); // unchanged
         assert_eq!(result.font_style, FontStyle::BOLD);
     }
+
+    #[test]
+    fn test_theme_inheritance() {
+        let inheritance_theme = CompiledTheme {
+            name: "Inheritance Test".to_string(),
+            theme_type: ThemeType::Dark,
+            default_style: Style {
+                foreground: color("#D4D4D4"),
+                background: color("#1E1E1E"),
+                font_style: FontStyle::empty(),
+            },
+            rules: vec![
+                CompiledThemeRule {
+                    selectors: vec![parse_selector("constant").unwrap()],
+                    style_modifier: StyleModifier {
+                        foreground: Some(color("#300000")),
+                        background: None,
+                        font_style: Some(FontStyle::ITALIC),
+                    },
+                },
+                CompiledThemeRule {
+                    selectors: vec![parse_selector("constant.numeric").unwrap()],
+                    style_modifier: StyleModifier {
+                        foreground: Some(color("#400000")),
+                        background: None,
+                        font_style: None, // Should inherit italic from constant
+                    },
+                },
+                CompiledThemeRule {
+                    selectors: vec![parse_selector("constant.numeric.hex").unwrap()],
+                    style_modifier: StyleModifier {
+                        foreground: None, // Should inherit #400000 from constant.numeric
+                        background: None,
+                        font_style: Some(FontStyle::BOLD),
+                    },
+                },
+            ],
+        };
+
+        let highlighter = Highlighter::new(&inheritance_theme);
+
+        // Test: constant should get its own values
+        let style = highlighter.match_scopes(&[scope("constant")]);
+        assert_eq!(style.foreground, color("#300000"));
+        assert_eq!(style.font_style, FontStyle::ITALIC);
+
+        // Test: constant.numeric should inherit fontStyle from constant but override foreground
+        let style = highlighter.match_scopes(&[scope("constant"), scope("constant.numeric")]);
+        assert_eq!(style.foreground, color("#400000")); // Overridden
+        assert_eq!(style.font_style, FontStyle::ITALIC);
+
+        // Test: constant.numeric.hex should inherit foreground from constant.numeric but override fontStyle
+        let style = highlighter.match_scopes(&[
+            scope("constant"),
+            scope("constant.numeric"),
+            scope("constant.numeric.hex"),
+        ]);
+        assert_eq!(style.foreground, color("#400000")); // Should inherit from constant.numeric - WILL FAIL
+        assert_eq!(style.font_style, FontStyle::BOLD); // Overridden
+    }
 }
