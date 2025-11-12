@@ -1,5 +1,5 @@
 use crate::scope::Scope;
-use crate::themes::{CompiledTheme, Style, ThemeSelector};
+use crate::themes::{CompiledTheme, Style, StyleModifier, ThemeSelector};
 use crate::tokenizer::Token;
 use serde::{Deserialize, Serialize};
 use std::ops::Range;
@@ -31,7 +31,7 @@ impl Default for MergingOptions {
 #[derive(Debug, Clone)]
 struct HighlightRule {
     selector: ThemeSelector,
-    style: Style,
+    style_modifier: StyleModifier,
 }
 
 /// Highlighter that applies theme styles to tokenized code
@@ -50,10 +50,9 @@ impl Highlighter {
         // Rules are already sorted by specificity in CompiledTheme
         for compiled_rule in &theme.rules {
             for selector in &compiled_rule.selectors {
-                let style = compiled_rule.style_modifier.apply_to(&theme.default_style);
                 rules.push(HighlightRule {
                     selector: selector.clone(),
-                    style,
+                    style_modifier: compiled_rule.style_modifier,
                 });
             }
         }
@@ -77,11 +76,8 @@ impl Highlighter {
             // Try to find a rule that matches this current scope path
             for rule in &self.rules {
                 if rule.selector.matches(current_scope_path) {
-                    let current_font_style = current_style.font_style;
-                    current_style = rule.style.clone(); // Override with new style
-                    if current_style.font_style.is_empty() {
-                        current_style.font_style = current_font_style;
-                    }
+                    // Apply style modifier to accumulated style (proper inheritance!)
+                    current_style = rule.style_modifier.apply_to(&current_style);
                     break; // First match wins (rules sorted by specificity)
                 }
             }
@@ -209,8 +205,8 @@ mod tests {
     use super::*;
     use crate::scope::Scope;
     use crate::themes::{
-        Color, CompiledTheme, CompiledThemeRule, FontStyle, RawTheme, StyleModifier, ThemeType,
-        parse_selector,
+        Color, Colors, CompiledTheme, CompiledThemeRule, FontStyle, RawTheme, StyleModifier,
+        ThemeType, TokenColorRule, TokenColorSettings, parse_selector,
     };
     use crate::tokenizer::Token;
     use std::ops::Range;
@@ -349,42 +345,47 @@ mod tests {
 
     #[test]
     fn test_theme_inheritance() {
-        let inheritance_theme = CompiledTheme {
+        // Create RawTheme using proper theme structure
+        let raw_theme = RawTheme {
             name: "Inheritance Test".to_string(),
-            theme_type: ThemeType::Dark,
-            default_style: Style {
-                foreground: color("#D4D4D4"),
-                background: color("#1E1E1E"),
-                font_style: FontStyle::empty(),
+            type_: Some("dark".to_string()),
+            colors: Colors {
+                foreground: "#D4D4D4".to_string(),
+                background: "#1E1E1E".to_string(),
             },
-            rules: vec![
-                CompiledThemeRule {
-                    selectors: vec![parse_selector("constant").unwrap()],
-                    style_modifier: StyleModifier {
-                        foreground: Some(color("#300000")),
+            token_colors: vec![
+                // Parent: constant - has both foreground and fontStyle
+                TokenColorRule {
+                    scope: vec!["constant".to_string()],
+                    settings: TokenColorSettings {
+                        foreground: Some("#300000".to_string()),
                         background: None,
-                        font_style: Some(FontStyle::ITALIC),
+                        font_style: Some("italic".to_string()),
                     },
                 },
-                CompiledThemeRule {
-                    selectors: vec![parse_selector("constant.numeric").unwrap()],
-                    style_modifier: StyleModifier {
-                        foreground: Some(color("#400000")),
+                // Child: constant.numeric - only foreground (should inherit italic)
+                TokenColorRule {
+                    scope: vec!["constant.numeric".to_string()],
+                    settings: TokenColorSettings {
+                        foreground: Some("#400000".to_string()),
                         background: None,
                         font_style: None, // Should inherit italic from constant
                     },
                 },
-                CompiledThemeRule {
-                    selectors: vec![parse_selector("constant.numeric.hex").unwrap()],
-                    style_modifier: StyleModifier {
+                // Grandchild: constant.numeric.hex - only fontStyle (should inherit foreground)
+                TokenColorRule {
+                    scope: vec!["constant.numeric.hex".to_string()],
+                    settings: TokenColorSettings {
                         foreground: None, // Should inherit #400000 from constant.numeric
                         background: None,
-                        font_style: Some(FontStyle::BOLD),
+                        font_style: Some("bold".to_string()),
                     },
                 },
             ],
         };
 
+        // Compile using proper pipeline (automatically sorts by specificity)
+        let inheritance_theme = CompiledTheme::from_raw_theme(raw_theme).unwrap();
         let highlighter = Highlighter::new(&inheritance_theme);
 
         // Test: constant should get its own values

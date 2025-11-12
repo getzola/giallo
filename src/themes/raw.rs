@@ -10,8 +10,8 @@ use crate::themes::compiled::CompiledTheme;
 /// Token color settings from VSCode theme JSON
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct TokenColorSettings {
-    foreground: Option<String>,
-    background: Option<String>,
+    pub foreground: Option<String>,
+    pub background: Option<String>,
     #[serde(rename = "fontStyle")]
     pub font_style: Option<String>,
 }
