@@ -216,8 +216,8 @@ impl CompiledTheme {
             }
         }
 
-        // Sort by specificity (highest first)
-        rules_with_specificity.sort_by(|a, b| b.1.cmp(&a.1));
+        // Sort by specificity (lowest first) for proper inheritance
+        rules_with_specificity.sort_by(|a, b| a.1.cmp(&b.1));
 
         // Extract rules (discard specificity)
         let rules = rules_with_specificity

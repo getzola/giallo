@@ -73,12 +73,12 @@ impl Highlighter {
         for i in 1..=scopes.len() {
             let current_scope_path = &scopes[0..i];
 
-            // Try to find a rule that matches this current scope path
+            // Apply all rules that match this current scope path (in specificity order)
             for rule in &self.rules {
                 if rule.selector.matches(current_scope_path) {
                     // Apply style modifier to accumulated style (proper inheritance!)
                     current_style = rule.style_modifier.apply_to(&current_style);
-                    break; // First match wins (rules sorted by specificity)
+                    // Continue to apply all matching rules (rules sorted by specificity)
                 }
             }
             // If no match found, current_style remains unchanged (inheritance!)
@@ -404,7 +404,86 @@ mod tests {
             scope("constant.numeric"),
             scope("constant.numeric.hex"),
         ]);
-        assert_eq!(style.foreground, color("#400000")); // Should inherit from constant.numeric - WILL FAIL
+        assert_eq!(style.foreground, color("#400000")); // Should inherit from constant.numeric
         assert_eq!(style.font_style, FontStyle::BOLD); // Overridden
+    }
+
+    #[test]
+    fn test_real_world_theme_inheritance() {
+        // Load the Vitesse Black theme - a real production theme
+        let theme_path =
+            PathBuf::from("grammars-themes/packages/tm-themes/themes/vitesse-black.json");
+        let raw_theme = RawTheme::load_from_file(theme_path).unwrap();
+        let compiled_theme = CompiledTheme::from_raw_theme(raw_theme).unwrap();
+        let highlighter = Highlighter::new(&compiled_theme);
+
+        // Test real tokenizer output from ASP.NET Core Razor with invalid HTML tag
+        // Token 1: '<' - HTML tag begin punctuation
+        let token1_scopes = [
+            scope("text.aspnetcorerazor"),
+            scope("meta.element.structure.svg.html"),
+            scope("meta.element.object.svg.foreignObject.html"),
+            scope("meta.element.other.invalid.html"),
+            scope("meta.tag.other.invalid.start.html"),
+            scope("punctuation.definition.tag.begin.html"),
+        ];
+        let style1 = highlighter.match_scopes(&token1_scopes);
+
+        // Token 2: 'p' - Invalid/unrecognized HTML tag name
+        let token2_scopes = [
+            scope("text.aspnetcorerazor"),
+            scope("meta.element.structure.svg.html"),
+            scope("meta.element.object.svg.foreignObject.html"),
+            scope("meta.element.other.invalid.html"),
+            scope("meta.tag.other.invalid.start.html"),
+            scope("entity.name.tag.html"),
+            scope("invalid.illegal.unrecognized-tag.html"),
+        ];
+        let style2 = highlighter.match_scopes(&token2_scopes);
+
+        // Token 3: '>' - HTML tag end punctuation
+        let token3_scopes = [
+            scope("text.aspnetcorerazor"),
+            scope("meta.element.structure.svg.html"),
+            scope("meta.element.object.svg.foreignObject.html"),
+            scope("meta.element.other.invalid.html"),
+            scope("meta.tag.other.invalid.start.html"),
+            scope("punctuation.definition.tag.end.html"),
+        ];
+        let style3 = highlighter.match_scopes(&token3_scopes);
+
+        // Verify that styles are not default (theme inheritance is working)
+        assert_ne!(style1, compiled_theme.default_style);
+        assert_ne!(style2, compiled_theme.default_style);
+        assert_ne!(style3, compiled_theme.default_style);
+
+        // Token 2 should have distinct styling due to invalid.illegal scope
+        // which typically gets error/warning colors in themes
+        assert_ne!(style1, style2);
+        assert_ne!(style2, style3);
+
+        // Basic sanity checks - styles should have reasonable colors
+        // (Not pure black/white which would indicate broken highlighting)
+        assert_ne!(style1.foreground, Color::BLACK);
+        assert_ne!(style2.foreground, Color::BLACK);
+        assert_ne!(style3.foreground, Color::BLACK);
+
+        // Token 'p' should get pink color from invalid.illegal rule (#FDAEB7)
+        let expected_pink = Color {
+            r: 253,
+            g: 174,
+            b: 183,
+            a: 255,
+        };
+        assert_eq!(
+            style2.foreground, expected_pink,
+            "Token 'p' should get pink color #FDAEB7 from invalid.illegal rule, got {:?}",
+            style2.foreground
+        );
+
+        // Print styles for manual verification during development
+        println!("Token '<' style: {:?}", style1);
+        println!("Token 'p' style: {:?}", style2);
+        println!("Token '>' style: {:?}", style3);
     }
 }
