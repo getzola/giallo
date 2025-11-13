@@ -790,12 +790,11 @@ impl CompiledGrammar {
             }
 
             if !found {
-                if cfg!(feature = "debug") {
-                    eprintln!(
-                        "Local reference '{:?}' not found in grammar {}",
-                        rep.reference, self.name
-                    );
-                }
+                #[cfg(feature = "debug")]
+                log::warn!(
+                    "Local reference '{:?}' not found in grammar {}",
+                    rep.reference, self.name
+                );
                 rule.replace_pattern(rep.index, NO_OP_GLOBAL_RULE_REF);
             }
         }
@@ -841,11 +840,11 @@ impl CompiledGrammar {
                         }
                     }
                     if !found {
-                        if cfg!(feature = "debug") {
-                            eprintln!(
-                                "External grammar '{grammar_name}' found in registry but repository {repo_name} not found in it."
-                            );
-                        }
+
+                        #[cfg(feature = "debug")]
+                        log::warn!(
+                            "External grammar '{grammar_name}' found in registry but repository {repo_name} not found in it."
+                        );
                         rule.replace_pattern(rep.index, NO_OP_GLOBAL_RULE_REF);
                     }
                 } else {
@@ -858,9 +857,8 @@ impl CompiledGrammar {
                     );
                 }
             } else {
-                if cfg!(feature = "debug") {
-                    eprintln!("External grammar '{grammar_name}' not found in registry.");
-                }
+                #[cfg(feature = "debug")]
+                log::warn!("External grammar '{grammar_name}' not found in registry.");
                 rule.replace_pattern(rep.index, NO_OP_GLOBAL_RULE_REF);
             }
         }

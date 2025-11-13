@@ -45,7 +45,7 @@ struct StackFrame {
 }
 
 /// Keeps track of nested context as well as how to exit that context and the captures
-/// strings used in backreferences. Implemented as a Vec-based stack for performance.
+/// strings used in backreferences.
 #[derive(Clone)]
 struct StateStack {
     /// Stack frames from root to current

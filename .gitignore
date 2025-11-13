@@ -8,3 +8,4 @@ out-textmate
 builtin.msgpack
 grammar_metadata.json
 flamegraph.svg
+perf.data*
