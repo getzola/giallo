@@ -18,23 +18,15 @@ pub struct TokenColorSettings {
 
 impl TokenColorSettings {
     pub fn foreground(&self) -> Option<&str> {
-        if let Some(s) = &self.foreground {
-            if s == "inherit" { None } else { Some(s) }
-        } else {
-            None
-        }
+        self.foreground.as_deref().filter(|s| *s != "inherit")
     }
 
     pub fn background(&self) -> Option<&str> {
-        if let Some(s) = &self.background {
-            if s == "inherit" { None } else { Some(s) }
-        } else {
-            None
-        }
+        self.background.as_deref().filter(|s| *s != "inherit")
     }
 }
 
-/// Custom deserializer for scope field that can be string or array
+/// Custom deserializer for scope field that can be a string or an array of string
 fn deserialize_string_or_vec<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
 where
     D: Deserializer<'de>,
@@ -79,7 +71,7 @@ pub struct Colors {
     pub background: String,
 }
 
-// Some themes have it as editor.foreground/background some don't have the editor. prefix
+// Some themes have it as editor.foreground/background some don't have the `editor.` prefix
 impl<'de> Deserialize<'de> for Colors {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -155,7 +147,7 @@ pub struct TokenColorRule {
 pub struct RawTheme {
     pub name: String,
     #[serde(rename = "type")]
-    pub type_: Option<String>,
+    pub kind: Option<String>,
     pub colors: Colors,
     /// Token color rules for syntax highlighting
     #[serde(rename = "tokenColors")]

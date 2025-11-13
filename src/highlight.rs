@@ -51,12 +51,10 @@ impl Highlighter {
         // Flatten CompiledThemeRules into HighlightRules (one per selector)
         // Rules are already sorted by specificity in CompiledTheme
         for compiled_rule in &theme.rules {
-            for selector in &compiled_rule.selectors {
-                rules.push(HighlightRule {
-                    selector: selector.clone(),
-                    style_modifier: compiled_rule.style_modifier,
-                });
-            }
+            rules.push(HighlightRule {
+                selector: compiled_rule.selector.clone(),
+                style_modifier: compiled_rule.style_modifier,
+            });
         }
 
         Highlighter {
@@ -244,7 +242,7 @@ mod tests {
             },
             rules: vec![
                 CompiledThemeRule {
-                    selectors: vec![parse_selector("comment").unwrap()],
+                    selector: parse_selector("comment").unwrap(),
                     style_modifier: StyleModifier {
                         foreground: Some(color("#6A9955")),
                         background: None,
@@ -252,7 +250,7 @@ mod tests {
                     },
                 },
                 CompiledThemeRule {
-                    selectors: vec![parse_selector("keyword").unwrap()],
+                    selector: parse_selector("keyword").unwrap(),
                     style_modifier: StyleModifier {
                         foreground: Some(color("#569CD6")),
                         background: None,
@@ -353,7 +351,7 @@ mod tests {
         // Create RawTheme using proper theme structure
         let raw_theme = RawTheme {
             name: "Inheritance Test".to_string(),
-            type_: Some("dark".to_string()),
+            kind: Some("dark".to_string()),
             colors: Colors {
                 foreground: "#D4D4D4".to_string(),
                 background: "#1E1E1E".to_string(),

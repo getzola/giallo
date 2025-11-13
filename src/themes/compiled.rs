@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-// Removed scope ID dependencies - now using strings directly
 use crate::themes::Color;
 use crate::themes::font_style::FontStyle;
 use crate::themes::raw::{RawTheme, TokenColorSettings};
 use crate::themes::selector::{ThemeSelector, parse_selector};
 
 /// Simplified specificity calculation for theme rule sorting.
-/// Higher values = higher specificity = earlier in rule list.
+/// We use it to sort from less specific to more specific in a theme since
+/// styling is meant to be inherited from parents
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct Specificity {
     /// Number of atoms in target scope (most important)
@@ -17,7 +17,6 @@ struct Specificity {
 }
 
 impl Specificity {
-    /// Calculate specificity for a theme selector.
     fn calculate(selector: &ThemeSelector) -> Self {
         // Count atoms in target scope (dots + 1)
         let target_scope_string = selector.target_scope.build_string();
@@ -36,10 +35,8 @@ impl Specificity {
     }
 }
 
-/// A complete style with foreground, background colors and font styling
-///
-/// This is the runtime representation that always has concrete values.
-/// Total size: 9 bytes (4 + 4 + 1)
+/// A complete, concrete, style with foreground, background colors and font styling
+/// This is what is returned by the highlighter for each token
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
 pub struct Style {
     pub foreground: Color,
@@ -140,7 +137,7 @@ impl ThemeType {
 /// Compiled theme rule for efficient matching
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledThemeRule {
-    pub selectors: Vec<ThemeSelector>,
+    pub selector: ThemeSelector,
     pub style_modifier: StyleModifier,
 }
 
@@ -159,7 +156,7 @@ pub struct CompiledTheme {
 impl CompiledTheme {
     pub fn from_raw_theme(raw_theme: RawTheme) -> Result<Self, Box<dyn std::error::Error>> {
         let theme_type = raw_theme
-            .type_
+            .kind
             .map(|s| ThemeType::from_str(&s))
             .unwrap_or_default();
 
@@ -175,6 +172,14 @@ impl CompiledTheme {
         let mut rules_with_specificity = Vec::new();
 
         for token_rule in raw_theme.token_colors {
+            // Special case: some themes have defaults in token colors:
+            // eg andromeeda
+            //     {
+            //       "settings": {
+            //         "background": "#23262E",
+            //         "foreground": "#D5CED9"
+            //       }
+            //     },
             if token_rule.scope.is_empty() {
                 if let Some(fg) = token_rule.settings.foreground() {
                     default_style.foreground = Color::from_hex(&fg)?;
@@ -191,10 +196,10 @@ impl CompiledTheme {
                 if let Some(selector) = parse_selector(scope_pattern) {
                     selectors.push(selector);
                 } else {
-                    // Log warning for unparseable selectors but continue
-                    eprintln!(
-                        "Warning: Failed to parse theme selector: '{}'",
-                        scope_pattern
+                    #[cfg(feature = "debug")]
+                    log::warn!(
+                        "Failed to parse theme selector: '{scope_pattern}' in theme {}",
+                        raw_theme.name
                     );
                 }
             }
@@ -202,13 +207,12 @@ impl CompiledTheme {
             if !selectors.is_empty() {
                 let style_modifier = StyleModifier::try_from(token_rule.settings.clone())?;
 
-                // Flatten: create one rule per selector (VSCode-TextMate behavior)
                 for selector in selectors {
                     let specificity = Specificity::calculate(&selector);
                     rules_with_specificity.push((
                         CompiledThemeRule {
-                            selectors: vec![selector], // Single selector per rule
-                            style_modifier: style_modifier.clone(),
+                            selector,
+                            style_modifier,
                         },
                         specificity,
                     ));
@@ -216,10 +220,8 @@ impl CompiledTheme {
             }
         }
 
-        // Sort by specificity (lowest first) for proper inheritance
         rules_with_specificity.sort_by(|a, b| a.1.cmp(&b.1));
-
-        // Extract rules (discard specificity)
+        // and then we discard specificity, we don't need it anymore
         let rules = rules_with_specificity
             .into_iter()
             .map(|(rule, _)| rule)

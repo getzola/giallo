@@ -21,7 +21,6 @@ impl FontStyle {
         self.bits == 0
     }
 
-    /// Returns `true` if all of the flags in `other` are contained within `self`
     pub const fn contains(&self, other: Self) -> bool {
         (self.bits & other.bits) == other.bits
     }
@@ -44,7 +43,6 @@ impl FontStyle {
         font_style
     }
 
-    /// Inserts the specified flags in-place
     pub fn insert(&mut self, other: Self) {
         self.bits |= other.bits;
     }

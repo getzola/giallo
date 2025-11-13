@@ -2,36 +2,26 @@ use crate::scope::Scope;
 use serde::{Deserialize, Serialize};
 
 /// Represents a parent scope requirement in a theme selector.
-///
-/// # Examples
-/// - `Anywhere(source.js)` from "source.js meta.function" - can have scopes between
-/// - `Direct(meta.function)` from "meta.function > string" - must be immediate parent
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Parent {
     /// Parent scope that can appear anywhere up the scope stack
+    /// `Anywhere(source.js)` from "source.js meta.function" - can have scopes between
     Anywhere(Scope),
     /// Parent scope that must be the immediate parent (child combinator `>`)
+    /// `Direct(meta.function)` from "meta.function > string" - must be immediate parent
     Direct(Scope),
 }
 
-/// A parsed theme selector that matches against scope stacks.
-///
-/// Theme selectors can be:
-/// - Simple: `"comment"`
-/// - With parents: `"source.js meta.function string"`
-/// - With child combinator: `"meta.function > string"`
-/// - Mixed: `"source.js meta.function > string.quoted"`
+/// A parsed theme selector that is used to match against scope stacks.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ThemeSelector {
     /// The target scope to match (rightmost in the selector string)
     pub target_scope: Scope,
-    /// Required parent scopes from deepest to shallowest (right to left from selector string)
-    /// This matches VSCode-TextMate's reversed storage for efficient matching.
+    /// Required parent scopes from right to left of the selector
     pub parent_scopes: Vec<Parent>,
 }
 
 impl ThemeSelector {
-    /// Creates a new theme selector.
     pub fn new(target_scope: Scope, parent_scopes: Vec<Parent>) -> Self {
         Self {
             target_scope,
@@ -42,36 +32,19 @@ impl ThemeSelector {
     /// Checks if this selector matches the given scope stack.
     ///
     /// This implements the VSCode-TextMate scope matching algorithm:
-    /// 1. The target scope must match the innermost scope (last in stack)
+    /// 1. The target scope must match the last scope in the stack
     /// 2. All parent scope requirements must be satisfied walking up the stack
     /// 3. `Parent::Anywhere` can skip intermediate scopes
     /// 4. `Parent::Direct` requires immediate parent relationship
-    ///
-    /// # Arguments
-    /// * `scope_stack` - Scopes from outermost to innermost (e.g., `[source.js, meta.function, string.quoted]`)
-    ///
-    /// # Returns
-    /// `true` if all selector requirements are satisfied, `false` otherwise
-    ///
-    /// # Examples
-    /// ```ignore
-    /// let selector = parse_selector("comment").unwrap();
-    /// let stack = vec![scope("source.js"), scope("comment.line")];
-    /// assert!(selector.matches(&stack));
-    ///
-    /// let selector = parse_selector("source.js string").unwrap();
-    /// let stack = vec![scope("source.js"), scope("meta.function"), scope("string.quoted")];
-    /// assert!(selector.matches(&stack)); // "string" matches "string.quoted", source.js is ancestor
-    /// ```
     pub fn matches(&self, scope_stack: &[Scope]) -> bool {
-        // Empty stack cannot match any selector
+        // Empty stack cannot match anything
         if scope_stack.is_empty() {
             return false;
         }
 
         // Check if target scope matches the innermost scope (last in stack)
-        let innermost_scope = scope_stack[scope_stack.len() - 1];
-        if !self.target_scope.is_prefix_of(innermost_scope) {
+        let (last, mut rest) = scope_stack.split_last().unwrap();
+        if !self.target_scope.is_prefix_of(*last) {
             return false;
         }
 
@@ -80,48 +53,37 @@ impl ThemeSelector {
             return true;
         }
 
-        // Check parent scope requirements using slice-based approach
-        // Work with parent scopes only (everything except the target scope)
-        let mut remaining_parents = &scope_stack[..scope_stack.len() - 1];
-
-        // parent_scopes are stored deepest-first, so iterate in order
         for (parent_idx, required_parent) in self.parent_scopes.iter().enumerate() {
             let is_last_parent = parent_idx == self.parent_scopes.len() - 1;
 
             match required_parent {
                 Parent::Direct(parent_scope) => {
                     // Direct parent must match the last remaining parent
-                    match remaining_parents.last() {
-                        Some(&stack_scope) if parent_scope.is_prefix_of(stack_scope) => {
-                            // Consume this parent by removing it from the end
-                            remaining_parents = &remaining_parents[..remaining_parents.len() - 1];
+                    match rest.split_last() {
+                        Some((last, r)) if parent_scope.is_prefix_of(*last) => {
+                            rest = r;
                         }
                         _ => return false, // No match or no more parents
-                    }
-
-                    // Check if we have more requirements but no more parents
-                    if remaining_parents.is_empty() && !is_last_parent {
-                        return false;
                     }
                 }
                 Parent::Anywhere(parent_scope) => {
                     // Find this parent anywhere in remaining parents (from end to start)
-                    match remaining_parents
+                    match rest
                         .iter()
                         .rposition(|&scope| parent_scope.is_prefix_of(scope))
                     {
                         Some(pos) => {
                             // Consume all parents up to and including this match
-                            remaining_parents = &remaining_parents[..pos];
+                            rest = &rest[..pos];
                         }
                         None => return false, // Required parent not found
                     }
-
-                    // Check if we have more requirements but no more parents
-                    if remaining_parents.is_empty() && !is_last_parent {
-                        return false;
-                    }
                 }
+            }
+
+            // Check if we have more requirements but no more parents
+            if rest.is_empty() && !is_last_parent {
+                return false;
             }
         }
 
@@ -131,79 +93,41 @@ impl ThemeSelector {
 
 /// Parses a theme selector string into a structured ThemeSelector.
 ///
-/// # Examples
-/// ```ignore
-/// let selector = parse_selector("comment").unwrap();
-/// assert_eq!(selector.parent_scopes.len(), 0);
-///
-/// let selector = parse_selector("source.js meta.function string").unwrap();
-/// assert_eq!(selector.parent_scopes.len(), 2);
-///
-/// let selector = parse_selector("meta.function > string").unwrap();
-/// assert!(matches!(selector.parent_scopes[0], Parent::Direct(_)));
-/// ```
-///
 /// # Selector Format
 /// - Scopes are separated by whitespace: `"source.js meta.function string"`
 /// - Child combinator `>` creates direct parent requirement: `"parent > child"`
 /// - Target scope is always the rightmost non-`>` token
 /// - Parent scopes are processed left to right
 ///
-/// # Returns
-/// - `Some(ThemeSelector)` if parsing succeeds
-/// - `None` if the selector string is invalid or empty
+/// Returns `None` if the selector string is invalid or empty
 pub fn parse_selector(input: &str) -> Option<ThemeSelector> {
-    let input = input.trim();
-    if input.is_empty() {
-        return None;
-    }
-
-    let parts: Vec<&str> = input.split_whitespace().collect();
+    let parts: Vec<&str> = input.trim().split_whitespace().collect();
     if parts.is_empty() {
         return None;
     }
 
-    // Find the target scope (rightmost non-">" token)
-    let target_str = parts.iter().rev().find(|&&s| s != ">")?;
-    let target_scopes = Scope::new(target_str);
-    let target_scope = target_scopes.into_iter().next()?;
+    let (last, rest) = parts.split_last().unwrap();
+    if *last == ">" {
+        return None;
+    }
+    let target_scope = Scope::new(last)[0];
 
-    // Build parent chain from left to right, handling ">" combinators
     let mut parents = Vec::new();
-    let mut i = 0;
-
-    while i < parts.len() {
-        let part = parts[i];
-
-        // Skip ">" tokens
-        if part == ">" {
-            i += 1;
+    let mut is_direct = false;
+    for part in rest.iter().rev() {
+        if *part == ">" {
+            is_direct = true;
             continue;
         }
-
-        // Skip the target scope (we already processed it)
-        if part == *target_str {
-            break;
-        }
-
-        // Parse the parent scope
-        let parent_scopes = Scope::new(part);
-        let parent_scope = parent_scopes.into_iter().next()?;
-
-        // Check if this parent has a direct relationship (followed by ">")
-        let is_direct = i + 1 < parts.len() && parts[i + 1] == ">";
-
+        let parent_scope = Scope::new(part)[0];
         parents.push(if is_direct {
             Parent::Direct(parent_scope)
         } else {
             Parent::Anywhere(parent_scope)
         });
-
-        i += 1;
+        is_direct = false;
     }
 
-    // Reverse to match VSCode-TextMate ordering: deepest parent first
-    parents.reverse();
     Some(ThemeSelector::new(target_scope, parents))
 }
 

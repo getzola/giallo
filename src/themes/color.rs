@@ -9,7 +9,6 @@ pub struct Color {
     pub a: u8,
 }
 
-/// Helper function to parse a hex string component to u8
 fn parse_hex_component(hex: &str) -> Result<u8, String> {
     u8::from_str_radix(hex, 16).map_err(|e| format!("Invalid hex component '{}': {}", hex, e))
 }
@@ -35,7 +34,7 @@ impl Color {
         b: 51,
         a: 255,
     };
-    // #fffffe
+    // #ffffff
     pub const LIGHT_BG_FALLBACK: Color = Color {
         r: 255,
         g: 255,
