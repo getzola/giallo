@@ -4,5 +4,5 @@ description: "L:(source.ts, source.js, source.coffee)"
 expression: result
 ---
 [
-    CompiledInjectionMatcher("L:(source.ts | source.js | source.coffee)"),
+    "L:(source.ts | source.js | source.coffee)",
 ]

@@ -4,7 +4,7 @@ description: "text.html.php.blade - (meta.embedded | meta.tag | comment.block.bl
 expression: result
 ---
 [
-    CompiledInjectionMatcher("text.html.php.blade -(meta.embedded | meta.tag | comment.block.blade)"),
-    CompiledInjectionMatcher("L:text.html.php.blade meta.tag -(comment.block.blade | meta.embedded.block.blade)"),
-    CompiledInjectionMatcher("L:source.js.embedded.html -(comment.block.blade | meta.embedded.block.blade)"),
+    "text.html.php.blade -(meta.embedded | meta.tag | comment.block.blade)",
+    "L:text.html.php.blade meta.tag -(comment.block.blade | meta.embedded.block.blade)",
+    "L:source.js.embedded.html -(comment.block.blade | meta.embedded.block.blade)",
 ]

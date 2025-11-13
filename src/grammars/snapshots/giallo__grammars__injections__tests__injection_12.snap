@@ -4,8 +4,8 @@ description: "L:source.css -comment, L:source.postcss -comment, L:source.sass -c
 expression: result
 ---
 [
-    CompiledInjectionMatcher("L:source.css -comment"),
-    CompiledInjectionMatcher("L:source.postcss -comment"),
-    CompiledInjectionMatcher("L:source.sass -comment"),
-    CompiledInjectionMatcher("L:source.stylus -comment"),
+    "L:source.css -comment",
+    "L:source.postcss -comment",
+    "L:source.sass -comment",
+    "L:source.stylus -comment",
 ]

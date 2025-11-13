@@ -4,6 +4,6 @@ description: "L:text.pug -comment -string.comment, L:text.html.derivative -comme
 expression: result
 ---
 [
-    CompiledInjectionMatcher("L:text.pug -comment -string.comment"),
-    CompiledInjectionMatcher("L:text.html.derivative -comment.block"),
+    "L:text.pug -comment -string.comment",
+    "L:text.html.derivative -comment.block",
 ]

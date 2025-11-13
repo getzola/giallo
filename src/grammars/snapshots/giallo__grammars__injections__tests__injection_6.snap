@@ -4,5 +4,5 @@ description: "L:(meta.script.svelte | meta.style.svelte) (meta.lang.js | meta.la
 expression: result
 ---
 [
-    CompiledInjectionMatcher("L:(meta.script.svelte | meta.style.svelte) (meta.lang.js | meta.lang.javascript) -meta source"),
+    "L:(meta.script.svelte | meta.style.svelte) (meta.lang.js | meta.lang.javascript) -meta source",
 ]

@@ -4,15 +4,15 @@ description: "L:source.js -comment -string, L:source.js -comment -string, L:sour
 expression: result
 ---
 [
-    CompiledInjectionMatcher("L:source.js -comment -string"),
-    CompiledInjectionMatcher("L:source.js -comment -string"),
-    CompiledInjectionMatcher("L:source.jsx -comment -string"),
-    CompiledInjectionMatcher("L:source.js.jsx -comment -string"),
-    CompiledInjectionMatcher("L:source.ts -comment -string"),
-    CompiledInjectionMatcher("L:source.tsx -comment -string"),
-    CompiledInjectionMatcher("L:source.rescript -comment -string"),
-    CompiledInjectionMatcher("L:source.vue -comment -string"),
-    CompiledInjectionMatcher("L:source.svelte -comment -string"),
-    CompiledInjectionMatcher("L:source.php -comment -string"),
-    CompiledInjectionMatcher("L:source.rescript -comment -string"),
+    "L:source.js -comment -string",
+    "L:source.js -comment -string",
+    "L:source.jsx -comment -string",
+    "L:source.js.jsx -comment -string",
+    "L:source.ts -comment -string",
+    "L:source.tsx -comment -string",
+    "L:source.rescript -comment -string",
+    "L:source.vue -comment -string",
+    "L:source.svelte -comment -string",
+    "L:source.php -comment -string",
+    "L:source.rescript -comment -string",
 ]

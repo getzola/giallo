@@ -4,5 +4,5 @@ description: "R:text.html - (comment.block, text.html meta.embedded, meta.tag.*.
 expression: result
 ---
 [
-    CompiledInjectionMatcher("R:text.html -(comment.block | text.html meta.embedded | meta.tag)"),
+    "R:text.html -(comment.block | text.html meta.embedded | meta.tag)",
 ]

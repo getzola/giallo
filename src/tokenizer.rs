@@ -1232,24 +1232,24 @@ mod tests {
         }
     }
 
-    #[test]
-    fn can_tokenize_specific_text() {
-        let registry = get_registry();
-
-        let grammar = "razor";
-        // let sample_content = r#"<svg><rect x="0" /></svg>"#;
-        let sample_content =
-            fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
-        let expected = fs::read_to_string(format!("src/fixtures/tokens/{grammar}.txt")).unwrap();
-
-        let grammar_id = registry.grammar_id_by_name[grammar];
-        let grammar = &registry.grammars[grammar_id];
-
-        let tokens = registry.tokenize(grammar_id, &sample_content).unwrap();
-        let out = format_tokens(&sample_content, tokens);
-
-        // assert_eq!(out.trim(), expected.trim());
-        println!("{out}");
-        assert!(false);
-    }
+    // #[test]
+    // fn can_tokenize_specific_text() {
+    //     let registry = get_registry();
+    //
+    //     let grammar = "razor";
+    //     // let sample_content = r#"<svg><rect x="0" /></svg>"#;
+    //     let sample_content =
+    //         fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
+    //     let expected = fs::read_to_string(format!("src/fixtures/tokens/{grammar}.txt")).unwrap();
+    //
+    //     let grammar_id = registry.grammar_id_by_name[grammar];
+    //     let grammar = &registry.grammars[grammar_id];
+    //
+    //     let tokens = registry.tokenize(grammar_id, &sample_content).unwrap();
+    //     let out = format_tokens(&sample_content, tokens);
+    //
+    //     // assert_eq!(out.trim(), expected.trim());
+    //     println!("{out}");
+    //     assert!(false);
+    // }
 }

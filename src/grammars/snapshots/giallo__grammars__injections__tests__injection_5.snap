@@ -4,5 +4,5 @@ description: "L:meta.tag -meta.attribute -meta.ng-binding -entity.name.tag.pug"
 expression: result
 ---
 [
-    CompiledInjectionMatcher("L:meta.tag -meta.attribute -meta.ng-binding -entity.name.tag.pug"),
+    "L:meta.tag -meta.attribute -meta.ng-binding -entity.name.tag.pug",
 ]

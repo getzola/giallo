@@ -4,5 +4,5 @@ description: "L:(meta.script.astro) (meta.lang.json) - (meta source)"
 expression: result
 ---
 [
-    CompiledInjectionMatcher("L:meta.script.astro meta.lang.json -meta source"),
+    "L:meta.script.astro meta.lang.json -meta source",
 ]
