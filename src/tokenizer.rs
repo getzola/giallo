@@ -2,7 +2,6 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
 use std::ops::Range;
-use std::rc::Rc;
 
 use crate::Registry;
 use crate::grammars::{
@@ -20,12 +19,9 @@ pub struct Token {
     pub scopes: Vec<Scope>,
 }
 
-/// Keeps track of nested context as well as how to exit that context and the captures
-/// strings used in backreferences
-#[derive(Clone)]
-struct StateStack {
-    /// Parent stack element (None for root)
-    parent: Option<Rc<StateStack>>,
+/// Individual stack frame - represents a single parsing context
+#[derive(Clone, Debug)]
+struct StackFrame {
     /// Global rule ref that created this stack element
     rule_ref: GlobalRuleRef,
     /// "name" scopes - applied to begin/end delimiters
@@ -48,103 +44,117 @@ struct StateStack {
     enter_position: Option<usize>,
 }
 
+/// Keeps track of nested context as well as how to exit that context and the captures
+/// strings used in backreferences. Implemented as a Vec-based stack for performance.
+#[derive(Clone)]
+struct StateStack {
+    /// Stack frames from root to current
+    frames: Vec<StackFrame>,
+}
+
 impl StateStack {
     pub fn new(grammar_id: GrammarId, grammar_scope: Scope) -> Self {
         Self {
-            parent: None,
-            rule_ref: GlobalRuleRef {
-                grammar: grammar_id,
-                rule: ROOT_RULE_ID,
-            },
-            name_scopes: vec![grammar_scope],
-            content_scopes: vec![grammar_scope],
-            end_pattern: None,
-            begin_rule_has_captured_eol: false,
-            anchor_position: None,
-            enter_position: None,
+            frames: vec![StackFrame {
+                rule_ref: GlobalRuleRef {
+                    grammar: grammar_id,
+                    rule: ROOT_RULE_ID,
+                },
+                name_scopes: vec![grammar_scope],
+                content_scopes: vec![grammar_scope],
+                end_pattern: None,
+                begin_rule_has_captured_eol: false,
+                anchor_position: None,
+                enter_position: None,
+            }],
         }
     }
 
     /// Called when entering a nested context: when a BeginEnd or BeginWhile begin pattern matches
     fn push(
-        &self,
+        &mut self,
         rule_ref: GlobalRuleRef,
         anchor_position: Option<usize>,
         begin_rule_has_captured_eol: bool,
         enter_position: Option<usize>,
-    ) -> StateStack {
-        StateStack {
-            parent: Some(Rc::new(self.clone())),
+    ) {
+        let content_scopes = self.top().content_scopes.clone();
+
+        self.frames.push(StackFrame {
             rule_ref,
             // Start with the same scope they will diverge later
-            name_scopes: self.content_scopes.clone(),
-            content_scopes: self.content_scopes.clone(),
+            name_scopes: content_scopes.clone(),
+            content_scopes,
             end_pattern: None,
             begin_rule_has_captured_eol,
             anchor_position,
             enter_position,
-        }
+        });
     }
 
-    fn with_content_scopes(&self, content_scopes: Vec<Scope>) -> Self {
-        let mut new = self.clone();
-        new.content_scopes = content_scopes;
-        new
+    fn set_content_scopes(&mut self, content_scopes: Vec<Scope>) {
+        self.top_mut().content_scopes = content_scopes;
     }
 
-    fn with_end_pattern(&self, end_pattern: String) -> Self {
-        let mut new = self.clone();
-        new.end_pattern = Some(end_pattern);
-        new
+    fn set_end_pattern(&mut self, end_pattern: String) {
+        self.top_mut().end_pattern = Some(end_pattern);
     }
 
     /// Exits the current context, getting back to the parent
-    fn pop(&self) -> Option<StateStack> {
-        self.parent.as_ref().map(|parent| (**parent).clone())
+    fn pop(&mut self) -> bool {
+        if self.frames.len() > 1 {
+            self.frames.pop();
+            true
+        } else {
+            false
+        }
     }
 
     /// Pop but never go below root state - used in infinite loop protection
-    fn safe_pop(&self) -> StateStack {
-        if let Some(parent) = &self.parent {
-            (**parent).clone()
-        } else {
-            self.clone()
+    fn safe_pop(&mut self) {
+        if self.frames.len() > 1 {
+            self.frames.pop();
         }
     }
 
     /// Resets enter_position/anchor_position for all stack elements to None
-    fn reset(&self) -> StateStack {
-        StateStack {
-            parent: self.parent.as_ref().map(|parent| Rc::new(parent.reset())),
-            enter_position: None,
-            anchor_position: None,
-            ..self.clone()
+    fn reset(&mut self) {
+        for frame in &mut self.frames {
+            frame.enter_position = None;
+            frame.anchor_position = None;
+        }
+    }
+
+    /// Access the top frame of the stack
+    fn top(&self) -> &StackFrame {
+        self.frames.last().expect("stack never empty")
+    }
+
+    /// Mutable access to the top frame of the stack
+    fn top_mut(&mut self) -> &mut StackFrame {
+        self.frames.last_mut().expect("stack never empty")
+    }
+
+    /// Get stack depth
+    fn depth(&self) -> usize {
+        self.frames.len()
+    }
+
+    /// Peek at parent frame without popping (for migration compatibility)
+    fn peek_parent(&self) -> Option<&StackFrame> {
+        if self.frames.len() > 1 {
+            self.frames.get(self.frames.len() - 2)
+        } else {
+            None
         }
     }
 }
 
 impl fmt::Debug for StateStack {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Collect the entire stack from root to current
-        let mut stack_elements = Vec::new();
-        let mut current = self;
-
-        // Traverse up to root, collecting elements
-        loop {
-            stack_elements.push(current);
-            if let Some(parent) = &current.parent {
-                current = parent;
-            } else {
-                break;
-            }
-        }
-
-        // Reverse to show root first
-        stack_elements.reverse();
-
         writeln!(f, "StateStack:")?;
 
-        for (depth, element) in stack_elements.iter().enumerate() {
+        for (depth, frame) in self.frames.iter().enumerate() {
             // Create indentation
             let indent = "  ".repeat(depth);
 
@@ -152,13 +162,13 @@ impl fmt::Debug for StateStack {
             write!(
                 f,
                 "{}grammar={}, rule={}",
-                indent, element.rule_ref.grammar.0, element.rule_ref.rule.0
+                indent, frame.rule_ref.grammar.0, frame.rule_ref.rule.0
             )?;
 
             // Add name scopes if not empty
-            if !element.name_scopes.is_empty() {
+            if !frame.name_scopes.is_empty() {
                 write!(f, " name=[")?;
-                for (i, scope) in element.name_scopes.iter().enumerate() {
+                for (i, scope) in frame.name_scopes.iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
@@ -168,9 +178,9 @@ impl fmt::Debug for StateStack {
             }
 
             // Add content scopes if not empty
-            if !element.content_scopes.is_empty() {
+            if !frame.content_scopes.is_empty() {
                 write!(f, ", content=[")?;
-                for (i, scope) in element.content_scopes.iter().enumerate() {
+                for (i, scope) in frame.content_scopes.iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
@@ -180,15 +190,15 @@ impl fmt::Debug for StateStack {
             }
 
             // Add end_pattern if present
-            if let Some(pattern) = &element.end_pattern {
+            if let Some(pattern) = &frame.end_pattern {
                 write!(f, ", end_pattern=\"{}\"", pattern)?;
             }
 
-            write!(f, ", anchor_pos={:?}", element.anchor_position)?;
+            write!(f, ", anchor_pos={:?}", frame.anchor_position)?;
 
             // Add enter_position if present and different from anchor_position
-            if let Some(enter_pos) = element.enter_position {
-                if element.anchor_position != Some(enter_pos) {
+            if let Some(enter_pos) = frame.enter_position {
+                if frame.anchor_position != Some(enter_pos) {
                     write!(f, ", enter_pos={}", enter_pos)?;
                 }
             }
@@ -196,7 +206,7 @@ impl fmt::Debug for StateStack {
             write!(
                 f,
                 ", begin_rule_has_captured_eol={}",
-                element.begin_rule_has_captured_eol
+                frame.begin_rule_has_captured_eol
             )?;
 
             writeln!(f)?;
@@ -427,7 +437,7 @@ impl<'g> Tokenizer<'g> {
     ) -> Result<Option<(InjectionPrecedence, PatternSetMatch)>, TokenizeError> {
         let injection_patterns = self
             .registry
-            .collect_injection_patterns(self.base_grammar_id, &stack.content_scopes);
+            .collect_injection_patterns(self.base_grammar_id, &stack.top().content_scopes);
 
         if injection_patterns.is_empty() {
             return Ok(None);
@@ -438,8 +448,8 @@ impl<'g> Tokenizer<'g> {
         // Process injections in the order returned by registry (already sorted by precedence)
         for (precedence, rule) in injection_patterns {
             let mut s = stack.clone();
-            s.rule_ref = rule;
-            s.end_pattern = None;
+            s.top_mut().rule_ref = rule;
+            s.top_mut().end_pattern = None;
             if cfg!(feature = "debug") {
                 println!("Building pattern set for injection");
             }
@@ -520,7 +530,7 @@ impl<'g> Tokenizer<'g> {
         is_first_line: bool,
     ) -> Result<(StateStack, Option<usize>, bool), TokenizeError> {
         // Initialize anchor position: reset to 0 if previous rule captured EOL, otherwise use stack value
-        let mut anchor_position: Option<usize> = if stack.begin_rule_has_captured_eol {
+        let mut anchor_position: Option<usize> = if stack.top().begin_rule_has_captured_eol {
             Some(0)
         } else {
             None
@@ -528,18 +538,22 @@ impl<'g> Tokenizer<'g> {
         let mut is_first_line = is_first_line;
         let mut stack = stack;
 
-        // Collect all BeginWhile rules from bottom to top of stack
+        // Collect all BeginWhile rules from stack (iterate through frames in reverse)
         let mut while_stacks = Vec::new();
-        let mut current = Some(&stack);
 
-        while let Some(stack_elem) = current {
-            if let Some(Rule::BeginWhile(_)) = self.registry.grammars[stack_elem.rule_ref.grammar]
+        // Iterate through stack frames from top to bottom (reverse order)
+        for i in (0..stack.frames.len()).rev() {
+            let frame = &stack.frames[i];
+            if let Some(Rule::BeginWhile(_)) = self.registry.grammars[frame.rule_ref.grammar]
                 .rules
-                .get(stack_elem.rule_ref.rule.as_index())
+                .get(frame.rule_ref.rule.as_index())
             {
-                while_stacks.push(stack_elem.clone());
+                // Create a stack with frames from root up to this BeginWhile frame
+                let while_stack = StateStack {
+                    frames: stack.frames[0..=i].to_vec(),
+                };
+                while_stacks.push(while_stack);
             }
-            current = stack_elem.parent.as_deref();
         }
 
         if cfg!(feature = "debug") {
@@ -572,14 +586,14 @@ impl<'g> Tokenizer<'g> {
             eprintln!("[check_while_conditions] Anchors: {active_anchor:?}");
         }
 
-        for while_stack in while_stacks.into_iter().rev() {
-            let initial_pat = if let Some(end_pat) = &while_stack.end_pattern {
+        for mut while_stack in while_stacks.into_iter().rev() {
+            let initial_pat = if let Some(end_pat) = &while_stack.top().end_pattern {
                 end_pat.as_str()
             } else if let Rule::BeginWhile(b) = &self.registry.grammars
-                [while_stack.rule_ref.grammar]
-                .rules[while_stack.rule_ref.rule]
+                [while_stack.top().rule_ref.grammar]
+                .rules[while_stack.top().rule_ref.rule]
             {
-                let re = &self.registry.grammars[while_stack.rule_ref.grammar].regexes[b.while_];
+                let re = &self.registry.grammars[while_stack.top().rule_ref.grammar].regexes[b.while_];
                 re.pattern()
             } else {
                 unreachable!()
@@ -621,12 +635,12 @@ impl<'g> Tokenizer<'g> {
                 let absolute_start = *pos;
                 let absolute_end = *pos + end;
 
-                acc.produce(absolute_start, &while_stack.content_scopes);
+                acc.produce(absolute_start, &while_stack.top().content_scopes);
                 // Handle while captures if they exist
                 if let Some(Rule::BeginWhile(begin_while_rule)) = self.registry.grammars
-                    [while_stack.rule_ref.grammar]
+                    [while_stack.top().rule_ref.grammar]
                     .rules
-                    .get(while_stack.rule_ref.rule.as_index())
+                    .get(while_stack.top().rule_ref.rule.as_index())
                     && !begin_while_rule.while_captures.is_empty()
                 {
                     let captures_pos: Vec<Option<(usize, usize)>> = (0..cap.len())
@@ -644,7 +658,7 @@ impl<'g> Tokenizer<'g> {
                 }
 
                 // Produce token for the while match itself
-                acc.produce(absolute_end, &while_stack.content_scopes);
+                acc.produce(absolute_end, &while_stack.top().content_scopes);
 
                 // Advance position and update anchor - matches VSCode behavior
                 if absolute_end > *pos {
@@ -656,15 +670,16 @@ impl<'g> Tokenizer<'g> {
                 if cfg!(feature = "debug") {
                     eprintln!(
                         "[check_while_conditions] No while match found, popping: {:?}",
-                        self.registry.grammars[while_stack.rule_ref.grammar]
+                        self.registry.grammars[while_stack.top().rule_ref.grammar]
                             .rules
-                            .get(while_stack.rule_ref.rule.as_index())
+                            .get(while_stack.top().rule_ref.rule.as_index())
                             .unwrap()
                             .original_name()
                     );
                 }
 
-                stack = while_stack.pop().expect("to have a parent");
+                while_stack.pop();
+                stack = while_stack;
                 break; // Stop checking further while conditions
             }
         }
@@ -679,7 +694,7 @@ impl<'g> Tokenizer<'g> {
         is_first_line: bool,
         anchor_position: Option<usize>,
     ) -> &PatternSet {
-        let rule_ref = stack.rule_ref;
+        let rule_ref = stack.top().rule_ref;
 
         let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
         let rule_w_anchor = AnchorActiveRule::new(rule_ref, is_first_line, anchor_position, pos);
@@ -694,7 +709,7 @@ impl<'g> Tokenizer<'g> {
             );
         }
 
-        let mut end_pattern = stack.end_pattern.as_deref();
+        let mut end_pattern = stack.top().end_pattern.as_deref();
 
         if end_pattern.is_none() {
             match rule {
@@ -845,25 +860,28 @@ impl<'g> Tokenizer<'g> {
             if let Some((scopes, _)) = local_stack.last() {
                 accumulator.produce(cap_start, scopes);
             } else {
-                accumulator.produce(cap_start, &stack.content_scopes);
+                accumulator.produce(cap_start, &stack.top().content_scopes);
             }
 
             //  Check if it has captures. If it does we need to call tokenize_string
             let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
 
             if rule.has_patterns() {
-                let mut retokenization_stack = stack.push(rule_ref, None, false, Some(cap_start));
+                let mut retokenization_stack = stack.clone();
+                retokenization_stack.push(rule_ref, None, false, Some(cap_start));
 
                 // Apply rule name scopes to the new state
                 retokenization_stack
+                    .top_mut()
                     .name_scopes
                     .extend(rule.get_name_scopes(line, captures));
 
                 // Start with name + content scopes for content scopes
-                retokenization_stack.content_scopes = retokenization_stack.name_scopes.clone();
+                retokenization_stack.top_mut().content_scopes = retokenization_stack.top().name_scopes.clone();
 
                 // Apply content scopes
                 retokenization_stack
+                    .top_mut()
                     .content_scopes
                     .extend(rule.get_content_scopes(line, captures));
                 let substring = &line[0..cap_end];
@@ -899,7 +917,7 @@ impl<'g> Tokenizer<'g> {
                 let mut base = if let Some((scopes, _)) = local_stack.last() {
                     scopes.clone()
                 } else {
-                    stack.content_scopes.clone()
+                    stack.top().content_scopes.clone()
                 };
                 base.extend(rule_scopes);
                 local_stack.push((base, cap_end));
@@ -973,7 +991,7 @@ impl<'g> Tokenizer<'g> {
                 // We matched the `end` for this rule, can only happen for BeginEnd rules
                 if m.rule_ref.rule == END_RULE_ID
                     && let Rule::BeginEnd(b) =
-                        &self.registry.grammars[stack.rule_ref.grammar].rules[stack.rule_ref.rule]
+                        &self.registry.grammars[stack.top().rule_ref.grammar].rules[stack.top().rule_ref.rule]
                 {
                     if cfg!(feature = "debug") {
                         eprintln!(
@@ -986,12 +1004,13 @@ impl<'g> Tokenizer<'g> {
                         );
                         eprintln!("[BEFORE POP] Stack: {:?}", stack);
                     }
-                    accumulator.produce(m.start, &stack.content_scopes);
-                    let popped = stack.clone();
+                    accumulator.produce(m.start, &stack.top().content_scopes);
+                    let popped_state = stack.clone(); // Save for infinite loop protection
+                    let popped_anchor_position = stack.top().anchor_position;
                     if cfg!(feature = "debug") {
-                        eprintln!("[POPPED RULE] Stack: {:?}", popped);
+                        eprintln!("[POPPED RULE] Stack: {:?}", stack);
                     }
-                    stack = stack.with_content_scopes(stack.name_scopes.clone());
+                    stack.set_content_scopes(stack.top().name_scopes.clone());
                     self.resolve_captures(
                         &stack,
                         line,
@@ -1000,11 +1019,11 @@ impl<'g> Tokenizer<'g> {
                         &mut accumulator,
                         is_first_line,
                     )?;
-                    accumulator.produce(m.end, &stack.content_scopes);
+                    accumulator.produce(m.end, &stack.top().content_scopes);
 
                     // Pop to parent state and update anchor position
-                    stack = stack.pop().expect("to have a parent stack");
-                    anchor_position = popped.anchor_position;
+                    stack.pop();
+                    anchor_position = popped_anchor_position;
                     if cfg!(feature = "debug") {
                         eprintln!(
                             "[AFTER POP] Restored anchor_position: {:?}",
@@ -1015,23 +1034,24 @@ impl<'g> Tokenizer<'g> {
 
                     // Grammar pushed & popped a rule without advancing - infinite loop protection
                     // It happens eg for astro grammar
-                    if !has_advanced && popped.enter_position == Some(pos) {
+                    if !has_advanced && popped_state.top().enter_position == Some(pos) {
                         // See https://github.com/Microsoft/vscode-textmate/issues/12
                         // Let's assume this was a mistake by the grammar author and the intent was to continue in this state
-                        stack = popped;
-                        accumulator.produce(line.len(), &stack.content_scopes);
+                        // Revert to pre-pop state for infinite loop protection
+                        stack = popped_state;
+                        accumulator.produce(line.len(), &stack.top().content_scopes);
                         break;
                     }
                 } else {
                     let rule = &self.registry.grammars[m.rule_ref.grammar].rules[m.rule_ref.rule];
-                    accumulator.produce(m.start, &stack.content_scopes);
-                    let mut new_scopes = stack.content_scopes.clone();
+                    accumulator.produce(m.start, &stack.top().content_scopes);
+                    let mut new_scopes = stack.top().content_scopes.clone();
                     new_scopes.extend(rule.get_name_scopes(line, &m.capture_pos));
                     // TODO: improve that push?
-                    stack = stack.push(m.rule_ref, anchor_position, m.end == line.len(), Some(pos));
-                    stack.name_scopes = new_scopes.clone();
-                    stack.content_scopes = new_scopes;
-                    stack.end_pattern = None;
+                    stack.push(m.rule_ref, anchor_position, m.end == line.len(), Some(pos));
+                    stack.top_mut().name_scopes = new_scopes.clone();
+                    stack.top_mut().content_scopes = new_scopes;
+                    stack.top_mut().end_pattern = None;
 
                     let mut handle_begin_rule = |re_id: RegexId,
                                                  end_has_backrefs: bool,
@@ -1055,15 +1075,15 @@ impl<'g> Tokenizer<'g> {
                             &mut accumulator,
                             is_first_line,
                         )?;
-                        accumulator.produce(m.end, &stack.content_scopes);
+                        accumulator.produce(m.end, &stack.top().content_scopes);
                         anchor_position = Some(m.end);
-                        let mut content_scopes = stack.name_scopes.clone();
+                        let mut content_scopes = stack.top().name_scopes.clone();
                         content_scopes.extend(rule.get_content_scopes(line, &m.capture_pos));
-                        stack = stack.with_content_scopes(content_scopes);
+                        stack.set_content_scopes(content_scopes);
 
                         if end_has_backrefs {
                             let resolved_end = re.resolve_backreferences(line, &m.capture_pos);
-                            stack = stack.with_end_pattern(resolved_end);
+                            stack.set_end_pattern(resolved_end);
                         }
 
                         Ok(())
@@ -1093,9 +1113,9 @@ impl<'g> Tokenizer<'g> {
                                 &mut accumulator,
                                 is_first_line,
                             )?;
-                            accumulator.produce(m.end, &stack.content_scopes);
+                            accumulator.produce(m.end, &stack.top().content_scopes);
                             // pop rule immediately since it is a MatchRule
-                            stack = stack.pop().expect("to have a parent stack");
+                            stack.pop();
 
                             // Protection: grammar is not advancing, nor is it pushing/popping
                             // happens for some grammars eg astro
@@ -1103,8 +1123,8 @@ impl<'g> Tokenizer<'g> {
                                 if cfg!(feature = "debug") {
                                     eprintln!("Match rule didn't advance, safe_pop and stop");
                                 }
-                                stack = stack.safe_pop();
-                                accumulator.produce(line.len(), &stack.content_scopes);
+                                stack.safe_pop();
+                                accumulator.produce(line.len(), &stack.top().content_scopes);
                                 break;
                             }
                         }
@@ -1122,7 +1142,7 @@ impl<'g> Tokenizer<'g> {
                     eprintln!("[tokenize_line] no more matches");
                 }
                 // No more matches - emit final token and stop
-                accumulator.produce(line.len() - 1, &stack.content_scopes);
+                accumulator.produce(line.len() - 1, &stack.top().content_scopes);
                 break;
             }
         }
@@ -1146,10 +1166,11 @@ impl<'g> Tokenizer<'g> {
         for line in text.split('\n') {
             // Always add a new line, some regex expect it
             let line = format!("{line}\n");
-            let (mut acc, new_state) = self.tokenize_line(stack, &line, 0, is_first_line, true)?;
+            let (mut acc, mut new_state) = self.tokenize_line(stack, &line, 0, is_first_line, true)?;
             acc.finalize(line.len());
             lines_tokens.push(acc.tokens);
-            stack = new_state.reset();
+            new_state.reset();
+            stack = new_state;
             is_first_line = false;
         }
 
