@@ -42,10 +42,6 @@ name = "highlight_benchmark"
 harness = false
 required-features = ["dump"]
 
-[[bench]]
-name = "regset_vs_regex"
-harness = false
-
 [[example]]
 name = "profile_jquery"
 required-features = ["dump"]

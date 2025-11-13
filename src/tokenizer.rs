@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
 use std::ops::Range;
@@ -319,19 +320,34 @@ impl AnchorActiveRule {
 
     /// This follows vscode-textmate and replaces it with something that is very unlikely
     /// to match
-    pub fn replace_anchors(&self, pat: &str) -> String {
-        let replacement = match self {
-            AnchorActiveRule::A(_) => vec![("\\G", "\u{FFFF}")],
-            AnchorActiveRule::G(_) => vec![("\\A", "\u{FFFF}")],
-            AnchorActiveRule::AG(_) => vec![],
-            AnchorActiveRule::None(_) => vec![("\\A", "\u{FFFF}"), ("\\G", "\u{FFFF}")],
-        };
-
-        let mut pat = pat.to_string();
-        for (a, b) in replacement {
-            pat = pat.replace(a, b);
+    pub fn replace_anchors<'a>(&self, pat: &'a str) -> Cow<'a, str> {
+        match self {
+            AnchorActiveRule::AG(_) => {
+                // No replacements needed
+                Cow::Borrowed(pat)
+            }
+            AnchorActiveRule::A(_) => {
+                if pat.contains("\\G") {
+                    Cow::Owned(pat.replace("\\G", "\u{FFFF}"))
+                } else {
+                    Cow::Borrowed(pat)
+                }
+            }
+            AnchorActiveRule::G(_) => {
+                if pat.contains("\\A") {
+                    Cow::Owned(pat.replace("\\A", "\u{FFFF}"))
+                } else {
+                    Cow::Borrowed(pat)
+                }
+            }
+            AnchorActiveRule::None(_) => {
+                if pat.contains("\\A") || pat.contains("\\G") {
+                    Cow::Owned(pat.replace("\\A", "\u{FFFF}").replace("\\G", "\u{FFFF}"))
+                } else {
+                    Cow::Borrowed(pat)
+                }
+            }
         }
-        pat
     }
 
     /// Return the other members of the enum for the given anchor.
@@ -582,12 +598,13 @@ impl<'g> Tokenizer<'g> {
                 );
             }
 
-            let re = if let Some(re) = self.end_regex_cache.get(&while_pat) {
+            let re = if let Some(re) = self.end_regex_cache.get(&*while_pat) {
                 re
             } else {
+                let owned_pat = while_pat.to_string();
                 self.end_regex_cache
-                    .insert(while_pat.clone(), Regex::new(while_pat.clone()));
-                self.end_regex_cache.get(&while_pat).unwrap()
+                    .insert(owned_pat.clone(), Regex::new(owned_pat.clone()));
+                self.end_regex_cache.get(&owned_pat).unwrap()
             };
 
             let search_text = line.get(*pos..).unwrap_or("");
@@ -708,7 +725,7 @@ impl<'g> Tokenizer<'g> {
                 .into_iter()
                 .map(|(rule, pat)| {
                     let replaced = rule_w_anchor.replace_anchors(&pat);
-                    (rule, replaced)
+                    (rule, replaced.into_owned())
                 })
                 .collect();
 
