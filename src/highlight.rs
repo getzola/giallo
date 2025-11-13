@@ -2,6 +2,7 @@ use crate::scope::Scope;
 use crate::themes::{CompiledTheme, Style, StyleModifier, ThemeSelector};
 use crate::tokenizer::Token;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::ops::Range;
 
 /// A token with associated styling information
@@ -39,6 +40,7 @@ struct HighlightRule {
 pub struct Highlighter {
     rules: Vec<HighlightRule>,
     default_style: Style,
+    cache: HashMap<Vec<Scope>, Style>,
 }
 
 impl Highlighter {
@@ -60,12 +62,29 @@ impl Highlighter {
         Highlighter {
             rules,
             default_style: theme.default_style.clone(),
+            cache: HashMap::new(),
         }
     }
 
     /// Match a scope stack against theme rules, building styles hierarchically
     /// like vscode-textmate does
-    pub fn match_scopes(&self, scopes: &[Scope]) -> Style {
+    pub fn match_scopes(&mut self, scopes: &[Scope]) -> Style {
+        // Check cache first
+        if let Some(&cached_style) = self.cache.get(scopes) {
+            return cached_style;
+        }
+
+        // Cache miss - compute style
+        let style = self.match_scopes_uncached(scopes);
+
+        // Cache the result
+        self.cache.insert(scopes.to_vec(), style);
+
+        style
+    }
+
+    /// Match a scope stack against theme rules without caching (internal implementation)
+    fn match_scopes_uncached(&self, scopes: &[Scope]) -> Style {
         let mut current_style = self.default_style.clone();
 
         // Build up scope path incrementally, simulating vscode-textmate's approach
@@ -89,7 +108,7 @@ impl Highlighter {
 
     /// Apply highlighting to tokenized lines, preserving line structure.
     pub fn highlight_tokens(
-        &self,
+        &mut self,
         content: &str,
         tokens: Vec<Vec<Token>>,
         options: MergingOptions,
@@ -108,20 +127,6 @@ impl Highlighter {
                 .into_iter()
                 .map(|x| (x.span, self.match_scopes(&x.scopes)))
                 .collect::<Vec<_>>();
-
-            // for token in line_tokens {
-            //     let style = self.match_scopes(&token.scopes);
-            //     line_result.push((token.span, style));
-
-            // // Try to merge with the last token in line_result
-            // if let Some(last_token) = line_result.last_mut() {
-            //     if last_token.style == style {
-            //         // Same style - extend the range to include this token
-            //         last_token.range.end = token.span.end;
-            //         continue; // Skip creating a new token
-            //     }
-            // }
-            // }
 
             // first merge all ws by prepending to the next non-ws token
             if options.merge_whitespaces {
@@ -261,14 +266,14 @@ mod tests {
     #[test]
     fn test_highlighter_new() {
         let theme = test_theme();
-        let highlighter = Highlighter::new(&theme);
+        let mut highlighter = Highlighter::new(&theme);
         assert_eq!(highlighter.rules.len(), 2);
         assert_eq!(highlighter.default_style, theme.default_style);
     }
 
     #[test]
     fn test_match_scopes() {
-        let highlighter = Highlighter::new(&test_theme());
+        let mut highlighter = Highlighter::new(&test_theme());
 
         // Test matching scopes
         let comment_style = highlighter.match_scopes(&[scope("comment")]);
@@ -290,14 +295,14 @@ mod tests {
             PathBuf::from("grammars-themes/packages/tm-themes/themes/vitesse-black.json");
         let theme =
             CompiledTheme::from_raw_theme(RawTheme::load_from_file(theme_path).unwrap()).unwrap();
-        let highlighter = Highlighter::new(&theme);
+        let mut highlighter = Highlighter::new(&theme);
         let keyword_style = highlighter.match_scopes(&[scope("markup.bold.asciidoc")]);
         assert_eq!(keyword_style.font_style, FontStyle::BOLD);
     }
 
     #[test]
     fn test_highlight_tokens() {
-        let highlighter = Highlighter::new(&test_theme());
+        let mut highlighter = Highlighter::new(&test_theme());
         let tokens = vec![
             vec![token(0, 2, "keyword"), token(3, 8, "unknown")],
             vec![token(0, 2, "comment")],
@@ -386,7 +391,7 @@ mod tests {
 
         // Compile using proper pipeline (automatically sorts by specificity)
         let inheritance_theme = CompiledTheme::from_raw_theme(raw_theme).unwrap();
-        let highlighter = Highlighter::new(&inheritance_theme);
+        let mut highlighter = Highlighter::new(&inheritance_theme);
 
         // Test: constant should get its own values
         let style = highlighter.match_scopes(&[scope("constant")]);
@@ -415,7 +420,7 @@ mod tests {
             PathBuf::from("grammars-themes/packages/tm-themes/themes/vitesse-black.json");
         let raw_theme = RawTheme::load_from_file(theme_path).unwrap();
         let compiled_theme = CompiledTheme::from_raw_theme(raw_theme).unwrap();
-        let highlighter = Highlighter::new(&compiled_theme);
+        let mut highlighter = Highlighter::new(&compiled_theme);
 
         // Test real tokenizer output from ASP.NET Core Razor with invalid HTML tag
         // Token 1: '<' - HTML tag begin punctuation

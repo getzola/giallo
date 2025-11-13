@@ -161,7 +161,7 @@ impl Registry {
         };
 
         // Create highlighter from theme and apply highlighting (with merging)
-        let highlighter = Highlighter::new(theme);
+        let mut highlighter = Highlighter::new(theme);
         let highlighted_tokens =
             highlighter.highlight_tokens(&normalized_content, tokens, merging_options);
 

@@ -184,7 +184,7 @@ where
         };
 
         // Some grammars have empty patterns but still decide to put [{}] in there, which messes
-        // up our logic later
+        // up our logic later so we filter empty patterns out
         // eg berry
         //     "comment-block": {
         //       "begin": "#-",
