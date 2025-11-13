@@ -1,16 +1,22 @@
-//! TextMate grammar injection selector parsing and matching.
-
 use std::fmt;
 use std::sync::LazyLock;
 
-use crate::scope::Scope;
-use onig::Regex;
 use serde::{Deserialize, Serialize};
 
+use crate::scope::Scope;
+
+/// Regex for tokenizing injection selectors (matches vscode-textmate exactly except for \* added)
+static TOKEN_REGEX: LazyLock<onig::Regex> = LazyLock::new(|| {
+    onig::Regex::new(r"([LR]:|[\w.:]+[\w\*.:\-]*|[,|\-()])").expect("Invalid selector regex")
+});
+
+// Only Left matters, Right is the same as no precedence. We keep both just for debug reasons
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum InjectionPrecedence {
-    Left,  // L: prefix
-    Right, // R: prefix
+    /// L: prefix
+    Left,
+    /// R: prefix
+    Right,
 }
 
 /// A compiled injection selector matcher with priority
@@ -21,12 +27,13 @@ pub struct CompiledInjectionMatcher {
 }
 
 impl CompiledInjectionMatcher {
-    /// Matches against a scope stack (outermost to innermost)
+    #[inline]
     pub fn matches(&self, scope_stack: &[Scope]) -> bool {
         self.matcher.matches(scope_stack)
     }
 
     /// Returns the precedence (Left/Right) for this injection matcher
+    #[inline]
     pub fn precedence(&self) -> InjectionPrecedence {
         self.priority.unwrap_or(InjectionPrecedence::Right)
     }
@@ -130,11 +137,7 @@ impl fmt::Display for SelectorMatcher {
     }
 }
 
-/// Regex for tokenizing injection selectors (matches vscode-textmate exactly except for \* added)
-static TOKEN_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"([LR]:|[\w.:]+[\w\*.:\-]*|[,|\-()])").expect("Invalid selector regex")
-});
-
+#[inline]
 fn is_identifier(s: &str) -> bool {
     if s.is_empty() || s == "-" {
         return false;
@@ -227,12 +230,13 @@ fn parse_conjunction(tokens: &[&str], position: &mut usize) -> Option<SelectorMa
 
     match matchers.len() {
         0 => None,
-        1 => Some(matchers.pop().unwrap()),
+        1 => matchers.into_iter().next(),
         _ => Some(SelectorMatcher::And(matchers)),
     }
 }
 
-/// Parse injection selector string into compiled matchers
+/// Parse injection selector string into compiled matchers.
+/// A selector can correspond to multiple matcher, each with their own optional priority
 pub fn parse_injection_selector(selector: &str) -> Vec<CompiledInjectionMatcher> {
     let selector = selector.trim();
     if selector.is_empty() {

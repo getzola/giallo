@@ -87,16 +87,8 @@ where
     }
 }
 
-/// Transparent wrapper around `HashMap<usize, RawRule>` for TextMate grammar captures.
-///
-/// This type allows seamless deserialization from JSON objects with string keys (like "1", "2", "3")
-/// while providing type-safe usize-indexed access in Rust code. According to the TextMate grammar
-/// specification, capture keys must be numeric strings corresponding to regex capture groups.
-///
-/// # Examples
-///
-/// JSON input:
-/// ```json
+/// Captures in TM grammars is represented as a dict {[number: str]: Rule}. Sometimes the value is
+/// array as well
 /// {
 ///   "captures": {
 ///     "0": {"name": "entire.match"},
@@ -104,10 +96,16 @@ where
 ///     "2": {"name": "second.group"}
 ///   }
 /// }
-/// ```
-///
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Captures(pub(crate) BTreeMap<usize, RawRule>);
+
+impl Deref for Captures {
+    type Target = BTreeMap<usize, RawRule>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 /// Helper enum for deserializing captures in both object and array formats
 #[derive(Deserialize)]
@@ -122,34 +120,33 @@ impl<'de> Deserialize<'de> for Captures {
     where
         D: serde::Deserializer<'de>,
     {
+        let mut out = BTreeMap::new();
         // Try to deserialize as our supported formats, but handle the case where it might be empty/null
         match CapturesFormat::deserialize(deserializer) {
             Ok(captures_format) => {
-                let mut usize_map = BTreeMap::new();
-
                 match captures_format {
                     CapturesFormat::Object(string_map) => {
                         for (key, value) in string_map {
                             // anything not a number is a bug, just skip them
                             // currently only for XML syntax https://github.com/microsoft/vscode/pull/269766
                             if let Ok(idx) = key.parse::<usize>() {
-                                usize_map.insert(idx, value);
+                                out.insert(idx, value);
                             }
                         }
                     }
                     CapturesFormat::Array(array) => {
                         for (idx, value) in array.into_iter().enumerate() {
-                            usize_map.insert(idx, value);
+                            out.insert(idx, value);
                         }
                     }
                 }
 
-                Ok(Captures(usize_map))
+                Ok(Captures(out))
             }
             Err(_) => {
                 // If deserialization fails, just return an empty Captures
                 // This handles cases like null, empty strings, or unexpected formats
-                Ok(Captures(BTreeMap::new()))
+                Ok(Captures(out))
             }
         }
     }
@@ -195,80 +192,18 @@ where
         //         }
         //       ]
         //     },
-        rule.patterns = rule
-            .patterns
-            .into_iter()
-            .filter(|x| x != &default)
-            .collect();
+        rule.patterns.retain(|x| x != &default);
         result.insert(key, rule);
     }
 
     Ok(result)
 }
 
-impl Deref for Captures {
-    type Target = BTreeMap<usize, RawRule>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 /// Unified rule structure that represents all possible TextMate grammar patterns
-///
-/// This structure replaces the previous separate Pattern enum variants with a single
-/// flexible struct that can represent match patterns, begin/end patterns, begin/while
-/// patterns, includes, and repository containers. The pattern type is determined by
-/// which fields are present.
-///
-/// # Examples
-///
-/// Match pattern:
-/// ```json
-/// {
-///   "match": "\\bfunction\\b",
-///   "name": "storage.type.function"
-/// }
-/// ```
-///
-/// Begin/end pattern:
-/// ```json
-/// {
-///   "begin": "\"",
-///   "end": "\"",
-///   "name": "string.quoted.double",
-///   "patterns": [
-///     {"match": "\\\\.", "name": "constant.character.escape"}
-///   ]
-/// }
-/// ```
-///
-/// Include pattern:
-/// ```json
-/// {
-///   "include": "#expressions"
-/// }
-/// ```
-///
-/// Container with nested repository:
-/// ```json
-/// {
-///   "patterns": [
-///     {"include": "#statements"}
-///   ],
-///   "repository": {
-///     "statements": {
-///       "patterns": [
-///         {"match": "\\bif\\b", "name": "keyword.control"}
-///       ]
-///     }
-///   }
-/// }
-/// ```
+/// This will be split when compiling the grammar
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRule {
-    // Include reference - for including other patterns by reference
     #[serde(deserialize_with = "deserialize_reference")]
     pub include: Option<Reference>,
 
@@ -297,32 +232,7 @@ pub struct RawRule {
     pub apply_end_pattern_last: bool,
 }
 
-/// Top-level structure representing a complete TextMate grammar
-///
-/// # Examples
-/// ```json
-/// {
-///   "name": "JavaScript",
-///   "displayName": "JavaScript (ES6)",
-///   "scopeName": "source.js",
-///   "fileTypes": ["js", "jsx", "mjs"],
-///   "firstLineMatch": "^#!.*\\bnode\\b",
-///   "foldingStartMarker": "\\{\\s*$",
-///   "foldingStopMarker": "^\\s*\\}",
-///   "patterns": [
-///     { "include": "#statements" },
-///     { "include": "#expressions" }
-///   ],
-///   "repository": {
-///     "statements": {
-///       "patterns": [
-///         { "include": "#keywords" },
-///         { "include": "#functions" }
-///       ]
-///     }
-///   }
-/// }
-/// ```
+/// Top-level structure representing a complete TextMate JSON grammar
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all(deserialize = "camelCase"))]
 pub struct RawGrammar {
@@ -393,7 +303,7 @@ mod tests {
     }
 
     #[test]
-    fn test_reference_parsing_from_real_examples() {
+    fn can_parse_references() {
         let test_cases = vec![
             // Local references - most common pattern
             ("#value", Reference::Local("value".to_string())),
