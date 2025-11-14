@@ -20,6 +20,16 @@ fn has_captures(pat: Option<&str>) -> bool {
     }
 }
 
+fn has_backreferences(pattern: &str) -> bool {
+    for i in 1..=9 {
+        let backref = format!("\\{}", i);
+        if pattern.contains(&backref) {
+            return true;
+        }
+    }
+    false
+}
+
 pub fn replace_captures(
     original_name: &str,
     text: &str,
@@ -708,8 +718,8 @@ impl CompiledGrammar {
 
     fn compile_regex(&mut self, pattern: String) -> (RegexId, bool) {
         let regex_id = RegexId(self.regexes.len() as u16);
+        let has_backrefs = has_backreferences(&pattern);
         let re = Regex::new(pattern);
-        let has_backrefs = re.has_backreferences();
         self.regexes.push(re);
 
         (regex_id, has_backrefs)
@@ -793,7 +803,8 @@ impl CompiledGrammar {
                 #[cfg(feature = "debug")]
                 log::warn!(
                     "Local reference '{:?}' not found in grammar {}",
-                    rep.reference, self.name
+                    rep.reference,
+                    self.name
                 );
                 rule.replace_pattern(rep.index, NO_OP_GLOBAL_RULE_REF);
             }
@@ -840,7 +851,6 @@ impl CompiledGrammar {
                         }
                     }
                     if !found {
-
                         #[cfg(feature = "debug")]
                         log::warn!(
                             "External grammar '{grammar_name}' found in registry but repository {repo_name} not found in it."

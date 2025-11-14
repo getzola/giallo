@@ -22,9 +22,8 @@ impl PatternSetMatch {
     }
 }
 
-/// A compiled pattern set for efficient batch regex matching using onig RegSet
-///
-/// RegSet compilation is lazy - it's only created when first needed.
+/// A lazily compiled pattern set for efficient batch regex matching using onig RegSet
+/// Sadly oniguruma wants to own the regex so it does recompile them everytime...
 pub struct PatternSet {
     rule_refs: Vec<GlobalRuleRef>,
     patterns: Vec<String>,
@@ -50,49 +49,24 @@ impl PatternSet {
         }
     }
 
-    pub fn push_back(&mut self, rule_ref: GlobalRuleRef, pat: &str) {
-        self.rule_refs.push(rule_ref);
-        self.patterns.push(pat.to_string());
-        self.clear_regset();
-    }
-
-    pub fn push_front(&mut self, rule_ref: GlobalRuleRef, pat: &str) {
-        self.rule_refs.insert(0, rule_ref);
-        self.patterns.insert(0, pat.to_string());
-        self.clear_regset();
-    }
-
-    /// Updates the pattern at the front.
-    /// Returns true if the pattern was different and the regset invalidated
-    pub fn update_pat_front(&mut self, pat: &str) -> bool {
+    pub fn update(&mut self, index: usize, pat: &str) -> bool {
         debug_assert!(!self.patterns.is_empty());
-        if self.patterns[0] == pat {
+        if self.patterns[index] == pat {
             false
         } else {
-            self.patterns[0] = pat.to_string();
-            self.clear_regset();
+            self.patterns[index] = pat.to_owned();
+            if let Some(regset) = self.regset.borrow_mut().as_mut() {
+                regset.replace_pattern(index, pat).expect("no errors");
+            }
             true
         }
     }
-
-    /// Updates the pattern at the back.
-    /// Returns true if the pattern was different and the regset invalidated
-    pub fn update_pat_back(&mut self, pat: &str) -> bool {
-        debug_assert!(!self.patterns.is_empty());
-        if let Some(last) = self.patterns.last_mut() {
-            if last.as_str() == pat {
-                return false;
-            }
-            *last = pat.to_string();
-            self.clear_regset();
-            return true;
-        }
-
-        unreachable!()
+    pub fn update_front(&mut self, pat: &str) -> bool {
+        self.update(0, pat)
     }
 
-    pub fn clear_regset(&mut self) {
-        self.regset.borrow_mut().take();
+    pub fn update_last(&mut self, pat: &str) -> bool {
+        self.update(self.patterns.len() - 1, pat)
     }
 
     pub fn find_at(

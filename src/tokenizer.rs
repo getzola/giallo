@@ -6,9 +6,12 @@ use std::ops::Range;
 use crate::Registry;
 use crate::grammars::{
     END_RULE_ID, GlobalRuleRef, GrammarId, InjectionPrecedence, PatternSet, PatternSetMatch,
-    ROOT_RULE_ID, Regex, RegexId, Rule, RuleId,
+    ROOT_RULE_ID, Regex, RegexId, Rule, RuleId, resolve_backreferences,
 };
 use crate::scope::Scope;
+
+#[cfg(feature = "debug")]
+use log;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
@@ -134,20 +137,6 @@ impl StateStack {
     fn top_mut(&mut self) -> &mut StackFrame {
         self.frames.last_mut().expect("stack never empty")
     }
-
-    /// Get stack depth
-    fn depth(&self) -> usize {
-        self.frames.len()
-    }
-
-    /// Peek at parent frame without popping (for migration compatibility)
-    fn peek_parent(&self) -> Option<&StackFrame> {
-        if self.frames.len() > 1 {
-            self.frames.get(self.frames.len() - 2)
-        } else {
-            None
-        }
-    }
 }
 
 impl fmt::Debug for StateStack {
@@ -235,17 +224,16 @@ impl TokenAccumulator {
         }
 
         // Create and store the token with scope IDs directly
-        if cfg!(feature = "debug") {
-            eprintln!(
-                "[produce]: [{}..{end_pos}]\n{}",
-                self.last_end_pos,
-                scopes
-                    .iter()
-                    .map(|s| format!(" * {s}"))
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            )
-        }
+        #[cfg(feature = "debug")]
+        log::trace!(
+            "[produce]: [{}..{end_pos}]\n{}",
+            self.last_end_pos,
+            scopes
+                .iter()
+                .map(|s| format!(" * {s}"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
         self.tokens.push(Token {
             span: self.last_end_pos..end_pos,
             scopes: scopes.to_vec(),
@@ -278,53 +266,36 @@ impl TokenAccumulator {
 /// We use that as a way to convey both the rule and which anchors should be active
 /// in regexes. We don't want to enable \A or \G everywhere, it's context dependent.
 #[derive(Copy, Clone, PartialEq, Hash, Eq)]
-enum AnchorActiveRule {
+enum AnchorActive {
     // Only \A is active
-    A(GlobalRuleRef),
+    A,
     // Only \G is active
-    G(GlobalRuleRef),
+    G,
     // Both \A and \G are active
-    AG(GlobalRuleRef),
+    AG,
     // Neither \A nor \G are active
-    None(GlobalRuleRef),
+    None,
 }
 
-impl AnchorActiveRule {
-    pub fn new(
-        rule_ref: GlobalRuleRef,
-        is_first_line: bool,
-        anchor_position: Option<usize>,
-        current_pos: usize,
-    ) -> AnchorActiveRule {
+impl AnchorActive {
+    pub fn new(is_first_line: bool, anchor_position: Option<usize>, current_pos: usize) -> Self {
         let g_active = if let Some(a_pos) = anchor_position {
             let result = a_pos == current_pos;
-            if cfg!(feature = "debug") {
-                eprintln!(
-                    "[AnchorActiveRule::new] CRITICAL: pos={}, anchor_position={:?}, g_active={}, is_first_line={}",
-                    current_pos, anchor_position, result, is_first_line
-                );
-            }
             result
         } else {
-            if cfg!(feature = "debug") {
-                eprintln!(
-                    "[AnchorActiveRule::new] CRITICAL: pos={}, anchor_position=None, g_active=false, is_first_line={}",
-                    current_pos, is_first_line
-                );
-            }
             false
         };
 
         if is_first_line {
             if g_active {
-                AnchorActiveRule::AG(rule_ref)
+                AnchorActive::AG
             } else {
-                AnchorActiveRule::A(rule_ref)
+                AnchorActive::A
             }
         } else if g_active {
-            AnchorActiveRule::G(rule_ref)
+            AnchorActive::G
         } else {
-            AnchorActiveRule::None(rule_ref)
+            AnchorActive::None
         }
     }
 
@@ -332,25 +303,25 @@ impl AnchorActiveRule {
     /// to match
     pub fn replace_anchors<'a>(&self, pat: &'a str) -> Cow<'a, str> {
         match self {
-            AnchorActiveRule::AG(_) => {
+            AnchorActive::AG => {
                 // No replacements needed
                 Cow::Borrowed(pat)
             }
-            AnchorActiveRule::A(_) => {
+            AnchorActive::A => {
                 if pat.contains("\\G") {
                     Cow::Owned(pat.replace("\\G", "\u{FFFF}"))
                 } else {
                     Cow::Borrowed(pat)
                 }
             }
-            AnchorActiveRule::G(_) => {
+            AnchorActive::G => {
                 if pat.contains("\\A") {
                     Cow::Owned(pat.replace("\\A", "\u{FFFF}"))
                 } else {
                     Cow::Borrowed(pat)
                 }
             }
-            AnchorActiveRule::None(_) => {
+            AnchorActive::None => {
                 if pat.contains("\\A") || pat.contains("\\G") {
                     Cow::Owned(pat.replace("\\A", "\u{FFFF}").replace("\\G", "\u{FFFF}"))
                 } else {
@@ -359,42 +330,15 @@ impl AnchorActiveRule {
             }
         }
     }
-
-    /// Return the other members of the enum for the given anchor.
-    /// We need it later to invalidate caches
-    pub fn others(&self) -> Vec<AnchorActiveRule> {
-        match self {
-            AnchorActiveRule::A(g) => vec![
-                AnchorActiveRule::G(*g),
-                AnchorActiveRule::AG(*g),
-                AnchorActiveRule::None(*g),
-            ],
-            AnchorActiveRule::G(g) => vec![
-                AnchorActiveRule::A(*g),
-                AnchorActiveRule::AG(*g),
-                AnchorActiveRule::None(*g),
-            ],
-            AnchorActiveRule::AG(g) => vec![
-                AnchorActiveRule::A(*g),
-                AnchorActiveRule::G(*g),
-                AnchorActiveRule::None(*g),
-            ],
-            AnchorActiveRule::None(g) => vec![
-                AnchorActiveRule::A(*g),
-                AnchorActiveRule::G(*g),
-                AnchorActiveRule::AG(*g),
-            ],
-        }
-    }
 }
 
-impl fmt::Debug for AnchorActiveRule {
+impl fmt::Debug for AnchorActive {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
-            AnchorActiveRule::A(_) => "allow_A=true, allow_G=false",
-            AnchorActiveRule::G(_) => "allow_A=false, allow_G=true",
-            AnchorActiveRule::AG(_) => "allow_A=true, allow_G=true",
-            AnchorActiveRule::None(_) => "allow_A=false, allow_G=false",
+            AnchorActive::A => "allow_A=true, allow_G=false",
+            AnchorActive::G => "allow_A=false, allow_G=true",
+            AnchorActive::AG => "allow_A=true, allow_G=true",
+            AnchorActive::None => "allow_A=false, allow_G=false",
         };
         f.write_str(s)
     }
@@ -406,8 +350,8 @@ pub struct Tokenizer<'g> {
     base_grammar_id: GrammarId,
     /// All the grammars in the registry
     registry: &'g Registry,
-    /// Runtime pattern cache by rule ID + anchor state
-    pattern_cache: HashMap<AnchorActiveRule, PatternSet>,
+    /// Runtime pattern cache by rule ID
+    pattern_cache: HashMap<(GlobalRuleRef, AnchorActive), PatternSet>,
     /// Used only for end/while patterns
     /// Some end patterns will change depending on backrefs so we might have multiple
     /// versions of the same regex in there
@@ -450,18 +394,11 @@ impl<'g> Tokenizer<'g> {
             let mut s = stack.clone();
             s.top_mut().rule_ref = rule;
             s.top_mut().end_pattern = None;
-            if cfg!(feature = "debug") {
-                println!("Building pattern set for injection");
-            }
 
             let pattern_set =
                 self.get_or_create_pattern_set(&s, pos, is_first_line, anchor_position);
 
             if let Some(found) = pattern_set.find_at(line, pos)? {
-                if cfg!(feature = "debug") {
-                    println!("found a match in injection: {:?}", found);
-                }
-
                 if let Some((_, current_best_match)) = &best_match {
                     if found.start >= current_best_match.start {
                         continue;
@@ -556,35 +493,23 @@ impl<'g> Tokenizer<'g> {
             }
         }
 
-        if cfg!(feature = "debug") {
-            if while_stacks.is_empty() {
-                eprintln!(
-                    "[check_while_conditions] no while conditions active:\n  {:?}",
-                    stack
-                );
-            } else {
-                eprintln!(
-                    "[check_while_conditions] going to check:\n  {:?}",
-                    while_stacks
-                );
-            }
+        #[cfg(feature = "debug")]
+        if while_stacks.is_empty() {
+            log::debug!(
+                "[check_while_conditions] no while conditions active:\n  {:?}",
+                stack
+            );
+        } else {
+            log::debug!(
+                "[check_while_conditions] going to check:\n  {:?}",
+                while_stacks
+            );
         }
 
-        // We don't care about the rule here, we just want to compute which anchors should be active
-        // TODO: it should probably a standalone fn then
-        let active_anchor = AnchorActiveRule::new(
-            GlobalRuleRef {
-                grammar: GrammarId(0),
-                rule: RuleId(0),
-            },
-            is_first_line,
-            anchor_position,
-            *pos,
-        );
+        let active_anchor = AnchorActive::new(is_first_line, anchor_position, *pos);
 
-        if cfg!(feature = "debug") {
-            eprintln!("[check_while_conditions] Anchors: {active_anchor:?}");
-        }
+        #[cfg(feature = "debug")]
+        log::trace!("[check_while_conditions] Anchors: {active_anchor:?}");
 
         for mut while_stack in while_stacks.into_iter().rev() {
             let initial_pat = if let Some(end_pat) = &while_stack.top().end_pattern {
@@ -593,24 +518,25 @@ impl<'g> Tokenizer<'g> {
                 [while_stack.top().rule_ref.grammar]
                 .rules[while_stack.top().rule_ref.rule]
             {
-                let re = &self.registry.grammars[while_stack.top().rule_ref.grammar].regexes[b.while_];
+                let re =
+                    &self.registry.grammars[while_stack.top().rule_ref.grammar].regexes[b.while_];
                 re.pattern()
             } else {
                 unreachable!()
             };
-            if cfg!(feature = "debug") {
-                eprintln!(
-                    "[check_while_conditions] Testing while pattern: original={:?}, active_anchor={:?}, pos={}",
-                    initial_pat, active_anchor, *pos
-                );
-            }
+            #[cfg(feature = "debug")]
+            log::debug!(
+                "[check_while_conditions] Testing while pattern: original={:?}, active_anchor={:?}, pos={}",
+                initial_pat,
+                active_anchor,
+                *pos
+            );
             let while_pat = active_anchor.replace_anchors(initial_pat);
-            if cfg!(feature = "debug") {
-                eprintln!(
-                    "[check_while_conditions] After anchor replacement: {:?}",
-                    while_pat
-                );
-            }
+            #[cfg(feature = "debug")]
+            log::trace!(
+                "[check_while_conditions] After anchor replacement: {:?}",
+                while_pat
+            );
 
             let re = if let Some(re) = self.end_regex_cache.get(&*while_pat) {
                 re
@@ -667,16 +593,15 @@ impl<'g> Tokenizer<'g> {
                     is_first_line = false;
                 }
             } else {
-                if cfg!(feature = "debug") {
-                    eprintln!(
-                        "[check_while_conditions] No while match found, popping: {:?}",
-                        self.registry.grammars[while_stack.top().rule_ref.grammar]
-                            .rules
-                            .get(while_stack.top().rule_ref.rule.as_index())
-                            .unwrap()
-                            .original_name()
-                    );
-                }
+                #[cfg(feature = "debug")]
+                log::debug!(
+                    "[check_while_conditions] No while match found, popping: {:?}",
+                    self.registry.grammars[while_stack.top().rule_ref.grammar]
+                        .rules
+                        .get(while_stack.top().rule_ref.rule.as_index())
+                        .unwrap()
+                        .original_name()
+                );
 
                 while_stack.pop();
                 stack = while_stack;
@@ -695,22 +620,22 @@ impl<'g> Tokenizer<'g> {
         anchor_position: Option<usize>,
     ) -> &PatternSet {
         let rule_ref = stack.top().rule_ref;
-
         let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
-        let rule_w_anchor = AnchorActiveRule::new(rule_ref, is_first_line, anchor_position, pos);
+        let anchor_context = AnchorActive::new(is_first_line, anchor_position, pos);
 
-        if cfg!(feature = "debug") {
-            eprintln!(
-                "[get_or_create_pattern_set] Rule: {rule_ref:?} (grammar: {}) Anchors: {rule_w_anchor:?}",
+        #[cfg(feature = "debug")]
+        {
+            log::debug!(
+                "[get_or_create_pattern_set] Rule: {rule_ref:?} (grammar: {})",
                 &self.registry.grammars[rule_ref.grammar].name
             );
-            eprintln!(
+            log::debug!(
                 "[get_or_create_pattern_set] Scanning for: pos={pos}, anchor_position={anchor_position:?}"
             );
         }
-
+        // Get end pattern from stack or rule definition when it has backref filled
         let mut end_pattern = stack.top().end_pattern.as_deref();
-
+        // otherwise we get it from the rule directly
         if end_pattern.is_none() {
             match rule {
                 Rule::BeginEnd(b) => {
@@ -725,88 +650,56 @@ impl<'g> Tokenizer<'g> {
             }
         }
 
-        if !self.pattern_cache.contains_key(&rule_w_anchor) {
-            if cfg!(feature = "debug") {
-                eprintln!(
-                    "[get_or_create_pattern_set] Creating new ps with stack: {stack:#?} for rule {rule_ref:?}"
-                );
+        let key = (rule_ref, anchor_context);
+        if let Some(p) = self.pattern_cache.get_mut(&key) {
+            if let Rule::BeginEnd(b) = rule
+                && let Some(end_pat) = end_pattern
+            {
+                let pat = anchor_context.replace_anchors(end_pat);
+                let updated = if b.apply_end_pattern_last {
+                    p.update_last(pat.as_ref())
+                } else {
+                    p.update_front(pat.as_ref())
+                };
             }
-
+        } else {
+            // Collect base patterns from grammar
             let raw_patterns = self
                 .registry
                 .collect_patterns(self.base_grammar_id, rule_ref);
 
-            let patterns: Vec<_> = raw_patterns
+            // Apply anchor replacements to all patterns
+            let mut patterns: Vec<_> = raw_patterns
                 .into_iter()
-                .map(|(rule, pat)| {
-                    let replaced = rule_w_anchor.replace_anchors(&pat);
-                    (rule, replaced.into_owned())
-                })
+                .map(|(rule, pat)| (rule, anchor_context.replace_anchors(&pat).into_owned()))
                 .collect();
 
-            let mut p = PatternSet::new(patterns);
-
-            // end pattern is pushed separately since some rules can apply it at
-            // the end of the pattern set instead of beginning
+            // Insert end pattern at correct position if this is a BeginEnd rule
             if let Some(pat) = end_pattern
-                && let Rule::BeginEnd(_) = rule
+                && let Rule::BeginEnd(b) = rule
             {
-                if cfg!(feature = "debug") {
-                    eprintln!(
-                        "[get_or_create_pattern_set] Pushing END pattern: {:?}, apply_last={}",
-                        pat,
-                        rule.apply_end_pattern_last()
-                    );
-                }
-                if rule.apply_end_pattern_last() {
-                    p.push_back(
-                        GlobalRuleRef {
-                            grammar: rule_ref.grammar,
-                            rule: END_RULE_ID,
-                        },
-                        pat,
-                    )
+                let end_pat_with_anchors = anchor_context.replace_anchors(pat);
+                let end_rule_ref = GlobalRuleRef {
+                    grammar: rule_ref.grammar,
+                    rule: END_RULE_ID,
+                };
+
+                if b.apply_end_pattern_last {
+                    patterns.push((end_rule_ref, end_pat_with_anchors.into_owned()));
                 } else {
-                    p.push_front(
-                        GlobalRuleRef {
-                            grammar: rule_ref.grammar,
-                            rule: END_RULE_ID,
-                        },
-                        pat,
-                    )
+                    patterns.insert(0, (end_rule_ref, end_pat_with_anchors.into_owned()));
                 }
             }
 
-            self.pattern_cache.insert(rule_w_anchor, p);
+            let p = PatternSet::new(patterns);
+            self.pattern_cache.insert(key, p);
         }
 
-        // And then once we have the pattern set created/retrieved, we update the end pattern
-        // This might invalidate the internal regset if the pattern is different from what
-        // was there before
-        let mut updated = false;
-        if let Rule::BeginEnd(b) = rule
-            && let Some(p) = self.pattern_cache.get_mut(&rule_w_anchor)
-            && let Some(end_pat) = end_pattern
+        let p = &self.pattern_cache[&key];
+
+        #[cfg(feature = "debug")]
         {
-            let pat = rule_w_anchor.replace_anchors(end_pat);
-            if b.apply_end_pattern_last {
-                updated = p.update_pat_back(&pat);
-            } else {
-                updated = p.update_pat_front(&pat);
-            }
-        }
-
-        // If we updated an end pattern we need to invalidate all other cached versions of this rule
-        if updated {
-            for r in rule_w_anchor.others() {
-                self.pattern_cache.remove(&r);
-            }
-        }
-        let p = &self.pattern_cache[&rule_w_anchor];
-
-        if cfg!(feature = "debug") {
-            let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
-            eprintln!(
+            log::trace!(
                 "[get_or_create_pattern_set] Active patterns for rule {:?}.\n{p:?}",
                 rule.original_name().unwrap_or("No name")
             );
@@ -877,7 +770,8 @@ impl<'g> Tokenizer<'g> {
                     .extend(rule.get_name_scopes(line, captures));
 
                 // Start with name + content scopes for content scopes
-                retokenization_stack.top_mut().content_scopes = retokenization_stack.top().name_scopes.clone();
+                retokenization_stack.top_mut().content_scopes =
+                    retokenization_stack.top().name_scopes.clone();
 
                 // Apply content scopes
                 retokenization_stack
@@ -885,12 +779,13 @@ impl<'g> Tokenizer<'g> {
                     .content_scopes
                     .extend(rule.get_content_scopes(line, captures));
                 let substring = &line[0..cap_end];
-                if cfg!(feature = "debug") {
-                    eprintln!(
+                #[cfg(feature = "debug")]
+                {
+                    log::debug!(
                         "[resolve_captures] Retokenizing capture at [0..{cap_end}]: {:?}",
                         &line[0..cap_end]
                     );
-                    eprintln!(
+                    log::debug!(
                         "[resolve_captures] Using substring [0..{cap_end}]: {:?}",
                         substring
                     );
@@ -961,55 +856,58 @@ impl<'g> Tokenizer<'g> {
 
         // 2. We check for any matching patterns
         loop {
-            if cfg!(feature = "debug") {
-                eprintln!();
-                eprintln!("[tokenize_line] Scanning {pos}: |{:?}|", &line[pos..]);
+            #[cfg(feature = "debug")]
+            {
+                log::trace!("");
+                log::trace!("[tokenize_line] Scanning {pos}: |{:?}|", &line[pos..]);
             }
 
             if let Some(m) =
                 self.match_rule_or_injections(&stack, line, pos, is_first_line, anchor_position)?
             {
-                if cfg!(feature = "debug") {
-                    eprintln!(
-                        "[tokenize_line] Matched rule: {:?} from pos {} to {} => {:?}",
-                        m.rule_ref.rule,
-                        m.start,
-                        m.end,
-                        &line[m.start..m.end]
-                    );
-                }
+                #[cfg(feature = "debug")]
+                log::debug!(
+                    "[tokenize_line] Matched rule: {:?} from pos {} to {} => {:?}",
+                    m.rule_ref.rule,
+                    m.start,
+                    m.end,
+                    &line[m.start..m.end]
+                );
 
                 // Track whether this match has advanced the position
                 let has_advanced = m.end > pos;
 
-                if cfg!(feature = "debug") && m.rule_ref.rule == END_RULE_ID {
-                    eprintln!(
+                #[cfg(feature = "debug")]
+                if m.rule_ref.rule == END_RULE_ID {
+                    log::debug!(
                         "[tokenize_line] END RULE MATCHED at pos={}, m.start={}, m.end={}",
-                        pos, m.start, m.end
+                        pos,
+                        m.start,
+                        m.end
                     );
                 }
                 // We matched the `end` for this rule, can only happen for BeginEnd rules
                 if m.rule_ref.rule == END_RULE_ID
-                    && let Rule::BeginEnd(b) =
-                        &self.registry.grammars[stack.top().rule_ref.grammar].rules[stack.top().rule_ref.rule]
+                    && let Rule::BeginEnd(b) = &self.registry.grammars[stack.top().rule_ref.grammar]
+                        .rules[stack.top().rule_ref.rule]
                 {
-                    if cfg!(feature = "debug") {
-                        eprintln!(
+                    #[cfg(feature = "debug")]
+                    {
+                        log::debug!(
                             "[tokenize_line] End rule matched, popping '{}'",
                             b.name.clone().unwrap_or_default()
                         );
-                        eprintln!(
+                        log::debug!(
                             "[BEFORE POP] Current anchor_position: {:?}",
                             anchor_position
                         );
-                        eprintln!("[BEFORE POP] Stack: {:?}", stack);
+                        log::debug!("[BEFORE POP] Stack: {:?}", stack);
                     }
                     accumulator.produce(m.start, &stack.top().content_scopes);
                     let popped_state = stack.clone(); // Save for infinite loop protection
                     let popped_anchor_position = stack.top().anchor_position;
-                    if cfg!(feature = "debug") {
-                        eprintln!("[POPPED RULE] Stack: {:?}", stack);
-                    }
+                    #[cfg(feature = "debug")]
+                    log::trace!("[POPPED RULE] Stack: {:?}", stack);
                     stack.set_content_scopes(stack.top().name_scopes.clone());
                     self.resolve_captures(
                         &stack,
@@ -1024,12 +922,13 @@ impl<'g> Tokenizer<'g> {
                     // Pop to parent state and update anchor position
                     stack.pop();
                     anchor_position = popped_anchor_position;
-                    if cfg!(feature = "debug") {
-                        eprintln!(
+                    #[cfg(feature = "debug")]
+                    {
+                        log::debug!(
                             "[AFTER POP] Restored anchor_position: {:?}",
                             anchor_position
                         );
-                        eprintln!("[AFTER POP] New stack: {:?}", stack);
+                        log::debug!("[AFTER POP] New stack: {:?}", stack);
                     }
 
                     // Grammar pushed & popped a rule without advancing - infinite loop protection
@@ -1058,10 +957,11 @@ impl<'g> Tokenizer<'g> {
                                                  begin_captures: &[Option<GlobalRuleRef>]|
                      -> Result<(), TokenizeError> {
                         let re = &self.registry.grammars[m.rule_ref.grammar].regexes[re_id];
-                        if cfg!(feature = "debug") {
+                        #[cfg(feature = "debug")]
+                        {
                             let rule =
                                 &self.registry.grammars[m.rule_ref.grammar].rules[m.rule_ref.rule];
-                            eprintln!(
+                            log::debug!(
                                 "[tokenize_line] Pushing begin rule={:?}",
                                 rule.original_name().unwrap_or("No name")
                             );
@@ -1082,7 +982,8 @@ impl<'g> Tokenizer<'g> {
                         stack.set_content_scopes(content_scopes);
 
                         if end_has_backrefs {
-                            let resolved_end = re.resolve_backreferences(line, &m.capture_pos);
+                            let resolved_end =
+                                resolve_backreferences(re.pattern(), line, &m.capture_pos);
                             stack.set_end_pattern(resolved_end);
                         }
 
@@ -1097,14 +998,13 @@ impl<'g> Tokenizer<'g> {
                             handle_begin_rule(r.while_, r.while_has_backrefs, &r.begin_captures)?;
                         }
                         Rule::Match(r) => {
-                            if cfg!(feature = "debug") {
-                                eprintln!(
-                                    "[handle_match] Matched '{}'",
-                                    self.registry.grammars[m.rule_ref.grammar]
-                                        .get_original_rule_name(m.rule_ref.rule)
-                                        .unwrap_or_default()
-                                );
-                            }
+                            #[cfg(feature = "debug")]
+                            log::debug!(
+                                "[handle_match] Matched '{}'",
+                                self.registry.grammars[m.rule_ref.grammar]
+                                    .get_original_rule_name(m.rule_ref.rule)
+                                    .unwrap_or_default()
+                            );
                             self.resolve_captures(
                                 &stack,
                                 line,
@@ -1120,9 +1020,8 @@ impl<'g> Tokenizer<'g> {
                             // Protection: grammar is not advancing, nor is it pushing/popping
                             // happens for some grammars eg astro
                             if !has_advanced {
-                                if cfg!(feature = "debug") {
-                                    eprintln!("Match rule didn't advance, safe_pop and stop");
-                                }
+                                #[cfg(feature = "debug")]
+                                log::warn!("Match rule didn't advance, safe_pop and stop");
                                 stack.safe_pop();
                                 accumulator.produce(line.len(), &stack.top().content_scopes);
                                 break;
@@ -1138,9 +1037,8 @@ impl<'g> Tokenizer<'g> {
                     is_first_line = false;
                 }
             } else {
-                if cfg!(feature = "debug") {
-                    eprintln!("[tokenize_line] no more matches");
-                }
+                #[cfg(feature = "debug")]
+                log::debug!("[tokenize_line] no more matches");
                 // No more matches - emit final token and stop
                 accumulator.produce(line.len() - 1, &stack.top().content_scopes);
                 break;
@@ -1166,7 +1064,8 @@ impl<'g> Tokenizer<'g> {
         for line in text.split('\n') {
             // Always add a new line, some regex expect it
             let line = format!("{line}\n");
-            let (mut acc, mut new_state) = self.tokenize_line(stack, &line, 0, is_first_line, true)?;
+            let (mut acc, mut new_state) =
+                self.tokenize_line(stack, &line, 0, is_first_line, true)?;
             acc.finalize(line.len());
             lines_tokens.push(acc.tokens);
             new_state.reset();
