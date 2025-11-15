@@ -79,7 +79,9 @@
       "Bash(VSCODE_TEXTMATE_DEBUG=1 node test-yaml-anchor.js:*)",
       "Bash(debug-output.txt)",
       "Bash(/tmp/yaml_output.txt)",
-      "Bash(/tmp/yaml_complete_output.txt)"
+      "Bash(/tmp/yaml_complete_output.txt)",
+      "Bash(gunzip:*)",
+      "WebFetch(domain:profiler.firefox.com)"
     ],
     "deny": [],
     "ask": []

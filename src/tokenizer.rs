@@ -95,6 +95,26 @@ impl StateStack {
         });
     }
 
+    /// Push with pre-computed scopes to avoid extra cloning
+    fn push_with_scopes(
+        &mut self,
+        rule_ref: GlobalRuleRef,
+        anchor_position: Option<usize>,
+        begin_rule_has_captured_eol: bool,
+        enter_position: Option<usize>,
+        scopes: Vec<Scope>,
+    ) {
+        self.frames.push(StackFrame {
+            rule_ref,
+            name_scopes: scopes.clone(),
+            content_scopes: scopes,
+            end_pattern: None,
+            begin_rule_has_captured_eol,
+            anchor_position,
+            enter_position,
+        });
+    }
+
     fn set_content_scopes(&mut self, content_scopes: Vec<Scope>) {
         self.top_mut().content_scopes = content_scopes;
     }
@@ -946,10 +966,8 @@ impl<'g> Tokenizer<'g> {
                     accumulator.produce(m.start, &stack.top().content_scopes);
                     let mut new_scopes = stack.top().content_scopes.clone();
                     new_scopes.extend(rule.get_name_scopes(line, &m.capture_pos));
-                    // TODO: improve that push?
-                    stack.push(m.rule_ref, anchor_position, m.end == line.len(), Some(pos));
-                    stack.top_mut().name_scopes = new_scopes.clone();
-                    stack.top_mut().content_scopes = new_scopes;
+                    // Use push_with_scopes to avoid double-cloning
+                    stack.push_with_scopes(m.rule_ref, anchor_position, m.end == line.len(), Some(pos), new_scopes);
                     stack.top_mut().end_pattern = None;
 
                     let mut handle_begin_rule = |re_id: RegexId,
