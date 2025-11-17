@@ -2,7 +2,7 @@
 name = "giallo"
 version = "0.0.1"
 edition = "2024"
-license = "MIT"
+license = "EUPL-1.2"
 description = "A HTML code highlighter"
 
 [dependencies]
