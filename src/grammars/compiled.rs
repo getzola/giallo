@@ -567,8 +567,14 @@ impl CompiledGrammar {
                     patterns,
                     repository_stack,
                 })
-            } else if let Some(end_pat) = raw_rule.end {
-                let (end, end_has_backrefs) = self.compile_regex(end_pat);
+            } else {
+                // For rules with begin but no explicit end or empty end, use "\u{FFFF}" as default end pattern
+                // This matches vscode-textmate behavior which uses '\uFFFF' for missing/empty end patterns
+                let end_pat = match raw_rule.end.as_deref() {
+                    None | Some("") => "\u{FFFF}",
+                    Some(pattern) => pattern,
+                };
+                let (end, end_has_backrefs) = self.compile_regex(end_pat.to_string());
                 let patterns =
                     self.compile_patterns(local_id, raw_rule.patterns, repository_stack)?;
                 let name_is_capturing = has_captures(name.as_deref());
@@ -613,23 +619,6 @@ impl CompiledGrammar {
                     )?,
                     patterns,
                     apply_end_pattern_last,
-                    repository_stack,
-                })
-            } else {
-                // a rule that has begin without while/end is just a match, probably a typo
-                let name_is_capturing = has_captures(name.as_deref());
-                let scopes = if name_is_capturing || name.is_none() {
-                    Vec::new()
-                } else {
-                    Scope::new(name.as_ref().unwrap())
-                };
-                Rule::Match(Match {
-                    id: global_id,
-                    name_is_capturing,
-                    name,
-                    scopes,
-                    regex_id: Some(self.compile_regex(begin_pat).0),
-                    captures: vec![],
                     repository_stack,
                 })
             }

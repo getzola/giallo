@@ -345,7 +345,7 @@ impl Registry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::highlight::{HighlightedText};
+    use crate::highlight::HighlightedText;
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::path::PathBuf;

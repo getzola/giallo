@@ -81,7 +81,9 @@
       "Bash(/tmp/yaml_output.txt)",
       "Bash(/tmp/yaml_complete_output.txt)",
       "Bash(gunzip:*)",
-      "WebFetch(domain:profiler.firefox.com)"
+      "WebFetch(domain:profiler.firefox.com)",
+      "Bash(1)",
+      "Bash(RUST_LOG=giallo=debug cargo test:*)"
     ],
     "deny": [],
     "ask": []

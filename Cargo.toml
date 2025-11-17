@@ -26,6 +26,7 @@ dump = ["dep:rmp-serde", "dep:flate2"]
 criterion = "0.7"
 pretty_assertions = "1.0"
 insta = { version = "1", features = ["yaml"] }
+env_logger = "0.11.8"
 
 [profile.dev.package]
 insta.opt-level = 3

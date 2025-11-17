@@ -124,12 +124,11 @@ impl StateStack {
     }
 
     /// Exits the current context, getting back to the parent
-    fn pop(&mut self) -> bool {
+    fn pop(&mut self) -> Option<StackFrame> {
         if self.frames.len() > 1 {
-            self.frames.pop();
-            true
+            self.frames.pop()
         } else {
-            false
+            None
         }
     }
 
@@ -245,7 +244,7 @@ impl TokenAccumulator {
 
         // Create and store the token with scope IDs directly
         #[cfg(feature = "debug")]
-        log::trace!(
+        log::debug!(
             "[produce]: [{}..{end_pos}]\n{}",
             self.last_end_pos,
             scopes
@@ -518,7 +517,7 @@ impl<'g> Tokenizer<'g> {
         let active_anchor = AnchorActive::new(is_first_line, anchor_position, *pos);
         #[cfg(feature = "debug")]
         log::debug!(
-            "[check_while_conditions] going to check {} while rules at indices: {:?}, anchors: {active_anchors:?}",
+            "[check_while_conditions] going to check {} while rules at indices: {:?}, anchors: {active_anchor:?}",
             while_frame_indices.len(),
             while_frame_indices
         );
@@ -714,7 +713,7 @@ impl<'g> Tokenizer<'g> {
 
         #[cfg(feature = "debug")]
         {
-            log::trace!(
+            log::debug!(
                 "[get_or_create_pattern_set] Active patterns for rule {:?}.\n{p:?}",
                 rule.original_name().unwrap_or("No name")
             );
@@ -935,7 +934,7 @@ impl<'g> Tokenizer<'g> {
                     accumulator.produce(m.end, &stack.top().content_scopes);
 
                     // Pop to parent state and update anchor position
-                    stack.pop();
+                    let popped_frame = stack.pop().unwrap();
                     anchor_position = popped_anchor_position;
                     #[cfg(feature = "debug")]
                     {
@@ -950,8 +949,13 @@ impl<'g> Tokenizer<'g> {
                     // It happens eg for astro grammar
                     if !has_advanced && popped_enter_position == Some(pos) {
                         // See https://github.com/Microsoft/vscode-textmate/issues/12
-                        // Let's assume this was a mistake by the grammar author and the intent was to continue in this state
-                        // Since we're about to break anyway, no need to restore the full stack
+                        // Like vscode-textmate, restore the popped frame to keep the rule active
+                        stack.frames.push(popped_frame);
+                        #[cfg(feature = "debug")]
+                        log::debug!(
+                            "[INFINITE LOOP PROTECTION] Restored rule to stack: {:?}",
+                            stack
+                        );
                         accumulator.produce(line.len(), &stack.top().content_scopes);
                         break;
                     }
@@ -1058,7 +1062,7 @@ impl<'g> Tokenizer<'g> {
                 #[cfg(feature = "debug")]
                 log::debug!("[tokenize_line] no more matches");
                 // No more matches - emit final token and stop
-                accumulator.produce(line.len() - 1, &stack.top().content_scopes);
+                accumulator.produce(line.len(), &stack.top().content_scopes);
                 break;
             }
         }
@@ -1187,24 +1191,25 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn can_tokenize_specific_text() {
-    //     let registry = get_registry();
-    //
-    //     let grammar = "razor";
-    //     // let sample_content = r#"<svg><rect x="0" /></svg>"#;
-    //     let sample_content =
-    //         fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
-    //     let expected = fs::read_to_string(format!("src/fixtures/tokens/{grammar}.txt")).unwrap();
-    //
-    //     let grammar_id = registry.grammar_id_by_name[grammar];
-    //     let grammar = &registry.grammars[grammar_id];
-    //
-    //     let tokens = registry.tokenize(grammar_id, &sample_content).unwrap();
-    //     let out = format_tokens(&sample_content, tokens);
-    //
-    //     // assert_eq!(out.trim(), expected.trim());
-    //     println!("{out}");
-    //     assert!(false);
-    // }
+    #[test]
+    fn can_tokenize_specific_text() {
+        env_logger::init();
+        let registry = get_registry();
+
+        let grammar = "stylus";
+        // let sample_content = r#"<svg><rect x="0" /></svg>"#;
+        let sample_content =
+            fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
+        let expected = fs::read_to_string(format!("src/fixtures/tokens/{grammar}.txt")).unwrap();
+
+        let grammar_id = registry.grammar_id_by_name[grammar];
+        let grammar = &registry.grammars[grammar_id];
+
+        let tokens = registry.tokenize(grammar_id, &sample_content).unwrap();
+        let out = format_tokens(&sample_content, tokens);
+
+        assert_eq!(out.trim(), expected.trim());
+        // println!("{out}");
+        // assert!(false);
+    }
 }

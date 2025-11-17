@@ -17,7 +17,7 @@ fn load_grammar_metadata() -> Result<HashMap<String, Vec<String>>, Box<dyn std::
     // Check if metadata file exists
     if !std::path::Path::new(metadata_path).exists() {
         println!("⚠️  Grammar metadata file not found at {}", metadata_path);
-        println!("   Run 'node tools/extract_grammar_metadata.js' to generate it");
+        println!("   Run 'node scripts/extract-grammar-metadata.js' to generate it");
         return Ok(HashMap::new());
     }
 
