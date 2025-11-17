@@ -80,6 +80,7 @@ jobs:
       - name: Run tests
         run: |
           just generate-tests
+          just generate-dump
           cargo test
           cargo test --all-features
 

@@ -30,6 +30,16 @@ fn has_backreferences(pattern: &str) -> bool {
     false
 }
 
+fn scopes_from_name(name: &Option<String>, name_is_capturing: bool) -> Vec<Scope> {
+    if name_is_capturing {
+        Vec::new()
+    } else if let Some(name_ref) = name.as_ref() {
+        Scope::new(name_ref)
+    } else {
+        Vec::new()
+    }
+}
+
 pub fn replace_captures(
     original_name: &str,
     text: &str,
@@ -502,11 +512,7 @@ impl CompiledGrammar {
                 Rule::Noop
             } else {
                 let name_is_capturing = has_captures(name.as_deref());
-                let scopes = if name_is_capturing || name.is_none() {
-                    Vec::new()
-                } else {
-                    Scope::new(name.as_ref().unwrap())
-                };
+                let scopes = scopes_from_name(&name, name_is_capturing);
                 Rule::Match(Match {
                     id: global_id,
                     name_is_capturing,
@@ -526,16 +532,8 @@ impl CompiledGrammar {
                     self.compile_patterns(local_id, raw_rule.patterns, repository_stack)?;
                 let name_is_capturing = has_captures(name.as_deref());
                 let content_name_is_capturing = has_captures(content_name.as_deref());
-                let scopes = if name_is_capturing || name.is_none() {
-                    Vec::new()
-                } else {
-                    Scope::new(name.as_ref().unwrap())
-                };
-                let content_scopes = if content_name_is_capturing || content_name.is_none() {
-                    Vec::new()
-                } else {
-                    Scope::new(content_name.as_ref().unwrap())
-                };
+                let scopes = scopes_from_name(&name, name_is_capturing);
+                let content_scopes = scopes_from_name(&content_name, content_name_is_capturing);
                 Rule::BeginWhile(BeginWhile {
                     id: global_id,
                     name_is_capturing,
@@ -579,16 +577,8 @@ impl CompiledGrammar {
                     self.compile_patterns(local_id, raw_rule.patterns, repository_stack)?;
                 let name_is_capturing = has_captures(name.as_deref());
                 let content_name_is_capturing = has_captures(content_name.as_deref());
-                let scopes = if name_is_capturing || name.is_none() {
-                    Vec::new()
-                } else {
-                    Scope::new(name.as_ref().unwrap())
-                };
-                let content_scopes = if content_name_is_capturing || content_name.is_none() {
-                    Vec::new()
-                } else {
-                    Scope::new(content_name.as_ref().unwrap())
-                };
+                let scopes = scopes_from_name(&name, name_is_capturing);
+                let content_scopes = scopes_from_name(&content_name, content_name_is_capturing);
                 Rule::BeginEnd(BeginEnd {
                     id: global_id,
                     name_is_capturing,
@@ -635,11 +625,7 @@ impl CompiledGrammar {
                 // This is a scope-only rule - create a Match rule with no regex
                 // This handles captures that only assign scopes
                 let name_is_capturing = has_captures(name.as_deref());
-                let scopes = if name_is_capturing || name.is_none() {
-                    Vec::new()
-                } else {
-                    Scope::new(name.as_ref().unwrap())
-                };
+                let scopes = scopes_from_name(&name, name_is_capturing);
                 Rule::Match(Match {
                     id: global_id,
                     name_is_capturing,
@@ -674,17 +660,17 @@ impl CompiledGrammar {
                         self.compile_patterns(local_id, patterns, repository_stack)?;
                     let name_is_capturing = has_captures(name.as_deref());
                     let content_name_is_capturing = has_captures(raw_rule.content_name.as_deref());
-                    let scopes = if name_is_capturing || name.is_none() {
-                        Vec::new()
+                    let scopes = if !name_is_capturing {
+                        if let Some(name_ref) = name.as_ref() {
+                            Scope::new(name_ref)
+                        } else {
+                            Vec::new()
+                        }
                     } else {
-                        Scope::new(name.as_ref().unwrap())
+                        Vec::new()
                     };
                     let content_scopes =
-                        if content_name_is_capturing || raw_rule.content_name.is_none() {
-                            Vec::new()
-                        } else {
-                            Scope::new(raw_rule.content_name.as_ref().unwrap())
-                        };
+                        scopes_from_name(&raw_rule.content_name, content_name_is_capturing);
 
                     Rule::IncludeOnly(IncludeOnly {
                         id: global_id,
@@ -775,16 +761,16 @@ impl CompiledGrammar {
             for repo_id in stack.stack.iter().filter(|x| x.is_some()).rev() {
                 let repo = &self.repositories[repo_id.unwrap()];
 
-                if let Reference::Local(name) = &rep.reference {
-                    if let Some(rule_id) = repo.get(name) {
-                        found = true;
-                        let global_ref = GlobalRuleRef {
-                            grammar: self.id,
-                            rule: *rule_id,
-                        };
-                        rule.replace_pattern(rep.index, global_ref);
-                        break;
-                    }
+                if let Reference::Local(name) = &rep.reference
+                    && let Some(rule_id) = repo.get(name)
+                {
+                    found = true;
+                    let global_ref = GlobalRuleRef {
+                        grammar: self.id,
+                        rule: *rule_id,
+                    };
+                    rule.replace_pattern(rep.index, global_ref);
+                    break;
                 }
             }
 
@@ -827,7 +813,7 @@ impl CompiledGrammar {
                 if let Some(repo_name) = repo_name {
                     let mut found = false;
                     for repo in &grammar.repositories {
-                        if let Some(r_id) = repo.get(&repo_name) {
+                        if let Some(r_id) = repo.get(repo_name) {
                             found = true;
                             rule.replace_pattern(
                                 rep.index,

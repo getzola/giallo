@@ -79,8 +79,9 @@ impl SelectorMatcher {
                         SelectorMatcher::Scope(scope) => {
                             // For individual scopes, check sequentially
                             let mut found = false;
-                            for i in start_index..scope_stack.len() {
-                                if scope.is_prefix_of(scope_stack[i]) {
+                            for (i, scope_item) in scope_stack.iter().enumerate().skip(start_index)
+                            {
+                                if scope.is_prefix_of(*scope_item) {
                                     start_index = i + 1;
                                     found = true;
                                     break;

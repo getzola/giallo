@@ -59,7 +59,7 @@ impl Highlighter {
 
         Highlighter {
             rules,
-            default_style: theme.default_style.clone(),
+            default_style: theme.default_style,
             cache: HashMap::new(),
         }
     }
@@ -83,7 +83,7 @@ impl Highlighter {
 
     /// Match a scope stack against theme rules without caching (internal implementation)
     fn match_scopes_uncached(&self, scopes: &[Scope]) -> Style {
-        let mut current_style = self.default_style.clone();
+        let mut current_style = self.default_style;
 
         // Build up scope path incrementally, simulating vscode-textmate's approach
         // Each scope level can override the accumulated style
@@ -264,7 +264,7 @@ mod tests {
     #[test]
     fn test_highlighter_new() {
         let theme = test_theme();
-        let mut highlighter = Highlighter::new(&theme);
+        let highlighter = Highlighter::new(&theme);
         assert_eq!(highlighter.rules.len(), 2);
         assert_eq!(highlighter.default_style, theme.default_style);
     }

@@ -156,7 +156,7 @@ impl<'de> Deserialize<'de> for Captures {
 #[serde(untagged)]
 enum RawRuleValue {
     Vec(Vec<RawRule>),
-    Single(RawRule),
+    Single(Box<RawRule>),
 }
 
 /// Custom deserializer for repository HashMap that handles values that might be single rules or arrays of rules
@@ -177,7 +177,7 @@ where
                 patterns: rules,
                 ..Default::default()
             },
-            RawRuleValue::Single(rule) => rule,
+            RawRuleValue::Single(rule) => *rule,
         };
 
         // Some grammars have empty patterns but still decide to put [{}] in there, which messes

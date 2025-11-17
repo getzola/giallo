@@ -179,7 +179,7 @@ mod tests {
         assert_eq!(theme.token_colors.len(), 5);
 
         // Expected scope parsing results for different formats
-        let expected_scopes = vec![
+        let expected_scopes = [
             // Rule 0: No scope (default/fallback rule)
             vec![],
             // Rule 1: Array format with 2 scopes
@@ -197,7 +197,7 @@ mod tests {
         ];
 
         // Expected foreground colors
-        let expected_foregrounds = vec![
+        let expected_foregrounds = [
             Some("#D5CED9"),   // Rule 0: default/fallback rule with foreground
             Some("#A0A1A7cc"), // Rule 1: comment scopes
             Some("#d699b6"),   // Rule 2: language variables

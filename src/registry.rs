@@ -129,7 +129,7 @@ impl Registry {
         grammar_id: GrammarId,
         content: &str,
     ) -> Result<Vec<Vec<Token>>, Box<dyn std::error::Error>> {
-        let mut tokenizer = Tokenizer::new(grammar_id, &self);
+        let mut tokenizer = Tokenizer::new(grammar_id, self);
         match tokenizer.tokenize_string(content) {
             Ok(tokens) => Ok(tokens),
             Err(e) => Err(Box::new(e)),
@@ -251,7 +251,7 @@ impl Registry {
             Rule::Match(_) | Rule::Noop => &[],
         };
         let mut visited = HashSet::new();
-        self.get_pattern_set_data(base_grammar_id, &base_patterns, &mut visited)
+        self.get_pattern_set_data(base_grammar_id, base_patterns, &mut visited)
     }
 
     pub(crate) fn collect_injection_patterns(
@@ -363,10 +363,10 @@ mod tests {
         for entry in fs::read_dir(&grammars_dir)? {
             let entry = entry?;
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("json") {
-                if let Err(e) = registry.add_grammar_from_path(&path) {
-                    eprintln!("Warning: Failed to load grammar {}: {}", path.display(), e);
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("json")
+                && let Err(e) = registry.add_grammar_from_path(&path)
+            {
+                eprintln!("Warning: Failed to load grammar {}: {}", path.display(), e);
             }
         }
 
@@ -465,10 +465,10 @@ mod tests {
         for entry in fs::read_dir(samples_dir)? {
             let entry = entry?;
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("sample") {
-                if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                    samples.push((stem.to_string(), path));
-                }
+            if path.extension().and_then(|s| s.to_str()) == Some("sample")
+                && let Some(stem) = path.file_stem().and_then(|s| s.to_str())
+            {
+                samples.push((stem.to_string(), path));
             }
         }
 
@@ -530,7 +530,6 @@ mod tests {
                     theme: "vitesse-black",
                     merge_whitespaces: false,
                     merge_same_style_tokens: false,
-                    ..Default::default()
                 },
             ) {
                 Ok(tokens) => tokens,

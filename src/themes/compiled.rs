@@ -87,7 +87,7 @@ impl TryFrom<TokenColorSettings> for StyleModifier {
             None
         };
 
-        let font_style = settings.font_style.map(|s| FontStyle::from_str(&s));
+        let font_style = settings.font_style.map(|s| FontStyle::from_theme_str(&s));
 
         Ok(Self {
             foreground,
@@ -125,7 +125,7 @@ impl ThemeType {
         }
     }
 
-    pub fn from_str(s: &str) -> ThemeType {
+    pub fn from_theme_str(s: &str) -> ThemeType {
         if s.eq_ignore_ascii_case("light") {
             ThemeType::Light
         } else {
@@ -157,7 +157,7 @@ impl CompiledTheme {
     pub fn from_raw_theme(raw_theme: RawTheme) -> Result<Self, Box<dyn std::error::Error>> {
         let theme_type = raw_theme
             .kind
-            .map(|s| ThemeType::from_str(&s))
+            .map(|s| ThemeType::from_theme_str(&s))
             .unwrap_or_default();
 
         let foreground = Color::from_hex(&raw_theme.colors.foreground)?;
@@ -182,10 +182,10 @@ impl CompiledTheme {
             //     },
             if token_rule.scope.is_empty() {
                 if let Some(fg) = token_rule.settings.foreground() {
-                    default_style.foreground = Color::from_hex(&fg)?;
+                    default_style.foreground = Color::from_hex(fg)?;
                 }
                 if let Some(bg) = token_rule.settings.background() {
-                    default_style.background = Color::from_hex(&bg)?;
+                    default_style.background = Color::from_hex(bg)?;
                 }
                 continue;
             }
@@ -254,7 +254,7 @@ mod tests {
             RawTheme::load_from_file(&path)
                 .unwrap()
                 .compile()
-                .expect(&format!("Failed to compile theme: {path:?}"));
+                .unwrap_or_else(|_| panic!("Failed to compile theme: {path:?}"));
         }
     }
 

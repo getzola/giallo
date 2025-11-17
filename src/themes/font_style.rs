@@ -26,7 +26,7 @@ impl FontStyle {
     }
 
     /// Returns the font style from a theme font style string
-    pub fn from_str(font_style_str: &str) -> Self {
+    pub fn from_theme_str(font_style_str: &str) -> Self {
         let mut font_style = Self::empty();
         if font_style_str.contains("bold") {
             font_style.insert(FontStyle::BOLD);

@@ -523,7 +523,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs {
-            let color = Color::from_hex(&input).unwrap();
+            let color = Color::from_hex(input).unwrap();
             assert_eq!(color, expected);
         }
     }

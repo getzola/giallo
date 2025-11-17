@@ -10,9 +10,6 @@ use crate::grammars::{
 };
 use crate::scope::Scope;
 
-#[cfg(feature = "debug")]
-use log;
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     /// Byte span within the line (start inclusive, end exclusive, 0-based)
@@ -205,10 +202,10 @@ impl fmt::Debug for StateStack {
             write!(f, ", anchor_pos={:?}", frame.anchor_position)?;
 
             // Add enter_position if present and different from anchor_position
-            if let Some(enter_pos) = frame.enter_position {
-                if frame.anchor_position != Some(enter_pos) {
-                    write!(f, ", enter_pos={}", enter_pos)?;
-                }
+            if let Some(enter_pos) = frame.enter_position
+                && frame.anchor_position != Some(enter_pos)
+            {
+                write!(f, ", enter_pos={}", enter_pos)?;
             }
 
             write!(
@@ -299,8 +296,7 @@ enum AnchorActive {
 impl AnchorActive {
     pub fn new(is_first_line: bool, anchor_position: Option<usize>, current_pos: usize) -> Self {
         let g_active = if let Some(a_pos) = anchor_position {
-            let result = a_pos == current_pos;
-            result
+            a_pos == current_pos
         } else {
             false
         };
@@ -685,7 +681,7 @@ impl<'g> Tokenizer<'g> {
             // Apply anchor replacements to all patterns
             let mut patterns: Vec<_> = raw_patterns
                 .into_iter()
-                .map(|(rule, pat)| (rule, anchor_context.replace_anchors(&pat).into_owned()))
+                .map(|(rule, pat)| (rule, anchor_context.replace_anchors(pat).into_owned()))
                 .collect();
 
             // Insert end pattern at correct position if this is a BeginEnd rule
@@ -1130,12 +1126,12 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use crate::Registry;
+    use crate::registry::normalize_string;
 
     fn get_registry() -> Registry {
         let mut registry = Registry::default();
         for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
             let path = entry.unwrap().path();
-            let grammar_name = path.file_stem().unwrap().to_str().unwrap();
             registry.add_grammar_from_path(path).unwrap();
         }
         registry.link_grammars();
@@ -1158,7 +1154,7 @@ mod tests {
                     token_idx, text, line_idx
                 ));
                 for scope in &token.scopes {
-                    out.push_str(&format!("  - {}\n", scope.to_string()));
+                    out.push_str(&format!("  - {scope}\n"));
                 }
                 out.push('\n');
             }
@@ -1182,7 +1178,7 @@ mod tests {
         for (grammar, expected) in fixtures {
             let sample_path = format!("grammars-themes/samples/{grammar}.sample");
             println!("Checking {sample_path}");
-            let sample_content = fs::read_to_string(sample_path).unwrap();
+            let sample_content = normalize_string(&fs::read_to_string(sample_path).unwrap());
             let tokens = registry
                 .tokenize(registry.grammar_id_by_name[&grammar], &sample_content)
                 .unwrap();
@@ -1198,12 +1194,12 @@ mod tests {
 
         let grammar = "stylus";
         // let sample_content = r#"<svg><rect x="0" /></svg>"#;
-        let sample_content =
-            fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap();
+        let sample_content = normalize_string(
+            &fs::read_to_string(format!("grammars-themes/samples/{grammar}.sample")).unwrap(),
+        );
         let expected = fs::read_to_string(format!("src/fixtures/tokens/{grammar}.txt")).unwrap();
 
         let grammar_id = registry.grammar_id_by_name[grammar];
-        let grammar = &registry.grammars[grammar_id];
 
         let tokens = registry.tokenize(grammar_id, &sample_content).unwrap();
         let out = format_tokens(&sample_content, tokens);
