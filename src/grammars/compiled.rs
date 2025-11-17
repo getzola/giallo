@@ -973,6 +973,7 @@ impl CompiledGrammar {
         Ok(out)
     }
 
+    #[cfg(feature = "debug")]
     pub(crate) fn get_original_rule_name(&self, rule_id: RuleId) -> Option<&str> {
         self.rules[rule_id.as_index()].original_name()
     }

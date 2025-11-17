@@ -6,7 +6,7 @@ use std::ops::Range;
 use crate::Registry;
 use crate::grammars::{
     END_RULE_ID, GlobalRuleRef, GrammarId, InjectionPrecedence, PatternSet, PatternSetMatch,
-    ROOT_RULE_ID, Regex, RegexId, Rule, RuleId, resolve_backreferences,
+    ROOT_RULE_ID, Regex, RegexId, Rule, resolve_backreferences,
 };
 use crate::scope::Scope;
 
@@ -411,12 +411,14 @@ impl<'g> Tokenizer<'g> {
 
         // Process injections in the order returned by registry (already sorted by precedence)
         for (precedence, rule) in injection_patterns {
-            let mut s = stack.clone();
-            s.top_mut().rule_ref = rule;
-            s.top_mut().end_pattern = None;
-
-            let pattern_set =
-                self.get_or_create_pattern_set(&s, pos, is_first_line, anchor_position);
+            // Use injection override instead of cloning stack
+            let pattern_set = self.get_or_create_pattern_set(
+                stack,
+                pos,
+                is_first_line,
+                anchor_position,
+                Some(rule), // Override rule_ref for injection testing
+            );
 
             if let Some(found) = pattern_set.find_at(line, pos)? {
                 if let Some((_, current_best_match)) = &best_match {
@@ -449,7 +451,7 @@ impl<'g> Tokenizer<'g> {
     ) -> Result<Option<PatternSetMatch>, TokenizeError> {
         // Get regular rule patterns
         let pattern_set =
-            self.get_or_create_pattern_set(stack, pos, is_first_line, anchor_position);
+            self.get_or_create_pattern_set(stack, pos, is_first_line, anchor_position, None);
         let regular_match = pattern_set.find_at(line, pos)?;
 
         // Get injection matches
@@ -476,8 +478,6 @@ impl<'g> Tokenizer<'g> {
     }
 
     /// Check if there is a while condition active and if it's still true
-    /// This follows VSCode TextMate's behavior: bottom-up processing from outermost to innermost
-    /// Functional version of check_while_conditions that takes and returns state
     fn check_while_conditions(
         &mut self,
         stack: StateStack,
@@ -495,67 +495,53 @@ impl<'g> Tokenizer<'g> {
         let mut is_first_line = is_first_line;
         let mut stack = stack;
 
-        // Collect all BeginWhile rules from stack (iterate through frames in reverse)
-        let mut while_stacks = Vec::new();
-
-        // Iterate through stack frames from top to bottom (reverse order)
-        for i in (0..stack.frames.len()).rev() {
+        let mut while_frame_indices = Vec::new();
+        for i in 0..stack.frames.len() {
             let frame = &stack.frames[i];
             if let Some(Rule::BeginWhile(_)) = self.registry.grammars[frame.rule_ref.grammar]
                 .rules
                 .get(frame.rule_ref.rule.as_index())
             {
-                // Create a stack with frames from root up to this BeginWhile frame
-                let while_stack = StateStack {
-                    frames: stack.frames[0..=i].to_vec(),
-                };
-                while_stacks.push(while_stack);
+                while_frame_indices.push(i);
             }
         }
 
-        #[cfg(feature = "debug")]
-        if while_stacks.is_empty() {
+        if while_frame_indices.is_empty() {
+            #[cfg(feature = "debug")]
             log::debug!(
                 "[check_while_conditions] no while conditions active:\n  {:?}",
                 stack
             );
-        } else {
-            log::debug!(
-                "[check_while_conditions] going to check:\n  {:?}",
-                while_stacks
-            );
+            return Ok((stack, anchor_position, is_first_line));
         }
 
         let active_anchor = AnchorActive::new(is_first_line, anchor_position, *pos);
-
         #[cfg(feature = "debug")]
-        log::trace!("[check_while_conditions] Anchors: {active_anchor:?}");
+        log::debug!(
+            "[check_while_conditions] going to check {} while rules at indices: {:?}, anchors: {active_anchors:?}",
+            while_frame_indices.len(),
+            while_frame_indices
+        );
 
-        for mut while_stack in while_stacks.into_iter().rev() {
-            let initial_pat = if let Some(end_pat) = &while_stack.top().end_pattern {
+        for &frame_idx in while_frame_indices.iter() {
+            let frame = &stack.frames[frame_idx];
+            let initial_pat = if let Some(end_pat) = &frame.end_pattern {
                 end_pat.as_str()
-            } else if let Rule::BeginWhile(b) = &self.registry.grammars
-                [while_stack.top().rule_ref.grammar]
-                .rules[while_stack.top().rule_ref.rule]
+            } else if let Rule::BeginWhile(b) =
+                &self.registry.grammars[frame.rule_ref.grammar].rules[frame.rule_ref.rule]
             {
-                let re =
-                    &self.registry.grammars[while_stack.top().rule_ref.grammar].regexes[b.while_];
+                let re = &self.registry.grammars[frame.rule_ref.grammar].regexes[b.while_];
                 re.pattern()
             } else {
                 unreachable!()
             };
+            let while_pat = active_anchor.replace_anchors(initial_pat);
             #[cfg(feature = "debug")]
             log::debug!(
-                "[check_while_conditions] Testing while pattern: original={:?}, active_anchor={:?}, pos={}",
+                "[check_while_conditions] Testing while pattern: original={:?}, active_anchor={:?}, pos={}, after anchor replacement: {while_pat:?}",
                 initial_pat,
                 active_anchor,
                 *pos
-            );
-            let while_pat = active_anchor.replace_anchors(initial_pat);
-            #[cfg(feature = "debug")]
-            log::trace!(
-                "[check_while_conditions] After anchor replacement: {:?}",
-                while_pat
             );
 
             let re = if let Some(re) = self.end_regex_cache.get(&*while_pat) {
@@ -581,20 +567,24 @@ impl<'g> Tokenizer<'g> {
                 let absolute_start = *pos;
                 let absolute_end = *pos + end;
 
-                acc.produce(absolute_start, &while_stack.top().content_scopes);
+                acc.produce(absolute_start, &frame.content_scopes);
                 // Handle while captures if they exist
                 if let Some(Rule::BeginWhile(begin_while_rule)) = self.registry.grammars
-                    [while_stack.top().rule_ref.grammar]
+                    [frame.rule_ref.grammar]
                     .rules
-                    .get(while_stack.top().rule_ref.rule.as_index())
+                    .get(frame.rule_ref.rule.as_index())
                     && !begin_while_rule.while_captures.is_empty()
                 {
                     let captures_pos: Vec<Option<(usize, usize)>> = (0..cap.len())
                         .map(|i| cap.pos(i).map(|(s, e)| (*pos + s, *pos + e)))
                         .collect();
 
+                    // Create temporary StateStack only for resolve_captures
+                    let temp_while_stack = StateStack {
+                        frames: stack.frames[0..=frame_idx].to_vec(),
+                    };
                     self.resolve_captures(
-                        &while_stack,
+                        &temp_while_stack,
                         line,
                         &begin_while_rule.while_captures,
                         &captures_pos,
@@ -604,7 +594,7 @@ impl<'g> Tokenizer<'g> {
                 }
 
                 // Produce token for the while match itself
-                acc.produce(absolute_end, &while_stack.top().content_scopes);
+                acc.produce(absolute_end, &frame.content_scopes);
 
                 // Advance position and update anchor - matches VSCode behavior
                 if absolute_end > *pos {
@@ -616,15 +606,19 @@ impl<'g> Tokenizer<'g> {
                 #[cfg(feature = "debug")]
                 log::debug!(
                     "[check_while_conditions] No while match found, popping: {:?}",
-                    self.registry.grammars[while_stack.top().rule_ref.grammar]
+                    self.registry.grammars[frame.rule_ref.grammar]
                         .rules
-                        .get(while_stack.top().rule_ref.rule.as_index())
+                        .get(frame.rule_ref.rule.as_index())
                         .unwrap()
                         .original_name()
                 );
 
-                while_stack.pop();
-                stack = while_stack;
+                // Create StateStack and pop the while frame
+                let mut popped_stack = StateStack {
+                    frames: stack.frames[0..=frame_idx].to_vec(),
+                };
+                popped_stack.pop();
+                stack = popped_stack;
                 break; // Stop checking further while conditions
             }
         }
@@ -638,8 +632,9 @@ impl<'g> Tokenizer<'g> {
         pos: usize,
         is_first_line: bool,
         anchor_position: Option<usize>,
+        injection_rule_override: Option<GlobalRuleRef>,
     ) -> &PatternSet {
-        let rule_ref = stack.top().rule_ref;
+        let rule_ref = injection_rule_override.unwrap_or(stack.top().rule_ref);
         let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
         let anchor_context = AnchorActive::new(is_first_line, anchor_position, pos);
 
@@ -676,7 +671,7 @@ impl<'g> Tokenizer<'g> {
                 && let Some(end_pat) = end_pattern
             {
                 let pat = anchor_context.replace_anchors(end_pat);
-                let updated = if b.apply_end_pattern_last {
+                if b.apply_end_pattern_last {
                     p.update_last(pat.as_ref())
                 } else {
                     p.update_front(pat.as_ref())
@@ -742,7 +737,7 @@ impl<'g> Tokenizer<'g> {
         }
 
         // (scopes, end_pos)[]
-        let mut local_stack: Vec<(Vec<Scope>, usize)> = vec![];
+        let mut local_stack: Vec<(Vec<Scope>, usize)> = Vec::with_capacity(2);
 
         let min = std::cmp::min(rule_captures.len(), captures.len());
 
@@ -924,7 +919,7 @@ impl<'g> Tokenizer<'g> {
                         log::debug!("[BEFORE POP] Stack: {:?}", stack);
                     }
                     accumulator.produce(m.start, &stack.top().content_scopes);
-                    let popped_state = stack.clone(); // Save for infinite loop protection
+                    let popped_enter_position = stack.top().enter_position; // Save for infinite loop protection
                     let popped_anchor_position = stack.top().anchor_position;
                     #[cfg(feature = "debug")]
                     log::trace!("[POPPED RULE] Stack: {:?}", stack);
@@ -953,11 +948,10 @@ impl<'g> Tokenizer<'g> {
 
                     // Grammar pushed & popped a rule without advancing - infinite loop protection
                     // It happens eg for astro grammar
-                    if !has_advanced && popped_state.top().enter_position == Some(pos) {
+                    if !has_advanced && popped_enter_position == Some(pos) {
                         // See https://github.com/Microsoft/vscode-textmate/issues/12
                         // Let's assume this was a mistake by the grammar author and the intent was to continue in this state
-                        // Revert to pre-pop state for infinite loop protection
-                        stack = popped_state;
+                        // Since we're about to break anyway, no need to restore the full stack
                         accumulator.produce(line.len(), &stack.top().content_scopes);
                         break;
                     }
@@ -967,7 +961,13 @@ impl<'g> Tokenizer<'g> {
                     let mut new_scopes = stack.top().content_scopes.clone();
                     new_scopes.extend(rule.get_name_scopes(line, &m.capture_pos));
                     // Use push_with_scopes to avoid double-cloning
-                    stack.push_with_scopes(m.rule_ref, anchor_position, m.end == line.len(), Some(pos), new_scopes);
+                    stack.push_with_scopes(
+                        m.rule_ref,
+                        anchor_position,
+                        m.end == line.len(),
+                        Some(pos),
+                        new_scopes,
+                    );
                     stack.top_mut().end_pattern = None;
 
                     let mut handle_begin_rule = |re_id: RegexId,

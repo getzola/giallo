@@ -345,7 +345,7 @@ impl Registry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::highlight::{HighlightedText, Highlighter};
+    use crate::highlight::{HighlightedText};
     use pretty_assertions::assert_eq;
     use std::fs;
     use std::path::PathBuf;
@@ -397,8 +397,6 @@ mod tests {
             if line_idx >= lines.len() {
                 break;
             }
-
-            let line_content = lines[line_idx];
 
             for token in line_tokens {
                 // Use proper hex format that includes alpha channel when needed
