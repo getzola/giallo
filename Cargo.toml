@@ -6,7 +6,7 @@ license = "EUPL-1.2"
 description = "A HTML code highlighter"
 
 [dependencies]
-onig = { version = "6", default-features = false, path = "../pulls/rust-onig/onig" }
+onig = { version = "6", default-features = false, git = "https://github.com/Keats/rust-onig", branch = "main" }
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 

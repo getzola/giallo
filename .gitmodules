@@ -4,3 +4,4 @@
 [submodule "vscode-textmate"]
 	path = vscode-textmate
 	url = git@github.com:microsoft/vscode-textmate.git
+	ignore = dirty
