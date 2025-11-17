@@ -5,6 +5,7 @@ const { Registry, parseRawGrammar } = require(path.join(__dirname, '../../vscode
 
 // Shared constants
 const GRAMMAR_DIR = 'grammars-themes/packages/tm-grammars/grammars/';
+const THEMES_DIR = 'grammars-themes/packages/tm-themes/themes/';
 const SAMPLES_DIR = 'grammars-themes/samples/';
 
 
@@ -100,6 +101,25 @@ async function createRegistry() {
             console.warn(`⚠️  Failed to load grammar ${scopeName}:`, error.message);
         }
     }
+
+    let theme = JSON.parse(fs.readFileSync(path.join(THEMES_DIR, "vitesse-black.json"), 'utf8'));
+
+    // Convert VS Code format to TextMate format if needed
+    if (theme.tokenColors && !theme.settings) {
+        const defaultSetting = {
+            settings: {
+                foreground: theme.colors && theme.colors['editor.foreground']
+            }
+        };
+        const themeSettings = [defaultSetting, ...theme.tokenColors];
+
+        theme = {
+            name: theme.name || "vitesse-black",
+            settings: themeSettings
+        };
+    }
+
+    registry.setTheme(theme);
 
     return {
         registry,

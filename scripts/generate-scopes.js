@@ -81,7 +81,6 @@ async function inspectScopes() {
     console.log(`Found ${samples.size} sample files to process...`);
 
     for (const [grammarName, lines] of samples.entries()) {
-        console.log(`Processing sample ${grammarName}...`);
         if (!grammarMap.has(grammarName)) {
             console.warn(`⚠️  Failed to find grammar ${grammarName}`);
             continue;

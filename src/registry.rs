@@ -510,7 +510,8 @@ mod tests {
             };
 
             // Check if snapshot file exists
-            let snapshot_path = PathBuf::from(format!("snapshots/{}.txt", grammar_name));
+            let snapshot_path =
+                PathBuf::from(format!("src/fixtures/snapshots/{}.txt", grammar_name));
             let expected_snapshot = match fs::read_to_string(&snapshot_path) {
                 Ok(content) => content,
                 Err(_) => {
@@ -624,7 +625,7 @@ mod tests {
         };
 
         // Load the expected snapshot
-        let snapshot_path = PathBuf::from(format!("snapshots/{}.txt", grammar));
+        let snapshot_path = PathBuf::from(format!("src/fixtures/snapshots/{}.txt", grammar));
         let expected_snapshot = match fs::read_to_string(&snapshot_path) {
             Ok(content) => content,
             Err(e) => {
