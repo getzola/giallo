@@ -172,7 +172,7 @@ impl Registry {
         let grammar_names_ptr = &self.grammar_id_by_scope_name as *const HashMap<String, GrammarId>;
         let grammars_ptr = &self.grammars as *const Vec<CompiledGrammar>;
         for grammar in self.grammars.iter_mut() {
-            // We only modify the content of the current grammar being iterated
+            // SAFETY: We only modify the content of the current grammar being iterated
             unsafe {
                 grammar.resolve_external_references(&*grammar_names_ptr, &*grammars_ptr);
             }

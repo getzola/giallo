@@ -100,8 +100,6 @@ impl fmt::Debug for Regex {
 
 impl Regex {
     pub fn new(pattern: String) -> Self {
-        // TODO: validate and look for backreference
-
         // Transform \z to $(?!\n)(?<!\n) to match vscode-textmate behavior
         // \z in Oniguruma matches absolute end of string, but TextMate grammars
         // expect it to match end-of-string-or-before-final-newline

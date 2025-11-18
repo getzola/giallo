@@ -153,7 +153,6 @@ impl RepositoryId {
     }
 }
 
-// TODO optimise the String here
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 #[serde(transparent)]
 pub struct Repository(BTreeMap<String, RuleId>);
@@ -167,7 +166,7 @@ impl Repository {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct RepositoryStack {
-    // TODO: check what's the biggest stack we get from shiki grammars
+    // Biggest stack seem to be 4 but it's cheap so let's double it
     stack: [Option<RepositoryId>; 8],
     len: u8,
 }
