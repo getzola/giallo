@@ -3,3 +3,12 @@
 target/
 Cargo.lock
 out.html
+out
+out-textmate
+builtin.msgpack
+grammar_metadata.json
+flamegraph.svg
+perf.data*
+
+src/fixtures/tokens/*.txt
+src/fixtures/snapshots/*.txt
