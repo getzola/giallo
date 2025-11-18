@@ -50,7 +50,7 @@ impl Scope {
         ((self.atoms >> shift) & 0xFFFF) as u16
     }
 
-    /// Count the number of atoms in this scope using trailing zero optimization
+    /// Count the number of atoms in this scope
     #[inline]
     pub fn len(self) -> u32 {
         MAX_ATOMS_IN_SCOPE as u32 - self.missing_atoms()
@@ -134,7 +134,7 @@ impl ScopeRepository {
 
         if self.atoms.len() >= MAX_ATOMS_IN_REPOSITORY {
             panic!(
-                "Too many atoms in repository: exceeded MAX_REPOSITORY_SIZE of {MAX_ATOMS_IN_REPOSITORY}"
+                "Too many atoms in repository: exceeded MAX_ATOMS_IN_REPOSITORY of {MAX_ATOMS_IN_REPOSITORY}"
             );
         }
 

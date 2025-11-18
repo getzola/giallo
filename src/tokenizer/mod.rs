@@ -1,16 +1,22 @@
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt;
 use std::ops::Range;
 
+use serde::{Deserialize, Serialize};
+
 use crate::Registry;
 use crate::grammars::{
-    END_RULE_ID, GlobalRuleRef, GrammarId, InjectionPrecedence, PatternSet, PatternSetMatch,
-    ROOT_RULE_ID, Regex, RegexId, Rule, resolve_backreferences,
+    END_RULE_ID, GlobalRuleRef, GrammarId, InjectionPrecedence, PatternSet, PatternSetMatch, Regex,
+    RegexId, Rule, resolve_backreferences,
 };
 use crate::scope::Scope;
+use crate::tokenizer::anchors::AnchorActive;
+use crate::tokenizer::stack::StateStack;
 
-#[derive(Debug, Clone, PartialEq)]
+mod anchors;
+mod stack;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Token {
     /// Byte span within the line (start inclusive, end exclusive, 0-based)
     pub span: Range<usize>,
@@ -19,213 +25,11 @@ pub struct Token {
     pub scopes: Vec<Scope>,
 }
 
-/// Individual stack frame - represents a single parsing context
-#[derive(Clone, Debug)]
-struct StackFrame {
-    /// Global rule ref that created this stack element
-    rule_ref: GlobalRuleRef,
-    /// "name" scopes - applied to begin/end delimiters
-    /// These scopes are active when matching the rule's boundaries
-    name_scopes: Vec<Scope>,
-    /// "contentName" scopes - applied to content between delimiters
-    /// These scopes are active for the rule's interior content
-    content_scopes: Vec<Scope>,
-    /// Dynamic end/while pattern resolved with backreferences
-    /// For BeginEnd rules: the end pattern with \1, \2, etc. resolved
-    /// For BeginWhile rules: the while pattern with backreferences resolved
-    end_pattern: Option<String>,
-    /// The state has entered and captured \n.
-    /// This means that the next line should start with an anchor_position of 0.
-    begin_rule_has_captured_eol: bool,
-    /// Where we currently are in a line
-    anchor_position: Option<usize>,
-    /// The position where this rule was entered during current line (for infinite loop detection)
-    /// None at beginning of a line
-    enter_position: Option<usize>,
-}
-
-/// Keeps track of nested context as well as how to exit that context and the captures
-/// strings used in backreferences.
-#[derive(Clone)]
-struct StateStack {
-    /// Stack frames from root to current
-    frames: Vec<StackFrame>,
-}
-
-impl StateStack {
-    pub fn new(grammar_id: GrammarId, grammar_scope: Scope) -> Self {
-        Self {
-            frames: vec![StackFrame {
-                rule_ref: GlobalRuleRef {
-                    grammar: grammar_id,
-                    rule: ROOT_RULE_ID,
-                },
-                name_scopes: vec![grammar_scope],
-                content_scopes: vec![grammar_scope],
-                end_pattern: None,
-                begin_rule_has_captured_eol: false,
-                anchor_position: None,
-                enter_position: None,
-            }],
-        }
-    }
-
-    /// Called when entering a nested context: when a BeginEnd or BeginWhile begin pattern matches
-    fn push(
-        &mut self,
-        rule_ref: GlobalRuleRef,
-        anchor_position: Option<usize>,
-        begin_rule_has_captured_eol: bool,
-        enter_position: Option<usize>,
-    ) {
-        let content_scopes = self.top().content_scopes.clone();
-
-        self.frames.push(StackFrame {
-            rule_ref,
-            // Start with the same scope they will diverge later
-            name_scopes: content_scopes.clone(),
-            content_scopes,
-            end_pattern: None,
-            begin_rule_has_captured_eol,
-            anchor_position,
-            enter_position,
-        });
-    }
-
-    /// Push with pre-computed scopes to avoid extra cloning
-    fn push_with_scopes(
-        &mut self,
-        rule_ref: GlobalRuleRef,
-        anchor_position: Option<usize>,
-        begin_rule_has_captured_eol: bool,
-        enter_position: Option<usize>,
-        scopes: Vec<Scope>,
-    ) {
-        self.frames.push(StackFrame {
-            rule_ref,
-            name_scopes: scopes.clone(),
-            content_scopes: scopes,
-            end_pattern: None,
-            begin_rule_has_captured_eol,
-            anchor_position,
-            enter_position,
-        });
-    }
-
-    fn set_content_scopes(&mut self, content_scopes: Vec<Scope>) {
-        self.top_mut().content_scopes = content_scopes;
-    }
-
-    fn set_end_pattern(&mut self, end_pattern: String) {
-        self.top_mut().end_pattern = Some(end_pattern);
-    }
-
-    /// Exits the current context, getting back to the parent
-    fn pop(&mut self) -> Option<StackFrame> {
-        if self.frames.len() > 1 {
-            self.frames.pop()
-        } else {
-            None
-        }
-    }
-
-    /// Pop but never go below root state - used in infinite loop protection
-    fn safe_pop(&mut self) {
-        if self.frames.len() > 1 {
-            self.frames.pop();
-        }
-    }
-
-    /// Resets enter_position/anchor_position for all stack elements to None
-    fn reset(&mut self) {
-        for frame in &mut self.frames {
-            frame.enter_position = None;
-            frame.anchor_position = None;
-        }
-    }
-
-    /// Access the top frame of the stack
-    fn top(&self) -> &StackFrame {
-        self.frames.last().expect("stack never empty")
-    }
-
-    /// Mutable access to the top frame of the stack
-    fn top_mut(&mut self) -> &mut StackFrame {
-        self.frames.last_mut().expect("stack never empty")
-    }
-}
-
-impl fmt::Debug for StateStack {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "StateStack:")?;
-
-        for (depth, frame) in self.frames.iter().enumerate() {
-            // Create indentation
-            let indent = "  ".repeat(depth);
-
-            // Format the basic info
-            write!(
-                f,
-                "{}grammar={}, rule={}",
-                indent, frame.rule_ref.grammar.0, frame.rule_ref.rule.0
-            )?;
-
-            // Add name scopes if not empty
-            if !frame.name_scopes.is_empty() {
-                write!(f, " name=[")?;
-                for (i, scope) in frame.name_scopes.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{}", scope.build_string())?;
-                }
-                write!(f, "]")?;
-            }
-
-            // Add content scopes if not empty
-            if !frame.content_scopes.is_empty() {
-                write!(f, ", content=[")?;
-                for (i, scope) in frame.content_scopes.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{}", scope.build_string())?;
-                }
-                write!(f, "]")?;
-            }
-
-            // Add end_pattern if present
-            if let Some(pattern) = &frame.end_pattern {
-                write!(f, ", end_pattern=\"{}\"", pattern)?;
-            }
-
-            write!(f, ", anchor_pos={:?}", frame.anchor_position)?;
-
-            // Add enter_position if present and different from anchor_position
-            if let Some(enter_pos) = frame.enter_position
-                && frame.anchor_position != Some(enter_pos)
-            {
-                write!(f, ", enter_pos={}", enter_pos)?;
-            }
-
-            write!(
-                f,
-                ", begin_rule_has_captured_eol={}",
-                frame.begin_rule_has_captured_eol
-            )?;
-
-            writeln!(f)?;
-        }
-
-        Ok(())
-    }
-}
-
-/// Very small wrapper so we make we only produce valid tokens.
+/// Small wrapper so we make we only produce valid tokens.
 /// Called in the tokenizer a few times and easier to use a struct than pass
 /// mutable vec and usize everywhere
 #[derive(Debug, Clone, Default)]
-pub struct TokenAccumulator {
+struct TokenAccumulator {
     tokens: Vec<Token>,
     /// Position up to which tokens have been generated
     /// (start of next token to be produced)
@@ -276,86 +80,6 @@ impl TokenAccumulator {
         {
             t.span.end -= 1;
         }
-    }
-}
-
-/// We use that as a way to convey both the rule and which anchors should be active
-/// in regexes. We don't want to enable \A or \G everywhere, it's context dependent.
-#[derive(Copy, Clone, PartialEq, Hash, Eq)]
-enum AnchorActive {
-    // Only \A is active
-    A,
-    // Only \G is active
-    G,
-    // Both \A and \G are active
-    AG,
-    // Neither \A nor \G are active
-    None,
-}
-
-impl AnchorActive {
-    pub fn new(is_first_line: bool, anchor_position: Option<usize>, current_pos: usize) -> Self {
-        let g_active = if let Some(a_pos) = anchor_position {
-            a_pos == current_pos
-        } else {
-            false
-        };
-
-        if is_first_line {
-            if g_active {
-                AnchorActive::AG
-            } else {
-                AnchorActive::A
-            }
-        } else if g_active {
-            AnchorActive::G
-        } else {
-            AnchorActive::None
-        }
-    }
-
-    /// This follows vscode-textmate and replaces it with something that is very unlikely
-    /// to match
-    pub fn replace_anchors<'a>(&self, pat: &'a str) -> Cow<'a, str> {
-        match self {
-            AnchorActive::AG => {
-                // No replacements needed
-                Cow::Borrowed(pat)
-            }
-            AnchorActive::A => {
-                if pat.contains("\\G") {
-                    Cow::Owned(pat.replace("\\G", "\u{FFFF}"))
-                } else {
-                    Cow::Borrowed(pat)
-                }
-            }
-            AnchorActive::G => {
-                if pat.contains("\\A") {
-                    Cow::Owned(pat.replace("\\A", "\u{FFFF}"))
-                } else {
-                    Cow::Borrowed(pat)
-                }
-            }
-            AnchorActive::None => {
-                if pat.contains("\\A") || pat.contains("\\G") {
-                    Cow::Owned(pat.replace("\\A", "\u{FFFF}").replace("\\G", "\u{FFFF}"))
-                } else {
-                    Cow::Borrowed(pat)
-                }
-            }
-        }
-    }
-}
-
-impl fmt::Debug for AnchorActive {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            AnchorActive::A => "allow_A=true, allow_G=false",
-            AnchorActive::G => "allow_A=false, allow_G=true",
-            AnchorActive::AG => "allow_A=true, allow_G=true",
-            AnchorActive::None => "allow_A=false, allow_G=false",
-        };
-        f.write_str(s)
     }
 }
 

@@ -1,8 +1,10 @@
-use crate::grammars::{END_RULE_ID, GlobalRuleRef};
-use crate::tokenizer::TokenizeError;
-use onig::{RegSet, RegexOptions};
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
+
+use onig::{RegSet, RegexOptions};
+
+use crate::grammars::{END_RULE_ID, GlobalRuleRef};
+use crate::tokenizer::TokenizeError;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PatternSetMatch {
