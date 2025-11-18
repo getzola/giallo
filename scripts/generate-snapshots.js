@@ -58,6 +58,7 @@ async function main() {
             const line = lines[lineIndex];
 
             // Call both tokenization methods
+            // We have the same output as tokenizeLine but we need tokenizeLine2 to get the style
             const t1Result = grammar.tokenizeLine(line, ruleStack);
             const t2Result = grammar.tokenizeLine2(line, binaryRuleStack);
 
@@ -82,12 +83,11 @@ async function main() {
                 });
             }
 
-            // Map t2 styling to t1 tokens using boundary checking
             for (const t1Token of t1Result.tokens) {
                 // Get token text from t1 boundaries
                 const tokenText = line.substring(t1Token.startIndex, t1Token.endIndex);
                 if (tokenText === '' && t1Token.startIndex === 0 && t1Token.endIndex === 1) {
-                    continue; // Skip this token
+                    continue; // Skip empty lines
                 }
                 let matched = false;
                 for (const t2Token of t2TokensParsed) {

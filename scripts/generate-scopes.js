@@ -4,12 +4,6 @@ const fs = require('fs');
 const path = require('path');
 const {createRegistry, getSamples} = require("./lib/textmate-common");
 
-/**
- * Script to inspect token scopes using vscode-textmate
- * Processes all .sample files from grammars-themes/samples/
- * and saves tokenization scope output to {grammarName}.txt
- */
-
 const OUTPUT_DIR = 'src/fixtures/tokens';
 
 function ensureOutputDirectory() {
@@ -54,9 +48,9 @@ function processSample(grammar, lines) {
     tokensByLine.forEach(lineData => {
         lineData.tokens.forEach((token, tokenIndex) => {
             const value = lineData.line.substring(token.startIndex, token.endIndex);
-            // Skip empty line tokens (those with empty content and [0-1] range)
+            // Skip empty line
             if (value === '' && token.startIndex === 0 && token.endIndex === 1) {
-                return; // Skip this token
+                return;
             }
             output += `${tokenIndex}: '${value}' (line ${lineData.lineNumber})\n`;
             token.scopes.forEach(scope => {
@@ -74,8 +68,6 @@ function processSample(grammar, lines) {
 async function inspectScopes() {
     const {registry, grammarMap, nameToScope} = await createRegistry();
     const samples = getSamples();
-
-    // Ensure output directory exists
     ensureOutputDirectory();
 
     console.log(`Found ${samples.size} sample files to process...`);
