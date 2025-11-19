@@ -7,11 +7,12 @@ use crate::grammars::{
     BASE_GLOBAL_RULE_REF, CompiledGrammar, GlobalRuleRef, GrammarId, InjectionPrecedence, Match,
     NO_OP_GLOBAL_RULE_REF, ROOT_RULE_ID, RawGrammar, Rule,
 };
-use crate::highlight::{HighlightedText, Highlighter};
+use crate::highlight::{HighlightedText, Highlighter, MergingOptions};
+use crate::renderers::{Renderer, html};
 use crate::scope::Scope;
 #[cfg(feature = "dump")]
 use crate::scope::ScopeRepository;
-use crate::themes::{CompiledTheme, RawTheme};
+use crate::themes::{CompiledTheme, RawTheme, Style};
 use crate::tokenizer::{Token, Tokenizer};
 
 #[cfg(feature = "dump")]
@@ -136,11 +137,12 @@ impl Registry {
         }
     }
 
+    #[allow(clippy::type_complexity)]
     pub fn highlight(
         &self,
         content: &str,
         options: HighlightOptions,
-    ) -> Result<Vec<Vec<HighlightedText>>, Box<dyn std::error::Error>> {
+    ) -> Result<(Style, Vec<Vec<HighlightedText>>), Box<dyn std::error::Error>> {
         let grammar_id = *self
             .grammar_id_by_name
             .get(options.lang)
@@ -154,8 +156,7 @@ impl Registry {
 
         let tokens = self.tokenize(grammar_id, &normalized_content)?;
 
-        // Create merging options from HighlightOptions
-        let merging_options = crate::highlight::MergingOptions {
+        let merging_options = MergingOptions {
             merge_whitespaces: options.merge_whitespaces,
             merge_same_style_tokens: options.merge_same_style_tokens,
         };
@@ -165,7 +166,18 @@ impl Registry {
         let highlighted_tokens =
             highlighter.highlight_tokens(&normalized_content, tokens, merging_options);
 
-        Ok(highlighted_tokens)
+        Ok((theme.default_style, highlighted_tokens))
+    }
+
+    pub fn render(
+        &self,
+        default_style: Style,
+        tokens: Vec<Vec<HighlightedText>>,
+        renderer: Renderer,
+    ) -> String {
+        match renderer {
+            Renderer::Html => html::render(default_style, tokens),
+        }
     }
 
     pub fn link_grammars(&mut self) {
@@ -498,7 +510,7 @@ mod tests {
             let sample_path = format!("grammars-themes/samples/{grammar}.sample");
             println!("Checking {sample_path}");
             let sample_content = normalize_string(&fs::read_to_string(sample_path).unwrap());
-            let highlighted_tokens = registry
+            let (_, highlighted_tokens) = registry
                 .highlight(
                     &sample_content,
                     HighlightOptions {

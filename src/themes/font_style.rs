@@ -46,4 +46,24 @@ impl FontStyle {
     pub fn insert(&mut self, other: Self) {
         self.bits |= other.bits;
     }
+
+    pub fn css_attributes(&self) -> Vec<&'static str> {
+        let mut out = Vec::new();
+
+        if self.contains(FontStyle::BOLD) {
+            out.push("font-weight: bold;");
+        }
+        if self.contains(FontStyle::ITALIC) {
+            out.push("font-style: italic;");
+        }
+        if self.contains(FontStyle::UNDERLINE) && self.contains(FontStyle::STRIKETHROUGH) {
+            out.push("text-decoration: underline line-through;");
+        } else if self.contains(FontStyle::UNDERLINE) {
+            out.push("text-decoration: underline;");
+        } else if self.contains(FontStyle::STRIKETHROUGH) {
+            out.push("text-decoration: line-through;");
+        }
+
+        out
+    }
 }

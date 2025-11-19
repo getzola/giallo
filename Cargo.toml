@@ -3,7 +3,7 @@ name = "giallo"
 version = "0.0.1"
 edition = "2024"
 license = "EUPL-1.2"
-description = "A HTML code highlighter"
+description = "A code highlighter giving the same output as VSCode"
 
 [dependencies]
 onig = { version = "6", default-features = false, git = "https://github.com/Keats/rust-onig", branch = "main" }
@@ -26,7 +26,7 @@ dump = ["dep:rmp-serde", "dep:flate2"]
 criterion = "0.7"
 pretty_assertions = "1.0"
 insta = { version = "1", features = ["yaml"] }
-env_logger = "0.11.8"
+# env_logger = "0.11.8"
 
 [profile.dev.package]
 insta.opt-level = 3
@@ -47,6 +47,10 @@ required-features = ["dump"]
 
 [[example]]
 name = "profile_jquery"
+required-features = ["dump"]
+
+[[example]]
+name = "output_html"
 required-features = ["dump"]
 
 [[bin]]
