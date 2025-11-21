@@ -56,12 +56,23 @@ impl Color {
         a: 255,
     };
 
+    #[inline]
     pub fn as_hex(&self) -> String {
         if self.a < 255 {
             format!("#{:02X}{:02X}{:02X}{:02X}", self.r, self.g, self.b, self.a)
         } else {
             format!("#{:02X}{:02X}{:02X}", self.r, self.g, self.b)
         }
+    }
+
+    #[inline]
+    pub fn as_css_color_property(&self) -> String {
+        format!("color: {};", self.as_hex())
+    }
+
+    #[inline]
+    pub fn as_css_bg_color_property(&self) -> String {
+        format!("background-color: {};", self.as_hex())
     }
 
     pub fn from_hex(hex: &str) -> Result<Self, Box<dyn std::error::Error>> {

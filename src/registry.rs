@@ -180,6 +180,21 @@ impl Registry {
         }
     }
 
+    /// Generate CSS stylesheet for a theme with the given prefix for the classes
+    pub fn generate_css(
+        &self,
+        theme_name: &str,
+        prefix: &'static str,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let theme = self
+            .themes
+            .get(theme_name)
+            .ok_or_else(|| format!("Theme '{}' not found", theme_name))?;
+
+        crate::themes::generate_css(theme, prefix)
+            .map_err(|e| format!("CSS generation failed: {}", e).into())
+    }
+
     pub fn link_grammars(&mut self) {
         let grammar_names_ptr = &self.grammar_id_by_scope_name as *const HashMap<String, GrammarId>;
         let grammars_ptr = &self.grammars as *const Vec<CompiledGrammar>;

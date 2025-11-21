@@ -106,6 +106,10 @@ impl StyleModifier {
             font_style: self.font_style.unwrap_or(base.font_style),
         }
     }
+
+    pub fn has_properties(&self) -> bool {
+        self.foreground.is_some() || self.background.is_some() || self.font_style.is_some()
+    }
 }
 
 /// Theme type for determining fallback colors
@@ -146,11 +150,11 @@ pub struct CompiledThemeRule {
 pub struct CompiledTheme {
     pub name: String,
     /// Theme type ("light" or "dark")
-    pub theme_type: ThemeType,
+    pub(crate) theme_type: ThemeType,
     /// Default style for tokens with no specific rules
     pub default_style: Style,
     /// Theme rules sorted by specificity (most specific first)
-    pub rules: Vec<CompiledThemeRule>,
+    pub(crate) rules: Vec<CompiledThemeRule>,
 }
 
 impl CompiledTheme {
@@ -233,6 +237,14 @@ impl CompiledTheme {
             default_style,
             rules,
         })
+    }
+
+    pub fn is_dark(&self) -> bool {
+        self.theme_type == ThemeType::Dark
+    }
+
+    pub fn is_light(&self) -> bool {
+        self.theme_type == ThemeType::Light
     }
 }
 
