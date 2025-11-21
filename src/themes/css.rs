@@ -71,7 +71,7 @@ fn generate_rule_css(
 
 /// Convert a scope to CSS selector with prefixed classes
 /// e.g., "keyword.operator" -> ".g-keyword.g-operator"
-fn scope_to_css_selector(scope: Scope, prefix: &'static str) -> String {
+pub fn scope_to_css_selector(scope: Scope, prefix: &'static str) -> String {
     let mut selector = String::new();
     let repo = lock_global_scope_repo();
 

@@ -3,11 +3,6 @@ use std::ops::RangeInclusive;
 pub mod html;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Renderer {
-    Html,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Options {
     show_line_numbers: bool,
     line_number_start: isize,

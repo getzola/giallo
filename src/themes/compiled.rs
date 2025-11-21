@@ -153,6 +153,8 @@ pub struct CompiledTheme {
     pub(crate) theme_type: ThemeType,
     /// Default style for tokens with no specific rules
     pub default_style: Style,
+    /// Value of `editor.lineHighlightBackground`
+    pub highlight_background_color: Option<Color>,
     /// Theme rules sorted by specificity (most specific first)
     pub(crate) rules: Vec<CompiledThemeRule>,
 }
@@ -166,6 +168,11 @@ impl CompiledTheme {
 
         let foreground = Color::from_hex(&raw_theme.colors.foreground)?;
         let background = Color::from_hex(&raw_theme.colors.background)?;
+        let highlight_background_color = if let Some(bg) = raw_theme.colors.highlight_background {
+            Some(Color::from_hex(&bg)?)
+        } else {
+            None
+        };
 
         let mut default_style = Style {
             foreground,
@@ -235,6 +242,7 @@ impl CompiledTheme {
             name: raw_theme.name,
             theme_type,
             default_style,
+            highlight_background_color,
             rules,
         })
     }

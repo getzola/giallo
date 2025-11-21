@@ -4,8 +4,8 @@ pub mod scope;
 pub mod themes;
 
 mod highlight;
-mod renderers;
+pub(crate) mod renderers;
 mod tokenizer;
 
-pub use registry::Registry;
-pub use renderers::{Options, Renderer};
+pub use registry::{HighlightOptions, HighlightedCode, Registry};
+pub use renderers::{Options, html::HtmlRenderer};

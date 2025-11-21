@@ -10,24 +10,8 @@ List of issues in grammar:
 
 TODOs:
 
-- open up the repo
-- add a comprehensive Options struct
-- write proper HTML renderer that does follow all options
-- add CSS export for themes and allow using classes for highlight rather than hex
-
-let highlighted = registry.highlight(&code, HighlightOptions {
-  lang: "javascript",
-  theme: "catppuccin-frappe",
-  ..Default::default()
-  })?;
-
-  let html = highlighted.render(Renderer::Html {
-  css_class_prefix: Some("syntax-".to_string()), // None = inline styles, Some = CSS classes
-  }, RenderOptions {
-  show_line_numbers: true,
-  line_number_start: 1,
-  highlight_lines: vec![5..=7],
-  hide_lines: vec![1..=2],
-  })?;
-
-  let css = registry.generate_css("catppuccin-frappe", "syntax-")?;
+ - finish classed output
+ - add examples/output_html_classes.rs
+ - add some insta tests for HighlightedText.as_html()
+ - clean up renderer HtmlRenderer::render
+ - handle Options for HTML

@@ -1,15 +1,55 @@
-use crate::scope::Scope;
-use crate::themes::{CompiledTheme, Style, StyleModifier, ThemeSelector};
-use crate::tokenizer::Token;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::Range;
+
+use serde::{Deserialize, Serialize};
+
+use crate::scope::Scope;
+use crate::themes::{CompiledTheme, Style, StyleModifier, ThemeSelector, scope_to_css_selector};
+use crate::tokenizer::Token;
 
 /// A token with associated styling information
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HighlightedText {
     pub text: String,
     pub style: Style,
+    pub(crate) scopes: Vec<Scope>,
+}
+
+impl HighlightedText {
+    /// Renders this highlighted text as an HTML span element.
+    pub fn as_html(&self, prefix: Option<&'static str>, default_style: &Style) -> String {
+        if let Some(prefix) = prefix {
+            if self.scopes.is_empty() {
+                // No contributing scopes, just wrap in span
+                format!("<span>{}</span>", self.text)
+            } else {
+                // Generate CSS classes from contributing scopes
+                let css_classes: Vec<String> = self
+                    .scopes
+                    .iter()
+                    .map(|scope| scope_to_css_selector(*scope, prefix))
+                    .collect();
+                let class_attr = css_classes.join(" ").trim_start_matches('.').to_string();
+                format!(r#"<span class="{}">{}</span>"#, class_attr, self.text)
+            }
+        } else {
+            if self.style == *default_style {
+                format!("<span>{}</span>", self.text)
+            } else {
+                let mut css_style = String::with_capacity(30);
+                if self.style.foreground != default_style.foreground {
+                    css_style.push_str(&self.style.foreground.as_css_color_property());
+                }
+                if self.style.background != default_style.background {
+                    css_style.push_str(&self.style.background.as_css_bg_color_property());
+                }
+                for font_attr in self.style.font_style.css_attributes() {
+                    css_style.push_str(font_attr);
+                }
+                format!(r#"<span style="{}">{}</span>"#, css_style, self.text)
+            }
+        }
+    }
 }
 
 /// Options for token merging behavior
@@ -40,7 +80,7 @@ struct HighlightRule {
 pub struct Highlighter {
     rules: Vec<HighlightRule>,
     default_style: Style,
-    cache: HashMap<Vec<Scope>, Style>,
+    cache: HashMap<Vec<Scope>, (Style, Vec<Scope>)>,
 }
 
 impl Highlighter {
@@ -66,24 +106,28 @@ impl Highlighter {
 
     /// Match a scope stack against theme rules, building styles hierarchically
     /// like vscode-textmate does
-    pub fn match_scopes(&mut self, scopes: &[Scope]) -> Style {
+    pub fn match_scopes(&mut self, scopes: &[Scope]) -> (Style, Vec<Scope>) {
         // Check cache first
-        if let Some(&cached_style) = self.cache.get(scopes) {
-            return cached_style;
+        if let Some(cached_result) = self.cache.get(scopes) {
+            return cached_result.clone();
         }
 
-        // Cache miss - compute style
-        let style = self.match_scopes_uncached(scopes);
+        // Cache miss - compute style and contributing scopes
+        let result = self.match_scopes_uncached(scopes);
 
         // Cache the result
-        self.cache.insert(scopes.to_vec(), style);
+        self.cache.insert(scopes.to_vec(), result.clone());
 
-        style
+        result
     }
 
     /// Match a scope stack against theme rules without caching (internal implementation)
-    fn match_scopes_uncached(&self, scopes: &[Scope]) -> Style {
+    fn match_scopes_uncached(&self, scopes: &[Scope]) -> (Style, Vec<Scope>) {
         let mut current_style = self.default_style;
+        let mut contributing_scopes = Vec::new();
+
+        let mut fg_scope = None;
+        let mut bg_scope = None;
 
         // Build up scope path incrementally, simulating vscode-textmate's approach
         // Each scope level can override the accumulated style
@@ -93,15 +137,28 @@ impl Highlighter {
             // Apply all rules that match this current scope path (in specificity order)
             for rule in &self.rules {
                 if rule.selector.matches(current_scope_path) {
-                    // Apply style modifier to accumulated style (proper inheritance!)
+                    // Apply style modifier to accumulated style
                     current_style = rule.style_modifier.apply_to(&current_style);
-                    // Continue to apply all matching rules (rules sorted by specificity)
+                    // we only want the last relevant scopes
+                    if rule.style_modifier.foreground.is_some() {
+                        fg_scope = Some(rule.selector.target_scope);
+                    }
+                    if rule.style_modifier.background.is_some() {
+                        bg_scope = Some(rule.selector.target_scope);
+                    }
                 }
             }
-            // If no match found, current_style remains unchanged (inheritance!)
+            // If no match found, current_style remains unchanged
         }
 
-        current_style
+        if let Some(s) = fg_scope {
+            contributing_scopes.push(s);
+        }
+        if let Some(s) = bg_scope {
+            contributing_scopes.push(s);
+        }
+
+        (current_style, contributing_scopes)
     }
 
     /// Apply highlighting to tokenized lines, preserving line structure.
@@ -123,7 +180,10 @@ impl Highlighter {
 
             let mut line_result = line_tokens
                 .into_iter()
-                .map(|x| (x.span, self.match_scopes(&x.scopes)))
+                .map(|x| {
+                    let (style, contributing_scopes) = self.match_scopes(&x.scopes);
+                    (x.span, style, contributing_scopes)
+                })
                 .collect::<Vec<_>>();
 
             // first merge all ws by prepending to the next non-ws token
@@ -132,7 +192,8 @@ impl Highlighter {
                 let mut merged = Vec::with_capacity(num_tokens);
                 let mut carry_on_range: Option<Range<usize>> = None;
 
-                for (idx, (span, style)) in line_result.into_iter().enumerate() {
+                for (idx, (span, style, contributing_scopes)) in line_result.into_iter().enumerate()
+                {
                     let could_merge = !style.has_decorations();
                     let token_content = &line[span.clone()];
                     let is_whitespace_with_next = could_merge
@@ -150,16 +211,20 @@ impl Highlighter {
                         if let Some(carried_range) = &carry_on_range {
                             if could_merge {
                                 // We can prepend all the WS to that token
-                                merged.push((carried_range.start..span.end, style))
+                                merged.push((
+                                    carried_range.start..span.end,
+                                    style,
+                                    contributing_scopes,
+                                ))
                             } else {
                                 // We need to push 2 tokens here, one for the carried WS and one
                                 // for the current token
-                                merged.push((carried_range.clone(), Style::default()));
-                                merged.push((span, style));
+                                merged.push((carried_range.clone(), Style::default(), Vec::new()));
+                                merged.push((span, style, contributing_scopes));
                             }
                             carry_on_range = None;
                         } else {
-                            merged.push((span, style));
+                            merged.push((span, style, contributing_scopes));
                         }
                     }
                 }
@@ -170,17 +235,26 @@ impl Highlighter {
             // then merge same style tokens after we did the WS
             if options.merge_same_style_tokens {
                 let num_tokens = line_result.len();
-                let mut merged: Vec<(Range<usize>, Style)> = Vec::with_capacity(num_tokens);
+                let mut merged: Vec<(Range<usize>, Style, Vec<Scope>)> =
+                    Vec::with_capacity(num_tokens);
 
-                for (span, style) in line_result {
-                    if let Some((prev_span, prev_style)) = merged.last_mut() {
+                for (span, style, contributing_scopes) in line_result {
+                    if let Some((prev_span, prev_style, prev_contributing_scopes)) =
+                        merged.last_mut()
+                    {
                         if style == *prev_style {
                             prev_span.end = span.end;
+                            // Merge contributing scopes, avoiding duplicates
+                            for scope in contributing_scopes {
+                                if !prev_contributing_scopes.contains(&scope) {
+                                    prev_contributing_scopes.push(scope);
+                                }
+                            }
                         } else {
-                            merged.push((span, style));
+                            merged.push((span, style, contributing_scopes));
                         }
                     } else {
-                        merged.push((span, style));
+                        merged.push((span, style, contributing_scopes));
                     }
                 }
 
@@ -191,9 +265,10 @@ impl Highlighter {
             result.push(
                 line_result
                     .into_iter()
-                    .map(|(span, style)| HighlightedText {
+                    .map(|(span, style, contributing_scopes)| HighlightedText {
                         style,
                         text: line[span].to_string(),
+                        scopes: contributing_scopes,
                     })
                     .collect(),
             );
@@ -240,6 +315,7 @@ mod tests {
                 background: color("#1E1E1E"),
                 font_style: FontStyle::empty(),
             },
+            highlight_background_color: None,
             rules: vec![
                 CompiledThemeRule {
                     selector: parse_selector("comment").unwrap(),
@@ -274,17 +350,24 @@ mod tests {
         let mut highlighter = Highlighter::new(&test_theme());
 
         // Test matching scopes
-        let comment_style = highlighter.match_scopes(&[scope("comment")]);
+        let (comment_style, comment_scopes) = highlighter.match_scopes(&[scope("comment")]);
         assert_eq!(comment_style.foreground, color("#6A9955"));
         assert_eq!(comment_style.font_style, FontStyle::ITALIC);
 
-        let keyword_style = highlighter.match_scopes(&[scope("keyword")]);
+        let (keyword_style, keyword_scopes) = highlighter.match_scopes(&[scope("keyword")]);
         assert_eq!(keyword_style.foreground, color("#569CD6"));
         assert_eq!(keyword_style.font_style, FontStyle::BOLD);
 
         // Test unmatched scope returns default
-        let unknown_style = highlighter.match_scopes(&[scope("unknown")]);
+        let (unknown_style, unknown_scopes) = highlighter.match_scopes(&[scope("unknown")]);
         assert_eq!(unknown_style, highlighter.default_style);
+        assert!(unknown_scopes.is_empty());
+
+        // Test contributing scopes
+        assert_eq!(comment_scopes.len(), 1);
+        assert_eq!(comment_scopes[0], scope("comment"));
+        assert_eq!(keyword_scopes.len(), 1);
+        assert_eq!(keyword_scopes[0], scope("keyword"));
     }
 
     #[test]
@@ -294,7 +377,8 @@ mod tests {
         let theme =
             CompiledTheme::from_raw_theme(RawTheme::load_from_file(theme_path).unwrap()).unwrap();
         let mut highlighter = Highlighter::new(&theme);
-        let keyword_style = highlighter.match_scopes(&[scope("markup.bold.asciidoc")]);
+        let (keyword_style, _contributing_scopes) =
+            highlighter.match_scopes(&[scope("markup.bold.asciidoc")]);
         assert_eq!(keyword_style.font_style, FontStyle::BOLD);
     }
 
@@ -324,6 +408,15 @@ mod tests {
         // Comment token
         assert_eq!(highlighted[1][0].text, "//");
         assert_eq!(highlighted[1][0].style.foreground, color("#6A9955"));
+
+        // Test contributing scopes
+        let keyword_token = &highlighted[0][0];
+        assert_eq!(keyword_token.scopes.len(), 1);
+        assert_eq!(keyword_token.scopes[0], scope("keyword"));
+
+        let comment_token = &highlighted[1][0];
+        assert_eq!(comment_token.scopes.len(), 1);
+        assert_eq!(comment_token.scopes[0], scope("comment"));
     }
 
     #[test]
@@ -355,6 +448,7 @@ mod tests {
             colors: Colors {
                 foreground: "#D4D4D4".to_string(),
                 background: "#1E1E1E".to_string(),
+                highlight_background: None,
             },
             token_colors: vec![
                 // Parent: constant - has both foreground and fontStyle
@@ -392,17 +486,17 @@ mod tests {
         let mut highlighter = Highlighter::new(&inheritance_theme);
 
         // Test: constant should get its own values
-        let style = highlighter.match_scopes(&[scope("constant")]);
+        let (style, _) = highlighter.match_scopes(&[scope("constant")]);
         assert_eq!(style.foreground, color("#300000"));
         assert_eq!(style.font_style, FontStyle::ITALIC);
 
         // Test: constant.numeric should inherit fontStyle from constant but override foreground
-        let style = highlighter.match_scopes(&[scope("constant"), scope("constant.numeric")]);
+        let (style, _) = highlighter.match_scopes(&[scope("constant"), scope("constant.numeric")]);
         assert_eq!(style.foreground, color("#400000")); // Overridden
         assert_eq!(style.font_style, FontStyle::ITALIC);
 
         // Test: constant.numeric.hex should inherit foreground from constant.numeric but override fontStyle
-        let style = highlighter.match_scopes(&[
+        let (style, _) = highlighter.match_scopes(&[
             scope("constant"),
             scope("constant.numeric"),
             scope("constant.numeric.hex"),
@@ -430,7 +524,7 @@ mod tests {
             scope("meta.tag.other.invalid.start.html"),
             scope("punctuation.definition.tag.begin.html"),
         ];
-        let style1 = highlighter.match_scopes(&token1_scopes);
+        let (style1, _) = highlighter.match_scopes(&token1_scopes);
 
         // Token 2: 'p' - Invalid/unrecognized HTML tag name
         let token2_scopes = [
@@ -442,7 +536,7 @@ mod tests {
             scope("entity.name.tag.html"),
             scope("invalid.illegal.unrecognized-tag.html"),
         ];
-        let style2 = highlighter.match_scopes(&token2_scopes);
+        let (style2, _) = highlighter.match_scopes(&token2_scopes);
 
         // Token 3: '>' - HTML tag end punctuation
         let token3_scopes = [
@@ -453,7 +547,7 @@ mod tests {
             scope("meta.tag.other.invalid.start.html"),
             scope("punctuation.definition.tag.end.html"),
         ];
-        let style3 = highlighter.match_scopes(&token3_scopes);
+        let (style3, _) = highlighter.match_scopes(&token3_scopes);
 
         // Verify that styles are not default (theme inheritance is working)
         assert_ne!(style1, compiled_theme.default_style);
