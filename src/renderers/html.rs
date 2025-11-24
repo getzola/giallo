@@ -3,36 +3,18 @@ use crate::renderers::Options;
 use std::collections::BTreeMap;
 
 #[derive(Debug, PartialEq, Clone, Default)]
-pub struct HtmlRenderer {
-    pub css_class_prefix: Option<&'static str>,
+pub struct HtmlRenderer<'h> {
+    pub css_class_prefix: Option<&'h str>,
     pub other_metadata: BTreeMap<String, String>,
 }
 
-impl HtmlRenderer {
+impl<'h> HtmlRenderer<'h> {
     pub fn render(&self, highlighted: &HighlightedCode, options: &Options) -> String {
-        self.render_internal(highlighted, options, None)
-    }
-
-    pub fn render_with_classes(
-        &self,
-        highlighted: &HighlightedCode,
-        options: &Options,
-        prefix: &'static str,
-    ) -> String {
-        self.render_internal(highlighted, options, Some(prefix))
-    }
-
-    fn render_internal(
-        &self,
-        highlighted: &HighlightedCode,
-        _options: &Options,
-        prefix: Option<&'static str>,
-    ) -> String {
         let mut lines = Vec::with_capacity(highlighted.tokens.len() + 4);
         for line_tokens in &highlighted.tokens {
             let mut line = Vec::with_capacity(line_tokens.len());
             for tok in line_tokens {
-                line.push(tok.as_html(prefix, &highlighted.theme.default_style));
+                line.push(tok.as_html(self.css_class_prefix, &highlighted.theme.default_style));
             }
             lines.push(line.join(""));
         }

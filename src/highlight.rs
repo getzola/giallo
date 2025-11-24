@@ -17,7 +17,7 @@ pub struct HighlightedText {
 
 impl HighlightedText {
     /// Renders this highlighted text as an HTML span element.
-    pub fn as_html(&self, prefix: Option<&'static str>, default_style: &Style) -> String {
+    pub fn as_html(&self, prefix: Option<&str>, default_style: &Style) -> String {
         if let Some(prefix) = prefix {
             if self.scopes.is_empty() {
                 // No contributing scopes, just wrap in span
