@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use std::ops::Range;
 
+use serde::{Deserialize, Serialize};
+
 use crate::renderers::html::HtmlEscaped;
 use crate::scope::Scope;
-use crate::themes::{CompiledTheme, Style, StyleModifier, ThemeSelector};
+use crate::themes::{CompiledTheme, Style};
 use crate::tokenizer::Token;
-use serde::{Deserialize, Serialize};
 
 /// A token with associated styling information
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -52,38 +53,18 @@ impl Default for MergingOptions {
     }
 }
 
-/// Internal rule for highlighting - one selector per rule
-#[derive(Debug, Clone)]
-struct HighlightRule {
-    selector: ThemeSelector,
-    style_modifier: StyleModifier,
-}
-
 /// Highlighter that applies theme styles to tokenized code
 #[derive(Debug, Clone)]
-pub struct Highlighter {
-    rules: Vec<HighlightRule>,
-    default_style: Style,
+pub(crate) struct Highlighter<'r> {
+    theme: &'r CompiledTheme,
     cache: HashMap<Vec<Scope>, Style>,
 }
 
-impl Highlighter {
+impl<'r> Highlighter<'r> {
     /// Create a new highlighter from a compiled theme
-    pub fn new(theme: &CompiledTheme) -> Self {
-        let mut rules = Vec::new();
-
-        // Flatten CompiledThemeRules into HighlightRules (one per selector)
-        // Rules are already sorted by specificity in CompiledTheme
-        for compiled_rule in &theme.rules {
-            rules.push(HighlightRule {
-                selector: compiled_rule.selector.clone(),
-                style_modifier: compiled_rule.style_modifier,
-            });
-        }
-
+    pub fn new(theme: &'r CompiledTheme) -> Self {
         Highlighter {
-            rules,
-            default_style: theme.default_style,
+            theme,
             cache: HashMap::new(),
         }
     }
@@ -107,14 +88,14 @@ impl Highlighter {
 
     /// Match a scope stack against theme rules without caching (internal implementation)
     fn match_scopes_uncached(&self, scopes: &[Scope]) -> Style {
-        let mut current_style = self.default_style;
+        let mut current_style = self.theme.default_style;
 
         // Build up scope path incrementally, simulating vscode-textmate's approach
         // Each scope level can override the accumulated style
         for i in 1..=scopes.len() {
             let current_scope_path = &scopes[0..i];
 
-            for rule in &self.rules {
+            for rule in &self.theme.rules {
                 if rule.selector.matches(current_scope_path) {
                     current_style = rule.style_modifier.apply_to(&current_style);
                 }
@@ -284,16 +265,9 @@ mod tests {
     }
 
     #[test]
-    fn test_highlighter_new() {
-        let theme = test_theme();
-        let highlighter = Highlighter::new(&theme);
-        assert_eq!(highlighter.rules.len(), 2);
-        assert_eq!(highlighter.default_style, theme.default_style);
-    }
-
-    #[test]
     fn test_match_scopes() {
-        let mut highlighter = Highlighter::new(&test_theme());
+        let test_theme = test_theme();
+        let mut highlighter = Highlighter::new(&test_theme);
 
         // Test matching scopes
         let comment_style = highlighter.match_scopes(&[scope("comment")]);
@@ -306,12 +280,13 @@ mod tests {
 
         // Test unmatched scope returns default
         let unknown_style = highlighter.match_scopes(&[scope("unknown")]);
-        assert_eq!(unknown_style, highlighter.default_style);
+        assert_eq!(unknown_style, highlighter.theme.default_style);
     }
 
     #[test]
     fn test_highlight_tokens() {
-        let mut highlighter = Highlighter::new(&test_theme());
+        let test_theme = test_theme();
+        let mut highlighter = Highlighter::new(&test_theme);
         let tokens = vec![
             vec![token(0, 2, "keyword"), token(3, 8, "unknown")],
             vec![token(0, 2, "comment")],
