@@ -4,18 +4,17 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 #[derive(Debug, PartialEq, Clone, Default)]
-pub struct HtmlRenderer<'h> {
-    pub css_class_prefix: Option<&'h str>,
+pub struct HtmlRenderer {
     pub other_metadata: BTreeMap<String, String>,
 }
 
-impl<'h> HtmlRenderer<'h> {
+impl HtmlRenderer {
     pub fn render(&self, highlighted: &HighlightedCode, _options: &Options) -> String {
         let mut lines = Vec::with_capacity(highlighted.tokens.len() + 4);
         for line_tokens in &highlighted.tokens {
             let mut line = Vec::with_capacity(line_tokens.len());
             for tok in line_tokens {
-                line.push(tok.as_html(self.css_class_prefix, &highlighted.theme.default_style));
+                line.push(tok.as_html(&highlighted.theme.default_style));
             }
             lines.push(line.join(""));
         }
