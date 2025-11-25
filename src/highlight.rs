@@ -23,31 +23,31 @@ impl HighlightedText {
                 // No contributing scopes, just wrap in span
                 format!("<span>{}</span>", self.text)
             } else {
-                // Generate CSS classes from contributing scopes
                 let css_classes: Vec<String> = self
                     .scopes
                     .iter()
-                    .map(|scope| scope_to_css_selector(*scope, prefix))
+                    .map(|scope| scope_to_css_selector(*scope, prefix, true))
                     .collect();
-                let class_attr = css_classes.join(" ").trim_start_matches('.').to_string();
-                format!(r#"<span class="{}">{}</span>"#, class_attr, self.text)
+                format!(
+                    r#"<span class="{}">{}</span>"#,
+                    css_classes.join(" ").trim(),
+                    self.text
+                )
             }
+        } else if self.style == *default_style {
+            format!("<span>{}</span>", self.text)
         } else {
-            if self.style == *default_style {
-                format!("<span>{}</span>", self.text)
-            } else {
-                let mut css_style = String::with_capacity(30);
-                if self.style.foreground != default_style.foreground {
-                    css_style.push_str(&self.style.foreground.as_css_color_property());
-                }
-                if self.style.background != default_style.background {
-                    css_style.push_str(&self.style.background.as_css_bg_color_property());
-                }
-                for font_attr in self.style.font_style.css_attributes() {
-                    css_style.push_str(font_attr);
-                }
-                format!(r#"<span style="{}">{}</span>"#, css_style, self.text)
+            let mut css_style = String::with_capacity(30);
+            if self.style.foreground != default_style.foreground {
+                css_style.push_str(&self.style.foreground.as_css_color_property());
             }
+            if self.style.background != default_style.background {
+                css_style.push_str(&self.style.background.as_css_bg_color_property());
+            }
+            for font_attr in self.style.font_style.css_attributes() {
+                css_style.push_str(font_attr);
+            }
+            format!(r#"<span style="{}">{}</span>"#, css_style, self.text)
         }
     }
 }
@@ -582,5 +582,111 @@ mod tests {
         println!("Token '<' style: {:?}", style1);
         println!("Token 'p' style: {:?}", style2);
         println!("Token '>' style: {:?}", style3);
+    }
+
+    #[test]
+    fn test_as_html_empty() {
+        let test_theme = test_theme();
+        let ht = HighlightedText {
+            text: "hello".to_string(),
+            style: test_theme.default_style,
+            scopes: vec![],
+        };
+        let res = ht.as_html(Some("g-"), &test_theme.default_style);
+        insta::assert_snapshot!(res, @"<span>hello</span>");
+        let res = ht.as_html(None, &test_theme.default_style);
+        insta::assert_snapshot!(res, @"<span>hello</span>");
+    }
+
+    #[test]
+    fn test_as_html_class_generation_basic() {
+        let test_theme = test_theme();
+        let ht = HighlightedText {
+            text: "hello".to_string(),
+            style: test_theme.default_style,
+            scopes: vec![scope("keyword"), scope("control")],
+        };
+        let res = ht.as_html(Some("g-"), &test_theme.default_style);
+        insta::assert_snapshot!(res, @r#"<span class="g-keyword g-control">hello</span>"#);
+    }
+
+    #[test]
+    fn test_as_html_class_generation() {
+        let test_theme = test_theme();
+        let ht = HighlightedText {
+            text: "hello".to_string(),
+            style: test_theme.default_style,
+            scopes: vec![scope("source.js")],
+        };
+        let res = ht.as_html(Some("g-"), &test_theme.default_style);
+        insta::assert_snapshot!(res, @r#"<span class="g-source g-js">hello</span>"#);
+    }
+
+    #[test]
+    fn test_as_html_hex_fg_diff() {
+        let test_theme = test_theme();
+        let custom_style = Style {
+            foreground: color("#FFFF00"),
+            background: test_theme.default_style.background,
+            font_style: test_theme.default_style.font_style,
+        };
+        let ht = HighlightedText {
+            text: "hello".to_string(),
+            style: custom_style,
+            scopes: vec![],
+        };
+        let res = ht.as_html(None, &test_theme.default_style);
+        insta::assert_snapshot!(res, @r#"<span style="color: #FFFF00;">hello</span>"#);
+    }
+
+    #[test]
+    fn test_as_html_hex_bg_diff() {
+        let test_theme = test_theme();
+        let custom_style = Style {
+            foreground: test_theme.default_style.foreground,
+            background: color("#FFFF00"),
+            font_style: test_theme.default_style.font_style,
+        };
+        let ht = HighlightedText {
+            text: "hello".to_string(),
+            style: custom_style,
+            scopes: vec![],
+        };
+        let res = ht.as_html(None, &test_theme.default_style);
+        insta::assert_snapshot!(res, @r#"<span style="background-color: #FFFF00;">hello</span>"#);
+    }
+
+    #[test]
+    fn test_as_html_hex_fontstyle_diff() {
+        let test_theme = test_theme();
+        let custom_style = Style {
+            foreground: test_theme.default_style.foreground,
+            background: test_theme.default_style.background,
+            font_style: FontStyle::ITALIC,
+        };
+        let ht = HighlightedText {
+            text: "hello".to_string(),
+            style: custom_style,
+            scopes: vec![],
+        };
+        let res = ht.as_html(None, &test_theme.default_style);
+        insta::assert_snapshot!(res, @r#"<span style="font-style: italic;">hello</span>"#);
+    }
+
+    #[test]
+    fn test_as_html_hex_completely_different() {
+        let test_theme = test_theme();
+        let custom_style = Style {
+            foreground: color("#FFFF00"),
+            background: color("#FFFF00"),
+            font_style: FontStyle::ITALIC,
+        };
+        let ht = HighlightedText {
+            text: "hello".to_string(),
+            style: custom_style,
+            scopes: vec![],
+        };
+        let res = ht.as_html(None, &test_theme.default_style);
+        insta::assert_snapshot!(res, @r#"<span style="color: #FFFF00;background-color: #FFFF00;font-style: italic;">hello</span>"#);
     }
 }

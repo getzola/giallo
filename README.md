@@ -10,8 +10,6 @@ List of issues in grammar:
 
 TODOs:
 
- - finish classed output
- - add examples/output_html_classes.rs
+
  - add some insta tests for HighlightedText.as_html()
- - clean up renderer HtmlRenderer::render
  - handle Options for HTML

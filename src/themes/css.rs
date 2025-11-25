@@ -50,7 +50,7 @@ fn generate_rule_css(
     rule: &crate::themes::compiled::CompiledThemeRule,
     prefix: &'static str,
 ) -> Result<(), std::fmt::Error> {
-    let css_selector = scope_to_css_selector(rule.selector.target_scope, prefix);
+    let css_selector = scope_to_css_selector(rule.selector.target_scope, prefix, false);
 
     write!(css, "{css_selector} {{")?;
 
@@ -69,9 +69,10 @@ fn generate_rule_css(
     Ok(())
 }
 
-/// Convert a scope to CSS selector with prefixed classes
-/// e.g., "keyword.operator" -> ".g-keyword.g-operator"
-pub fn scope_to_css_selector(scope: Scope, prefix: &str) -> String {
+/// Convert a scope to CSS selector or class string with prefixed classes
+/// e.g. "keyword.operator" -> ".g-keyword.g-operator" if as_class=false
+/// and "g-keyword g-operator" if as_class=true
+pub fn scope_to_css_selector(scope: Scope, prefix: &str, as_class: bool) -> String {
     let mut selector = String::new();
     let repo = lock_global_scope_repo();
 
@@ -86,9 +87,14 @@ pub fn scope_to_css_selector(scope: Scope, prefix: &str) -> String {
             }
             n => {
                 let atom_str = repo.atom_number_to_str(n);
-                selector.push('.');
+                if as_class {
+                    if !selector.is_empty() {
+                        selector.push(' ');
+                    }
+                } else {
+                    selector.push('.');
+                }
                 selector.push_str(prefix);
-                selector.push('-');
                 selector.push_str(&escape_css_identifier(atom_str));
             }
         }
@@ -135,11 +141,11 @@ mod tests {
     #[test]
     fn test_scope_to_css_selector() {
         let scope = Scope::new("keyword.operator")[0];
-        let selector = scope_to_css_selector(scope, "g");
+        let selector = scope_to_css_selector(scope, "g-", false);
         assert_eq!(selector, ".g-keyword.g-operator");
 
         let simple_scope = Scope::new("comment")[0];
-        let simple_selector = scope_to_css_selector(simple_scope, "g");
+        let simple_selector = scope_to_css_selector(simple_scope, "g-", false);
         assert_eq!(simple_selector, ".g-comment");
     }
 
@@ -151,6 +157,6 @@ mod tests {
         .unwrap()
         .compile()
         .unwrap();
-        assert_snapshot!(generate_css(&theme, "g").unwrap());
+        assert_snapshot!(generate_css(&theme, "g-").unwrap());
     }
 }
