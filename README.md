@@ -10,7 +10,5 @@ List of issues in grammar:
 
 TODOs:
 
-- open up the repo
-- add a comprehensive Options struct
-- write proper HTML renderer that does follow all options
-- add CSS export for themes and allow using classes for highlight rather than hex
+ - handle Options for HTML
+ - add a way to generate a single file for light/dark themes and switch with a simple class + default CSS for inline

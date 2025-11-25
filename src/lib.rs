@@ -4,8 +4,10 @@ pub mod scope;
 pub mod themes;
 
 mod highlight;
-mod renderers;
+mod markdown_fence;
+pub(crate) mod renderers;
 mod tokenizer;
 
-pub use registry::Registry;
-pub use renderers::{Options, Renderer};
+pub use markdown_fence::parse_markdown_fence;
+pub use registry::{HighlightOptions, HighlightedCode, Registry};
+pub use renderers::{Options, html::HtmlRenderer};

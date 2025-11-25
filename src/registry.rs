@@ -8,11 +8,11 @@ use crate::grammars::{
     NO_OP_GLOBAL_RULE_REF, ROOT_RULE_ID, RawGrammar, Rule,
 };
 use crate::highlight::{HighlightedText, Highlighter, MergingOptions};
-use crate::renderers::{Renderer, html};
+
 use crate::scope::Scope;
 #[cfg(feature = "dump")]
 use crate::scope::ScopeRepository;
-use crate::themes::{CompiledTheme, RawTheme, Style};
+use crate::themes::{CompiledTheme, RawTheme};
 use crate::tokenizer::{Token, Tokenizer};
 
 #[cfg(feature = "dump")]
@@ -39,6 +39,14 @@ impl<'a> Default for HighlightOptions<'a> {
             merge_same_style_tokens: true,
         }
     }
+}
+
+/// Highlighted code with language, theme, and tokens
+#[derive(Debug, Clone)]
+pub struct HighlightedCode<'a> {
+    pub language: &'a str,
+    pub theme: &'a CompiledTheme,
+    pub tokens: Vec<Vec<HighlightedText>>,
 }
 
 #[inline]
@@ -137,12 +145,11 @@ impl Registry {
         }
     }
 
-    #[allow(clippy::type_complexity)]
-    pub fn highlight(
-        &self,
+    pub fn highlight<'a>(
+        &'a self,
         content: &str,
-        options: HighlightOptions,
-    ) -> Result<(Style, Vec<Vec<HighlightedText>>), Box<dyn std::error::Error>> {
+        options: HighlightOptions<'a>,
+    ) -> Result<HighlightedCode<'a>, Box<dyn std::error::Error>> {
         let grammar_id = *self
             .grammar_id_by_name
             .get(options.lang)
@@ -166,18 +173,26 @@ impl Registry {
         let highlighted_tokens =
             highlighter.highlight_tokens(&normalized_content, tokens, merging_options);
 
-        Ok((theme.default_style, highlighted_tokens))
+        Ok(HighlightedCode {
+            language: &self.grammars[grammar_id].name,
+            theme,
+            tokens: highlighted_tokens,
+        })
     }
 
-    pub fn render(
+    /// Generate CSS stylesheet for a theme with the given prefix for the classes
+    pub fn generate_css(
         &self,
-        default_style: Style,
-        tokens: Vec<Vec<HighlightedText>>,
-        renderer: Renderer,
-    ) -> String {
-        match renderer {
-            Renderer::Html => html::render(default_style, tokens),
-        }
+        theme_name: &str,
+        prefix: &'static str,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let theme = self
+            .themes
+            .get(theme_name)
+            .ok_or_else(|| format!("Theme '{}' not found", theme_name))?;
+
+        crate::themes::generate_css(theme, prefix)
+            .map_err(|e| format!("CSS generation failed: {}", e).into())
     }
 
     pub fn link_grammars(&mut self) {
@@ -510,7 +525,7 @@ mod tests {
             let sample_path = format!("grammars-themes/samples/{grammar}.sample");
             println!("Checking {sample_path}");
             let sample_content = normalize_string(&fs::read_to_string(sample_path).unwrap());
-            let (_, highlighted_tokens) = registry
+            let highlighted = registry
                 .highlight(
                     &sample_content,
                     HighlightOptions {
@@ -522,7 +537,7 @@ mod tests {
                 )
                 .unwrap();
 
-            let out = format_highlighted_tokens(&highlighted_tokens, &sample_content);
+            let out = format_highlighted_tokens(&highlighted.tokens, &sample_content);
             assert_eq!(expected.trim(), out.trim());
         }
     }

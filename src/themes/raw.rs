@@ -69,6 +69,7 @@ where
 pub struct Colors {
     pub foreground: String,
     pub background: String,
+    pub highlight_background: Option<String>,
 }
 
 // Some themes have it as editor.foreground/background some don't have the `editor.` prefix
@@ -92,6 +93,7 @@ impl<'de> Deserialize<'de> for Colors {
             {
                 let mut foreground = None;
                 let mut background = None;
+                let mut highlight_background = None;
 
                 while let Some(key) = map.next_key::<String>()? {
                     match key.as_str() {
@@ -111,6 +113,9 @@ impl<'de> Deserialize<'de> for Colors {
                                 let _: de::IgnoredAny = map.next_value()?;
                             }
                         }
+                        "editor.lineHighlightBackground" => {
+                            highlight_background = Some(map.next_value()?);
+                        }
                         _ => {
                             // Skip unknown fields
                             let _: de::IgnoredAny = map.next_value()?;
@@ -126,6 +131,7 @@ impl<'de> Deserialize<'de> for Colors {
                 Ok(Colors {
                     foreground,
                     background,
+                    highlight_background,
                 })
             }
         }

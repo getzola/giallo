@@ -86,4 +86,6 @@ jobs:
 
       - name: Run examples
         run: |
-          cargo run --example=profile_jquery --features="dump"
+          cargo run --release --example=profile_jquery --features="dump"
+          cargo run --release --example output_html --features="dump" -- grammars-themes/samples/javascript.sample javascript
+          cargo run --release --example output_html --features="dump" -- grammars-themes/samples/javascript.sample javascript g

@@ -147,7 +147,7 @@ impl ScopeRepository {
 
     /// Convert atom number back to string
     /// Takes atom_number: 1-based encoded value stored in Scope bits (atom_index + 1)
-    fn atom_number_to_str(&self, atom_number: u16) -> &str {
+    pub(crate) fn atom_number_to_str(&self, atom_number: u16) -> &str {
         debug_assert!(atom_number > 0);
         &self.atoms[(atom_number - 1) as usize]
     }
