@@ -4,10 +4,10 @@ pub mod html;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Options {
-    show_line_numbers: bool,
-    line_number_start: isize,
-    highlight_lines: Vec<RangeInclusive<usize>>,
-    hide_lines: Vec<RangeInclusive<usize>>,
+    pub show_line_numbers: bool,
+    pub line_number_start: isize,
+    pub highlight_lines: Vec<RangeInclusive<usize>>,
+    pub hide_lines: Vec<RangeInclusive<usize>>,
 }
 
 impl Default for Options {

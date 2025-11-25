@@ -20,7 +20,7 @@ pub fn generate_css(
     writeln!(css)?;
 
     // Generate base code class with default theme colors
-    writeln!(css, ".{prefix}-code {{")?;
+    writeln!(css, ".{prefix}code {{")?;
     writeln!(
         css,
         " {}",

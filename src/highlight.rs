@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::ops::Range;
 
-use serde::{Deserialize, Serialize};
-
+use crate::renderers::html::HtmlEscaped;
 use crate::scope::Scope;
 use crate::themes::{CompiledTheme, Style, StyleModifier, ThemeSelector, scope_to_css_selector};
 use crate::tokenizer::Token;
+use serde::{Deserialize, Serialize};
 
 /// A token with associated styling information
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -18,6 +18,7 @@ pub struct HighlightedText {
 impl HighlightedText {
     /// Renders this highlighted text as an HTML span element.
     pub fn as_html(&self, prefix: Option<&str>, default_style: &Style) -> String {
+        let escaped = HtmlEscaped(self.text.as_str());
         if let Some(prefix) = prefix {
             if self.scopes.is_empty() {
                 // No contributing scopes, just wrap in span
@@ -29,13 +30,12 @@ impl HighlightedText {
                     .map(|scope| scope_to_css_selector(*scope, prefix, true))
                     .collect();
                 format!(
-                    r#"<span class="{}">{}</span>"#,
+                    r#"<span class="{}">{escaped}</span>"#,
                     css_classes.join(" ").trim(),
-                    self.text
                 )
             }
         } else if self.style == *default_style {
-            format!("<span>{}</span>", self.text)
+            format!("<span>{escaped}</span>")
         } else {
             let mut css_style = String::with_capacity(30);
             if self.style.foreground != default_style.foreground {
@@ -47,7 +47,7 @@ impl HighlightedText {
             for font_attr in self.style.font_style.css_attributes() {
                 css_style.push_str(font_attr);
             }
-            format!(r#"<span style="{}">{}</span>"#, css_style, self.text)
+            format!(r#"<span style="{}">{escaped}</span>"#, css_style)
         }
     }
 }
@@ -596,6 +596,18 @@ mod tests {
         insta::assert_snapshot!(res, @"<span>hello</span>");
         let res = ht.as_html(None, &test_theme.default_style);
         insta::assert_snapshot!(res, @"<span>hello</span>");
+    }
+
+    #[test]
+    fn test_as_html_content_escape() {
+        let test_theme = test_theme();
+        let ht = HighlightedText {
+            text: "<script></script>".to_string(),
+            style: test_theme.default_style,
+            scopes: vec![],
+        };
+        let res = ht.as_html(None, &test_theme.default_style);
+        insta::assert_snapshot!(res, @"<span>&lt;script&gt;&lt;/script&gt;</span>");
     }
 
     #[test]

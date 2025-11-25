@@ -10,6 +10,5 @@ List of issues in grammar:
 
 TODOs:
 
-
- - add some insta tests for HighlightedText.as_html()
  - handle Options for HTML
+ - add a way to generate a single file for light/dark themes and switch with a simple class + default CSS for inline
