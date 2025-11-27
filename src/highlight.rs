@@ -8,28 +8,106 @@ use crate::scope::Scope;
 use crate::themes::{CompiledTheme, Style};
 use crate::tokenizer::Token;
 
+/// Theme-aware styling information for syntax highlighting
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum ThemeStyle {
+    Single(Style),
+    Dual { light: Style, dark: Style },
+}
+
+impl ThemeStyle {
+    /// Get the primary style (single style or light style for dual themes)
+    pub fn primary_style(&self) -> &Style {
+        match self {
+            ThemeStyle::Single(style) => style,
+            ThemeStyle::Dual { light, dark: _ } => light,
+        }
+    }
+
+    /// Get the foreground color of the primary style
+    pub fn foreground(&self) -> crate::themes::Color {
+        self.primary_style().foreground
+    }
+
+    /// Get the font style of the primary style
+    pub fn font_style(&self) -> crate::themes::FontStyle {
+        self.primary_style().font_style
+    }
+
+    /// Create a single ThemeStyle from a Style
+    pub fn single(style: Style) -> Self {
+        ThemeStyle::Single(style)
+    }
+}
+
 /// A token with associated styling information
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HighlightedText {
     pub text: String,
-    pub style: Style,
+    pub style: ThemeStyle,
 }
 
 impl HighlightedText {
-    /// Renders this highlighted text as an HTML span element.
+    /// Renders this highlighted text as an HTML span element for a single theme.
     pub fn as_html(&self, default_style: &Style) -> String {
         let escaped = HtmlEscaped(self.text.as_str());
-        if self.style == *default_style {
+        let style_to_use = match &self.style {
+            ThemeStyle::Single(style) => style,
+            ThemeStyle::Dual { light, dark: _ } => light, // Default to light theme for single rendering
+        };
+
+        if *style_to_use == *default_style {
             format!("<span>{escaped}</span>")
         } else {
             let mut css_style = String::with_capacity(30);
-            if self.style.foreground != default_style.foreground {
-                css_style.push_str(&self.style.foreground.as_css_color_property());
+            if style_to_use.foreground != default_style.foreground {
+                css_style.push_str(&style_to_use.foreground.as_css_color_property());
             }
-            if self.style.background != default_style.background {
-                css_style.push_str(&self.style.background.as_css_bg_color_property());
+            if style_to_use.background != default_style.background {
+                css_style.push_str(&style_to_use.background.as_css_bg_color_property());
             }
-            for font_attr in self.style.font_style.css_attributes() {
+            for font_attr in style_to_use.font_style.css_attributes() {
+                css_style.push_str(font_attr);
+            }
+            format!(r#"<span style="{}">{escaped}</span>"#, css_style)
+        }
+    }
+
+    /// Renders this highlighted text as HTML span element for dual themes (light/dark).
+    pub fn as_html_dual(&self, light_default: &Style, dark_default: &Style) -> (String, String) {
+        let escaped = HtmlEscaped(self.text.as_str());
+        match &self.style {
+            ThemeStyle::Single(style) => {
+                // For single style, use the same style for both themes
+                let light_html = self.render_html_with_style(&escaped, style, light_default);
+                let dark_html = self.render_html_with_style(&escaped, style, dark_default);
+                (light_html, dark_html)
+            }
+            ThemeStyle::Dual { light, dark } => {
+                let light_html = self.render_html_with_style(&escaped, light, light_default);
+                let dark_html = self.render_html_with_style(&escaped, dark, dark_default);
+                (light_html, dark_html)
+            }
+        }
+    }
+
+    fn render_html_with_style(
+        &self,
+        escaped: &HtmlEscaped,
+        style: &Style,
+        default_style: &Style,
+    ) -> String {
+        if *style == *default_style {
+            format!("<span>{escaped}</span>")
+        } else {
+            let mut css_style = String::with_capacity(30);
+            if style.foreground != default_style.foreground {
+                css_style.push_str(&style.foreground.as_css_color_property());
+            }
+            if style.background != default_style.background {
+                css_style.push_str(&style.background.as_css_bg_color_property());
+            }
+            for font_attr in style.font_style.css_attributes() {
                 css_style.push_str(font_attr);
             }
             format!(r#"<span style="{}">{escaped}</span>"#, css_style)
@@ -56,46 +134,101 @@ impl Default for MergingOptions {
 /// Highlighter that applies theme styles to tokenized code
 #[derive(Debug, Clone)]
 pub(crate) struct Highlighter<'r> {
-    theme: &'r CompiledTheme,
-    cache: HashMap<Vec<Scope>, Style>,
+    themes: Vec<&'r CompiledTheme>, // 1 theme for Single, 2 for Dual
+    cache: [HashMap<Vec<Scope>, Style>; 2], // Separate cache per theme (max 2)
+}
+
+/// Helper function to check if a ThemeStyle has decorations
+fn theme_style_has_decorations(theme_style: &ThemeStyle) -> bool {
+    match theme_style {
+        ThemeStyle::Single(style) => style.has_decorations(),
+        ThemeStyle::Dual { light, dark } => light.has_decorations() || dark.has_decorations(),
+    }
+}
+
+/// Helper function to check if two ThemeStyles are equal (for merging)
+fn theme_styles_equal(style1: &ThemeStyle, style2: &ThemeStyle) -> bool {
+    style1 == style2
+}
+
+/// Helper function to create a default ThemeStyle based on number of themes
+fn default_theme_style_for_count(theme_count: usize) -> ThemeStyle {
+    match theme_count {
+        1 => ThemeStyle::Single(Style::default()),
+        2 => ThemeStyle::Dual {
+            light: Style::default(),
+            dark: Style::default(),
+        },
+        _ => panic!("Unsupported theme count"),
+    }
 }
 
 impl<'r> Highlighter<'r> {
     /// Create a new highlighter from a compiled theme
     pub fn new(theme: &'r CompiledTheme) -> Self {
         Highlighter {
-            theme,
-            cache: HashMap::new(),
+            themes: vec![theme],
+            cache: [HashMap::new(), HashMap::new()],
+        }
+    }
+
+    /// Create a new highlighter for dual themes (light and dark)
+    pub fn new_dual(light_theme: &'r CompiledTheme, dark_theme: &'r CompiledTheme) -> Self {
+        Highlighter {
+            themes: vec![light_theme, dark_theme],
+            cache: [HashMap::new(), HashMap::new()],
         }
     }
 
     /// Match a scope stack against theme rules, building styles hierarchically
     /// like vscode-textmate does
-    pub fn match_scopes(&mut self, scopes: &[Scope]) -> Style {
+    pub fn match_scopes(&mut self, scopes: &[Scope]) -> ThemeStyle {
+        match self.themes.len() {
+            1 => {
+                // Single theme case
+                let style = self.match_scopes_for_theme(scopes, 0);
+                ThemeStyle::Single(style)
+            }
+            2 => {
+                // Dual theme case
+                let light_style = self.match_scopes_for_theme(scopes, 0);
+                let dark_style = self.match_scopes_for_theme(scopes, 1);
+                ThemeStyle::Dual {
+                    light: light_style,
+                    dark: dark_style,
+                }
+            }
+            _ => panic!("Highlighter supports only 1 or 2 themes"),
+        }
+    }
+
+    /// Match scopes for a specific theme index with caching
+    fn match_scopes_for_theme(&mut self, scopes: &[Scope], theme_index: usize) -> Style {
         // Check cache first
-        if let Some(&cached_style) = self.cache.get(scopes) {
+        if let Some(&cached_style) = self.cache[theme_index].get(scopes) {
             return cached_style;
         }
 
         // Cache miss - compute style
-        let style = self.match_scopes_uncached(scopes);
+        let style = self.match_scopes_uncached_for_theme(scopes, theme_index);
 
         // Cache the result
-        self.cache.insert(scopes.to_vec(), style);
+        self.cache[theme_index].insert(scopes.to_vec(), style);
 
         style
     }
 
-    /// Match a scope stack against theme rules without caching (internal implementation)
-    fn match_scopes_uncached(&self, scopes: &[Scope]) -> Style {
-        let mut current_style = self.theme.default_style;
+    /// Match a scope stack against theme rules without caching for a specific theme
+    fn match_scopes_uncached_for_theme(&self, scopes: &[Scope], theme_index: usize) -> Style {
+        let theme = self.themes[theme_index];
+        let mut current_style = theme.default_style;
 
         // Build up scope path incrementally, simulating vscode-textmate's approach
         // Each scope level can override the accumulated style
         for i in 1..=scopes.len() {
             let current_scope_path = &scopes[0..i];
 
-            for rule in &self.theme.rules {
+            for rule in &theme.rules {
                 if rule.selector.matches(current_scope_path) {
                     current_style = rule.style_modifier.apply_to(&current_style);
                 }
@@ -134,8 +267,8 @@ impl<'r> Highlighter<'r> {
                 let mut merged = Vec::with_capacity(num_tokens);
                 let mut carry_on_range: Option<Range<usize>> = None;
 
-                for (idx, (span, style)) in line_result.into_iter().enumerate() {
-                    let could_merge = !style.has_decorations();
+                for (idx, (span, theme_style)) in line_result.into_iter().enumerate() {
+                    let could_merge = !theme_style_has_decorations(&theme_style);
                     let token_content = &line[span.clone()];
                     let is_whitespace_with_next = could_merge
                         && token_content.chars().all(|c| c.is_whitespace())
@@ -152,16 +285,19 @@ impl<'r> Highlighter<'r> {
                         if let Some(carried_range) = &carry_on_range {
                             if could_merge {
                                 // We can prepend all the WS to that token
-                                merged.push((carried_range.start..span.end, style))
+                                merged.push((carried_range.start..span.end, theme_style))
                             } else {
                                 // We need to push 2 tokens here, one for the carried WS and one
                                 // for the current token
-                                merged.push((carried_range.clone(), Style::default()));
-                                merged.push((span, style));
+                                merged.push((
+                                    carried_range.clone(),
+                                    default_theme_style_for_count(self.themes.len()),
+                                ));
+                                merged.push((span, theme_style));
                             }
                             carry_on_range = None;
                         } else {
-                            merged.push((span, style));
+                            merged.push((span, theme_style));
                         }
                     }
                 }
@@ -172,17 +308,17 @@ impl<'r> Highlighter<'r> {
             // then merge same style tokens after we did the WS
             if options.merge_same_style_tokens {
                 let num_tokens = line_result.len();
-                let mut merged: Vec<(Range<usize>, Style)> = Vec::with_capacity(num_tokens);
+                let mut merged: Vec<(Range<usize>, ThemeStyle)> = Vec::with_capacity(num_tokens);
 
-                for (span, style) in line_result {
-                    if let Some((prev_span, prev_style)) = merged.last_mut() {
-                        if style == *prev_style {
+                for (span, theme_style) in line_result {
+                    if let Some((prev_span, prev_theme_style)) = merged.last_mut() {
+                        if theme_styles_equal(&theme_style, prev_theme_style) {
                             prev_span.end = span.end;
                         } else {
-                            merged.push((span, style));
+                            merged.push((span, theme_style));
                         }
                     } else {
-                        merged.push((span, style));
+                        merged.push((span, theme_style));
                     }
                 }
 
@@ -271,16 +407,19 @@ mod tests {
 
         // Test matching scopes
         let comment_style = highlighter.match_scopes(&[scope("comment")]);
-        assert_eq!(comment_style.foreground, color("#6A9955"));
-        assert_eq!(comment_style.font_style, FontStyle::ITALIC);
+        assert_eq!(comment_style.foreground(), color("#6A9955"));
+        assert_eq!(comment_style.font_style(), FontStyle::ITALIC);
 
         let keyword_style = highlighter.match_scopes(&[scope("keyword")]);
-        assert_eq!(keyword_style.foreground, color("#569CD6"));
-        assert_eq!(keyword_style.font_style, FontStyle::BOLD);
+        assert_eq!(keyword_style.foreground(), color("#569CD6"));
+        assert_eq!(keyword_style.font_style(), FontStyle::BOLD);
 
         // Test unmatched scope returns default
         let unknown_style = highlighter.match_scopes(&[scope("unknown")]);
-        assert_eq!(unknown_style, highlighter.theme.default_style);
+        assert_eq!(
+            unknown_style,
+            ThemeStyle::single(highlighter.themes[0].default_style)
+        );
     }
 
     #[test]
@@ -301,15 +440,15 @@ mod tests {
 
         // Keyword token
         assert_eq!(highlighted[0][0].text, "if");
-        assert_eq!(highlighted[0][0].style.foreground, color("#569CD6"));
+        assert_eq!(highlighted[0][0].style.foreground(), color("#569CD6"));
 
         // Unknown token uses default
         assert_eq!(highlighted[0][1].text, "hello");
-        assert_eq!(highlighted[0][1].style.foreground, color("#D4D4D4"));
+        assert_eq!(highlighted[0][1].style.foreground(), color("#D4D4D4"));
 
         // Comment token
         assert_eq!(highlighted[1][0].text, "//");
-        assert_eq!(highlighted[1][0].style.foreground, color("#6A9955"));
+        assert_eq!(highlighted[1][0].style.foreground(), color("#6A9955"));
     }
 
     #[test]
@@ -380,13 +519,13 @@ mod tests {
 
         // Test: constant should get its own values
         let style = highlighter.match_scopes(&[scope("constant")]);
-        assert_eq!(style.foreground, color("#300000"));
-        assert_eq!(style.font_style, FontStyle::ITALIC);
+        assert_eq!(style.foreground(), color("#300000"));
+        assert_eq!(style.font_style(), FontStyle::ITALIC);
 
         // Test: constant.numeric should inherit fontStyle from constant but override foreground
         let style = highlighter.match_scopes(&[scope("constant"), scope("constant.numeric")]);
-        assert_eq!(style.foreground, color("#400000")); // Overridden
-        assert_eq!(style.font_style, FontStyle::ITALIC);
+        assert_eq!(style.foreground(), color("#400000")); // Overridden
+        assert_eq!(style.font_style(), FontStyle::ITALIC);
 
         // Test: constant.numeric.hex should inherit foreground from constant.numeric but override fontStyle
         let style = highlighter.match_scopes(&[
@@ -394,8 +533,8 @@ mod tests {
             scope("constant.numeric"),
             scope("constant.numeric.hex"),
         ]);
-        assert_eq!(style.foreground, color("#400000")); // Should inherit from constant.numeric
-        assert_eq!(style.font_style, FontStyle::BOLD); // Overridden
+        assert_eq!(style.foreground(), color("#400000")); // Should inherit from constant.numeric
+        assert_eq!(style.font_style(), FontStyle::BOLD); // Overridden
     }
 
     #[test]
@@ -443,9 +582,9 @@ mod tests {
         let style3 = highlighter.match_scopes(&token3_scopes);
 
         // Verify that styles are not default (theme inheritance is working)
-        assert_ne!(style1, compiled_theme.default_style);
-        assert_ne!(style2, compiled_theme.default_style);
-        assert_ne!(style3, compiled_theme.default_style);
+        assert_ne!(style1, ThemeStyle::single(compiled_theme.default_style));
+        assert_ne!(style2, ThemeStyle::single(compiled_theme.default_style));
+        assert_ne!(style3, ThemeStyle::single(compiled_theme.default_style));
 
         // Token 2 should have distinct styling due to invalid.illegal scope
         // which typically gets error/warning colors in themes
@@ -454,9 +593,9 @@ mod tests {
 
         // Basic sanity checks - styles should have reasonable colors
         // (Not pure black/white which would indicate broken highlighting)
-        assert_ne!(style1.foreground, Color::BLACK);
-        assert_ne!(style2.foreground, Color::BLACK);
-        assert_ne!(style3.foreground, Color::BLACK);
+        assert_ne!(style1.foreground(), Color::BLACK);
+        assert_ne!(style2.foreground(), Color::BLACK);
+        assert_ne!(style3.foreground(), Color::BLACK);
 
         // Token 'p' should get pink color from invalid.illegal rule (#FDAEB7)
         let expected_pink = Color {
@@ -466,9 +605,10 @@ mod tests {
             a: 255,
         };
         assert_eq!(
-            style2.foreground, expected_pink,
+            style2.foreground(),
+            expected_pink,
             "Token 'p' should get pink color #FDAEB7 from invalid.illegal rule, got {:?}",
-            style2.foreground
+            style2.foreground()
         );
 
         // Print styles for manual verification during development
@@ -482,7 +622,7 @@ mod tests {
         let test_theme = test_theme();
         let ht = HighlightedText {
             text: "hello".to_string(),
-            style: test_theme.default_style,
+            style: ThemeStyle::single(test_theme.default_style),
         };
         let res = ht.as_html(&test_theme.default_style);
         insta::assert_snapshot!(res, @"<span>hello</span>");
@@ -493,7 +633,7 @@ mod tests {
         let test_theme = test_theme();
         let ht = HighlightedText {
             text: "<script></script>".to_string(),
-            style: test_theme.default_style,
+            style: ThemeStyle::single(test_theme.default_style),
         };
         let res = ht.as_html(&test_theme.default_style);
         insta::assert_snapshot!(res, @"<span>&lt;script&gt;&lt;/script&gt;</span>");
@@ -509,7 +649,7 @@ mod tests {
         };
         let ht = HighlightedText {
             text: "hello".to_string(),
-            style: custom_style,
+            style: ThemeStyle::single(custom_style),
         };
         let res = ht.as_html(&test_theme.default_style);
         insta::assert_snapshot!(res, @r#"<span style="color: #FFFF00;">hello</span>"#);
@@ -525,7 +665,7 @@ mod tests {
         };
         let ht = HighlightedText {
             text: "hello".to_string(),
-            style: custom_style,
+            style: ThemeStyle::single(custom_style),
         };
         let res = ht.as_html(&test_theme.default_style);
         insta::assert_snapshot!(res, @r#"<span style="background-color: #FFFF00;">hello</span>"#);
@@ -541,7 +681,7 @@ mod tests {
         };
         let ht = HighlightedText {
             text: "hello".to_string(),
-            style: custom_style,
+            style: ThemeStyle::single(custom_style),
         };
         let res = ht.as_html(&test_theme.default_style);
         insta::assert_snapshot!(res, @r#"<span style="font-style: italic;">hello</span>"#);
@@ -557,7 +697,7 @@ mod tests {
         };
         let ht = HighlightedText {
             text: "hello".to_string(),
-            style: custom_style,
+            style: ThemeStyle::single(custom_style),
         };
         let res = ht.as_html(&test_theme.default_style);
         insta::assert_snapshot!(res, @r#"<span style="color: #FFFF00;background-color: #FFFF00;font-style: italic;">hello</span>"#);
