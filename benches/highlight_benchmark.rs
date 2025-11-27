@@ -11,12 +11,7 @@ fn highlight_jquery_benchmark(c: &mut Criterion) {
     let jquery_content =
         fs::read_to_string("src/fixtures/samples/jquery.js").expect("Failed to read jQuery file");
 
-    let options = HighlightOptions {
-        lang: "javascript",
-        theme: "vitesse-black", // Assuming this theme is available in the builtin registry
-        merge_whitespaces: true,
-        merge_same_style_tokens: true,
-    };
+    let options = HighlightOptions::new("javascript").single_theme("vitesse-black");
 
     c.bench_function("highlight jquery.js", |b| {
         b.iter(|| {

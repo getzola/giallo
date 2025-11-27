@@ -12,7 +12,7 @@ use crate::highlight::{HighlightedText, Highlighter, MergingOptions};
 use crate::scope::Scope;
 #[cfg(feature = "dump")]
 use crate::scope::ScopeRepository;
-use crate::themes::{CompiledTheme, RawTheme};
+use crate::themes::{CompiledTheme, RawTheme, ThemeVariant};
 use crate::tokenizer::{Token, Tokenizer};
 
 #[cfg(feature = "dump")]
@@ -23,15 +23,9 @@ struct Dump {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum Theme<'a> {
-    Single(&'a str),
-    Dual { light: &'a str, dark: &'a str },
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HighlightOptions<'a> {
     pub(crate) lang: &'a str,
-    pub(crate) theme: Theme<'a>,
+    pub(crate) theme: ThemeVariant<&'a str>,
     pub(crate) merge_whitespaces: bool,
     pub(crate) merge_same_style_tokens: bool,
 }
@@ -40,7 +34,7 @@ impl<'a> Default for HighlightOptions<'a> {
     fn default() -> Self {
         Self {
             lang: "",
-            theme: Theme::Single(""),
+            theme: ThemeVariant::Single(""),
             merge_whitespaces: true,
             merge_same_style_tokens: true,
         }
@@ -57,7 +51,7 @@ impl<'a> HighlightOptions<'a> {
 
     /// Use a single theme for the output
     pub fn single_theme(mut self, theme: &'a str) -> Self {
-        self.theme = Theme::Single(theme);
+        self.theme = ThemeVariant::Single(theme);
         self
     }
 
@@ -65,8 +59,10 @@ impl<'a> HighlightOptions<'a> {
     /// This disables `merge_same_style_tokens` since tokens might get merged differently
     /// depending on theme
     pub fn light_dark_themes(mut self, light: &'a str, dark: &'a str) -> Self {
-        self.theme = Theme::Dual { light, dark };
+        self.theme = ThemeVariant::Dual { light, dark };
+        // We set those to false but we will ignore those values either way when highlighting
         self.merge_same_style_tokens = false;
+        self.merge_whitespaces = false;
         self
     }
 
@@ -87,7 +83,7 @@ impl<'a> HighlightOptions<'a> {
 #[derive(Debug, Clone)]
 pub struct HighlightedCode<'a> {
     pub language: &'a str,
-    pub theme: &'a CompiledTheme,
+    pub(crate) theme: ThemeVariant<&'a CompiledTheme>,
     pub tokens: Vec<Vec<HighlightedText>>,
 }
 
@@ -205,9 +201,8 @@ impl Registry {
             merge_same_style_tokens: options.merge_same_style_tokens,
         };
 
-        // Handle both single and dual theme cases
         match &options.theme {
-            Theme::Single(theme_name) => {
+            ThemeVariant::Single(theme_name) => {
                 let theme = self
                     .themes
                     .get(*theme_name)
@@ -219,11 +214,11 @@ impl Registry {
 
                 Ok(HighlightedCode {
                     language: &self.grammars[grammar_id].name,
-                    theme,
+                    theme: ThemeVariant::Single(theme),
                     tokens: highlighted_tokens,
                 })
             }
-            Theme::Dual { light, dark } => {
+            ThemeVariant::Dual { light, dark } => {
                 let light_theme = self
                     .themes
                     .get(*light)
@@ -237,11 +232,12 @@ impl Registry {
                 let highlighted_tokens =
                     highlighter.highlight_tokens(&normalized_content, tokens, merging_options);
 
-                // For dual themes, we'll use the light theme as the primary theme in HighlightedCode
-                // The dual theme information is preserved in the ThemeStyle enum within tokens
                 Ok(HighlightedCode {
                     language: &self.grammars[grammar_id].name,
-                    theme: light_theme,
+                    theme: ThemeVariant::Dual {
+                        light: light_theme,
+                        dark: dark_theme,
+                    },
                     tokens: highlighted_tokens,
                 })
             }
@@ -459,41 +455,34 @@ mod tests {
             }
 
             for token in line_tokens {
+                let crate::themes::ThemeVariant::Single(style) = &token.style else {
+                    panic!()
+                };
                 // Use proper hex format that includes alpha channel when needed
-                let hex_color = token.style.foreground().as_hex();
+                let hex_color = style.foreground.as_hex();
 
                 // Create font style abbreviation to match JavaScript format
                 // JavaScript bit mapping: bit 1=italic, bit 2=bold, bit 4=underline, bit 8=strikethrough
-                let font_style_abbr = if token.style.font_style().is_empty() {
+                let font_style_abbr = if style.font_style.is_empty() {
                     "      ".to_string() // 6 spaces for empty style
                 } else {
                     let mut abbr = String::from("[");
 
                     // Check each style flag and add corresponding character
-                    if token
-                        .style
-                        .font_style()
-                        .contains(crate::themes::FontStyle::BOLD)
-                    {
+                    if style.font_style.contains(crate::themes::FontStyle::BOLD) {
                         abbr.push('b');
                     }
-                    if token
-                        .style
-                        .font_style()
-                        .contains(crate::themes::FontStyle::ITALIC)
-                    {
+                    if style.font_style.contains(crate::themes::FontStyle::ITALIC) {
                         abbr.push('i');
                     }
-                    if token
-                        .style
-                        .font_style()
+                    if style
+                        .font_style
                         .contains(crate::themes::FontStyle::UNDERLINE)
                     {
                         abbr.push('u');
                     }
-                    if token
-                        .style
-                        .font_style()
+                    if style
+                        .font_style
                         .contains(crate::themes::FontStyle::STRIKETHROUGH)
                     {
                         abbr.push('s');
