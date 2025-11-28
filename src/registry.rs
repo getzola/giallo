@@ -60,9 +60,8 @@ impl<'a> HighlightOptions<'a> {
     /// depending on theme
     pub fn light_dark_themes(mut self, light: &'a str, dark: &'a str) -> Self {
         self.theme = ThemeVariant::Dual { light, dark };
-        // We set those to false but we will ignore those values either way when highlighting
+        // We set it to false but we will ignore that values either way when highlighting
         self.merge_same_style_tokens = false;
-        self.merge_whitespaces = false;
         self
     }
 

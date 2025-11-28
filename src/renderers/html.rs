@@ -10,18 +10,73 @@ pub struct HtmlRenderer {
 }
 
 impl HtmlRenderer {
-    pub fn render(&self, highlighted: &HighlightedCode, _options: &Options) -> String {
+    pub fn render(&self, highlighted: &HighlightedCode, options: &Options) -> String {
         let lang = highlighted.language;
 
-        let mut lines = Vec::with_capacity(highlighted.tokens.len() + 4);
-        for line_tokens in &highlighted.tokens {
-            let mut line = Vec::with_capacity(line_tokens.len());
-            for tok in line_tokens {
-                line.push(tok.as_html(&highlighted.theme));
+        // Pre-compute highlight background CSS if available
+        let highlight_bg_css = if !options.highlight_lines.is_empty() {
+            match &highlighted.theme {
+                ThemeVariant::Single(theme) => theme
+                    .highlight_background_color
+                    .as_ref()
+                    .map(|c| c.as_css_bg_color_property()),
+                ThemeVariant::Dual { light, dark } => {
+                    match (
+                        &light.highlight_background_color,
+                        &dark.highlight_background_color,
+                    ) {
+                        (Some(l), Some(d)) => {
+                            Some(Color::as_css_light_dark_bg_color_property(l, d))
+                        }
+                        _ => None,
+                    }
+                }
             }
-            lines.push(line.join(""));
+        } else {
+            None
+        };
+
+        let mut lines = Vec::with_capacity(highlighted.tokens.len() + 4);
+        for (idx, line_tokens) in highlighted.tokens.iter().enumerate() {
+            let line_num = idx + 1; // 1-indexed
+
+            // Skip hidden lines
+            if options.hide_lines.iter().any(|r| r.contains(&line_num)) {
+                continue;
+            }
+
+            // Render tokens
+            let mut line_content = Vec::with_capacity(line_tokens.len());
+            for tok in line_tokens {
+                line_content.push(tok.as_html(&highlighted.theme));
+            }
+            let line_content = line_content.join("");
+
+            // Line number (uses original source line number)
+            let display_line_num = options.line_number_start + (idx as isize);
+            let line_number_html = if options.show_line_numbers {
+                format!(r#"<span class="giallo-ln">{display_line_num}</span>"#)
+            } else {
+                String::new()
+            };
+
+            // Build line span, with highlight if applicable
+            let is_highlighted = options
+                .highlight_lines
+                .iter()
+                .any(|r| r.contains(&line_num));
+            let line_html = match (is_highlighted, &highlight_bg_css) {
+                (true, Some(bg_css)) => {
+                    format!(
+                        r#"<span class="giallo-l" style="{bg_css}">{line_number_html}{line_content}</span>"#
+                    )
+                }
+                _ => format!(r#"<span class="giallo-l">{line_number_html}{line_content}</span>"#),
+            };
+
+            lines.push(line_html);
         }
-        let lines = lines.join("\n");
+        let lines = lines.join("");
 
         match &highlighted.theme {
             ThemeVariant::Single(theme) => {
@@ -41,7 +96,7 @@ impl HtmlRenderer {
                     &dark.default_style.background,
                 );
                 format!(
-                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}"><code data-lang="{lang}">{lines}</code></pre>"#
+                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}"><code data-lang="{lang}">{lines}/code></pre>"#
                 )
             }
         }
@@ -80,5 +135,46 @@ impl fmt::Display for HtmlEscaped<'_> {
             fmt.write_str(&pile_o_bits[last..])?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::registry::{HighlightOptions, Registry};
+    use std::fs;
+
+    fn get_registry() -> Registry {
+        let mut registry = Registry::default();
+        for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
+            let path = entry.unwrap().path();
+            registry.add_grammar_from_path(path).unwrap();
+        }
+        registry.link_grammars();
+        registry
+            .add_theme_from_path(
+                "vitesse-black",
+                "grammars-themes/packages/tm-themes/themes/vitesse-black.json",
+            )
+            .unwrap();
+        registry
+    }
+
+    #[test]
+    fn test_highlight_and_hide_lines() {
+        let registry = get_registry();
+        let code = "let a = 1;\nlet b = 2;\nlet c = 3;\nlet d = 4;\nlet e = 5;";
+        let options = HighlightOptions::new("javascript").single_theme("vitesse-black");
+        let highlighted = registry.highlight(code, options).unwrap();
+
+        let render_options = Options {
+            show_line_numbers: true,
+            line_number_start: 10,
+            highlight_lines: vec![2..=2, 4..=4],
+            hide_lines: vec![3..=3],
+        };
+
+        let html = HtmlRenderer::default().render(&highlighted, &render_options);
+        insta::assert_snapshot!(html);
     }
 }

@@ -206,7 +206,7 @@ impl<'r> Highlighter<'r> {
                 .collect::<Vec<_>>();
 
             // first merge all ws by prepending to the next non-ws token
-            if options.merge_whitespaces && self.themes.len() == 1 {
+            if options.merge_whitespaces {
                 let num_tokens = line_result.len();
                 let mut merged = Vec::with_capacity(num_tokens);
                 let mut carry_on_range: Option<Range<usize>> = None;
@@ -233,11 +233,15 @@ impl<'r> Highlighter<'r> {
                             } else {
                                 // We need to push 2 tokens here, one for the carried WS and one
                                 // for the current token
-                                merged.push((
-                                    carried_range.clone(),
-                                    // It's only there when there is a single theme
-                                    ThemeVariant::Single(Style::default()),
-                                ));
+                                let ws_style = if self.themes.len() == 1 {
+                                    ThemeVariant::Single(Style::default())
+                                } else {
+                                    ThemeVariant::Dual {
+                                        light: Style::default(),
+                                        dark: Style::default(),
+                                    }
+                                };
+                                merged.push((carried_range.clone(), ws_style));
                                 merged.push((span, theme_style));
                             }
                             carry_on_range = None;

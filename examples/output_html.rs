@@ -1,3 +1,4 @@
+use giallo::GIALLO_CSS;
 use std::env;
 use std::fs;
 
@@ -36,7 +37,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let highlighted = registry.highlight(&file_content, options)?;
-    let render_options = Options::default();
+    let render_options = Options {
+        show_line_numbers: true,
+        ..Default::default()
+    };
     let rendered = HtmlRenderer::default().render(&highlighted, &render_options);
 
     println!(
@@ -45,12 +49,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 <head>
     <meta charset="utf-8">
     <title>Syntax Highlighted Code</title>
+    <style>
+    html {{
+        font-size: 16px;
+    }}
+    {GIALLO_CSS}
+    </style>
 </head>
 <body>
-{}
+{rendered}
 </body>
 </html>"#,
-        rendered
     );
 
     Ok(())
