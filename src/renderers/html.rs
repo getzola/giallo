@@ -1,41 +1,50 @@
 use crate::registry::HighlightedCode;
 use crate::renderers::Options;
+use crate::themes::{Color, ThemeVariant};
 use std::collections::BTreeMap;
 use std::fmt;
 
 #[derive(Debug, PartialEq, Clone, Default)]
-pub struct HtmlRenderer<'h> {
-    pub css_class_prefix: Option<&'h str>,
+pub struct HtmlRenderer {
     pub other_metadata: BTreeMap<String, String>,
 }
 
-impl<'h> HtmlRenderer<'h> {
+impl HtmlRenderer {
     pub fn render(&self, highlighted: &HighlightedCode, _options: &Options) -> String {
+        let lang = highlighted.language;
+
         let mut lines = Vec::with_capacity(highlighted.tokens.len() + 4);
         for line_tokens in &highlighted.tokens {
             let mut line = Vec::with_capacity(line_tokens.len());
             for tok in line_tokens {
-                line.push(tok.as_html(self.css_class_prefix, &highlighted.theme.default_style));
+                line.push(tok.as_html(&highlighted.theme));
             }
             lines.push(line.join(""));
         }
-
         let lines = lines.join("\n");
-        let lang = highlighted.language;
-        let fg = highlighted
-            .theme
-            .default_style
-            .foreground
-            .as_css_color_property();
-        let bg = highlighted
-            .theme
-            .default_style
-            .background
-            .as_css_bg_color_property();
 
-        format!(
-            r#"<pre class="giallo" style="{fg} {bg}"><code data-lang="{lang}">{lines}</code></pre>"#
-        )
+        match &highlighted.theme {
+            ThemeVariant::Single(theme) => {
+                let fg = theme.default_style.foreground.as_css_color_property();
+                let bg = theme.default_style.background.as_css_bg_color_property();
+                format!(
+                    r#"<pre class="giallo" style="{fg} {bg}"><code data-lang="{lang}">{lines}</code></pre>"#
+                )
+            }
+            ThemeVariant::Dual { light, dark } => {
+                let fg = Color::as_css_light_dark_color_property(
+                    &light.default_style.foreground,
+                    &dark.default_style.foreground,
+                );
+                let bg = Color::as_css_light_dark_bg_color_property(
+                    &light.default_style.background,
+                    &dark.default_style.background,
+                );
+                format!(
+                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}"><code data-lang="{lang}">{lines}</code></pre>"#
+                )
+            }
+        }
     }
 }
 

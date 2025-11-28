@@ -75,6 +75,22 @@ impl Color {
         format!("background-color: {};", self.as_hex())
     }
 
+    /// Returns a CSS `color` property using `light-dark()` function for automatic theme switching
+    #[inline]
+    pub fn as_css_light_dark_color_property(light: &Color, dark: &Color) -> String {
+        format!("color: light-dark({}, {});", light.as_hex(), dark.as_hex())
+    }
+
+    /// Returns a CSS `background-color` property using `light-dark()` function
+    #[inline]
+    pub fn as_css_light_dark_bg_color_property(light: &Color, dark: &Color) -> String {
+        format!(
+            "background-color: light-dark({}, {});",
+            light.as_hex(),
+            dark.as_hex()
+        )
+    }
+
     pub fn from_hex(hex: &str) -> Result<Self, Box<dyn std::error::Error>> {
         let hex = hex.trim_start_matches('#');
 

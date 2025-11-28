@@ -12,7 +12,7 @@ use crate::highlight::{HighlightedText, Highlighter, MergingOptions};
 use crate::scope::Scope;
 #[cfg(feature = "dump")]
 use crate::scope::ScopeRepository;
-use crate::themes::{CompiledTheme, RawTheme};
+use crate::themes::{CompiledTheme, RawTheme, ThemeVariant};
 use crate::tokenizer::{Token, Tokenizer};
 
 #[cfg(feature = "dump")]
@@ -24,20 +24,58 @@ struct Dump {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HighlightOptions<'a> {
-    pub lang: &'a str,
-    pub theme: &'a str,
-    pub merge_whitespaces: bool,
-    pub merge_same_style_tokens: bool,
+    pub(crate) lang: &'a str,
+    pub(crate) theme: ThemeVariant<&'a str>,
+    pub(crate) merge_whitespaces: bool,
+    pub(crate) merge_same_style_tokens: bool,
 }
 
 impl<'a> Default for HighlightOptions<'a> {
     fn default() -> Self {
         Self {
             lang: "",
-            theme: "",
+            theme: ThemeVariant::Single(""),
             merge_whitespaces: true,
             merge_same_style_tokens: true,
         }
+    }
+}
+
+impl<'a> HighlightOptions<'a> {
+    pub fn new(lang: &'a str) -> Self {
+        Self {
+            lang,
+            ..Self::default()
+        }
+    }
+
+    /// Use a single theme for the output
+    pub fn single_theme(mut self, theme: &'a str) -> Self {
+        self.theme = ThemeVariant::Single(theme);
+        self
+    }
+
+    /// Use a light and dark themes for the output
+    /// This disables `merge_same_style_tokens` since tokens might get merged differently
+    /// depending on theme
+    pub fn light_dark_themes(mut self, light: &'a str, dark: &'a str) -> Self {
+        self.theme = ThemeVariant::Dual { light, dark };
+        // We set those to false but we will ignore those values either way when highlighting
+        self.merge_same_style_tokens = false;
+        self.merge_whitespaces = false;
+        self
+    }
+
+    /// Whitespace tokens are merged with the next non-ws tokens.
+    pub fn merge_whitespace(mut self, value: bool) -> Self {
+        self.merge_whitespaces = value;
+        self
+    }
+
+    /// Merges tokens with the same style into a single token
+    pub fn merge_same_style_tokens(mut self, value: bool) -> Self {
+        self.merge_same_style_tokens = value;
+        self
     }
 }
 
@@ -45,7 +83,7 @@ impl<'a> Default for HighlightOptions<'a> {
 #[derive(Debug, Clone)]
 pub struct HighlightedCode<'a> {
     pub language: &'a str,
-    pub theme: &'a CompiledTheme,
+    pub(crate) theme: ThemeVariant<&'a CompiledTheme>,
     pub tokens: Vec<Vec<HighlightedText>>,
 }
 
@@ -154,13 +192,8 @@ impl Registry {
             .grammar_id_by_name
             .get(options.lang)
             .ok_or_else(|| format!("no grammar found for {}", options.lang))?;
-        let theme = self
-            .themes
-            .get(options.theme)
-            .ok_or_else(|| format!("no themes found for {}", options.theme))?;
 
         let normalized_content = normalize_string(content);
-
         let tokens = self.tokenize(grammar_id, &normalized_content)?;
 
         let merging_options = MergingOptions {
@@ -168,31 +201,47 @@ impl Registry {
             merge_same_style_tokens: options.merge_same_style_tokens,
         };
 
-        // Create highlighter from theme and apply highlighting (with merging)
-        let mut highlighter = Highlighter::new(theme);
-        let highlighted_tokens =
-            highlighter.highlight_tokens(&normalized_content, tokens, merging_options);
+        match &options.theme {
+            ThemeVariant::Single(theme_name) => {
+                let theme = self
+                    .themes
+                    .get(*theme_name)
+                    .ok_or_else(|| format!("no theme found for {}", theme_name))?;
 
-        Ok(HighlightedCode {
-            language: &self.grammars[grammar_id].name,
-            theme,
-            tokens: highlighted_tokens,
-        })
-    }
+                let mut highlighter = Highlighter::new(theme);
+                let highlighted_tokens =
+                    highlighter.highlight_tokens(&normalized_content, tokens, merging_options);
 
-    /// Generate CSS stylesheet for a theme with the given prefix for the classes
-    pub fn generate_css(
-        &self,
-        theme_name: &str,
-        prefix: &'static str,
-    ) -> Result<String, Box<dyn std::error::Error>> {
-        let theme = self
-            .themes
-            .get(theme_name)
-            .ok_or_else(|| format!("Theme '{}' not found", theme_name))?;
+                Ok(HighlightedCode {
+                    language: &self.grammars[grammar_id].name,
+                    theme: ThemeVariant::Single(theme),
+                    tokens: highlighted_tokens,
+                })
+            }
+            ThemeVariant::Dual { light, dark } => {
+                let light_theme = self
+                    .themes
+                    .get(*light)
+                    .ok_or_else(|| format!("no light theme found for {}", light))?;
+                let dark_theme = self
+                    .themes
+                    .get(*dark)
+                    .ok_or_else(|| format!("no dark theme found for {}", dark))?;
 
-        crate::themes::generate_css(theme, prefix)
-            .map_err(|e| format!("CSS generation failed: {}", e).into())
+                let mut highlighter = Highlighter::new_dual(light_theme, dark_theme);
+                let highlighted_tokens =
+                    highlighter.highlight_tokens(&normalized_content, tokens, merging_options);
+
+                Ok(HighlightedCode {
+                    language: &self.grammars[grammar_id].name,
+                    theme: ThemeVariant::Dual {
+                        light: light_theme,
+                        dark: dark_theme,
+                    },
+                    tokens: highlighted_tokens,
+                })
+            }
+        }
     }
 
     pub fn link_grammars(&mut self) {
@@ -406,40 +455,33 @@ mod tests {
             }
 
             for token in line_tokens {
+                let crate::themes::ThemeVariant::Single(style) = &token.style else {
+                    panic!()
+                };
                 // Use proper hex format that includes alpha channel when needed
-                let hex_color = token.style.foreground.as_hex();
+                let hex_color = style.foreground.as_hex();
 
                 // Create font style abbreviation to match JavaScript format
                 // JavaScript bit mapping: bit 1=italic, bit 2=bold, bit 4=underline, bit 8=strikethrough
-                let font_style_abbr = if token.style.font_style.is_empty() {
+                let font_style_abbr = if style.font_style.is_empty() {
                     "      ".to_string() // 6 spaces for empty style
                 } else {
                     let mut abbr = String::from("[");
 
                     // Check each style flag and add corresponding character
-                    if token
-                        .style
-                        .font_style
-                        .contains(crate::themes::FontStyle::BOLD)
-                    {
+                    if style.font_style.contains(crate::themes::FontStyle::BOLD) {
                         abbr.push('b');
                     }
-                    if token
-                        .style
-                        .font_style
-                        .contains(crate::themes::FontStyle::ITALIC)
-                    {
+                    if style.font_style.contains(crate::themes::FontStyle::ITALIC) {
                         abbr.push('i');
                     }
-                    if token
-                        .style
+                    if style
                         .font_style
                         .contains(crate::themes::FontStyle::UNDERLINE)
                     {
                         abbr.push('u');
                     }
-                    if token
-                        .style
+                    if style
                         .font_style
                         .contains(crate::themes::FontStyle::STRIKETHROUGH)
                     {
@@ -528,12 +570,10 @@ mod tests {
             let highlighted = registry
                 .highlight(
                     &sample_content,
-                    HighlightOptions {
-                        lang: &grammar,
-                        theme: "vitesse-black",
-                        merge_whitespaces: false,
-                        merge_same_style_tokens: false,
-                    },
+                    HighlightOptions::new(&grammar)
+                        .single_theme("vitesse-black")
+                        .merge_whitespace(false)
+                        .merge_same_style_tokens(false),
                 )
                 .unwrap();
 
