@@ -83,7 +83,7 @@ impl<'a> HighlightOptions<'a> {
 #[derive(Debug, Clone)]
 pub struct HighlightedCode<'a> {
     pub language: &'a str,
-    pub(crate) theme: ThemeVariant<&'a CompiledTheme>,
+    pub theme: ThemeVariant<&'a CompiledTheme>,
     pub tokens: Vec<Vec<HighlightedText>>,
 }
 

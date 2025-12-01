@@ -10,10 +10,11 @@ mod renderers;
 mod tokenizer;
 
 pub use error::Error;
+pub use highlight::HighlightedText;
 pub use markdown_fence::parse_markdown_fence;
 pub use registry::{HighlightOptions, HighlightedCode, Registry};
 pub use renderers::{Options, html::HtmlRenderer};
-pub use themes::ThemeVariant;
+pub use themes::{Color, CompiledTheme, FontStyle, Style, ThemeVariant};
 
 pub const GIALLO_CSS: &str = r#".giallo-l {
   display: block;

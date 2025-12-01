@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 pub use color::Color;
 pub use compiled::{CompiledTheme, Style};
+pub use font_style::FontStyle;
 pub use raw::RawTheme;
 
 /// Generic enum for single or dual (light/dark) theme values

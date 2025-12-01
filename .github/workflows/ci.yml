@@ -87,5 +87,6 @@ jobs:
       - name: Run examples
         run: |
           cargo run --release --example=profile_jquery --features="dump"
+          cargo run --release --example=custom_rendering --features="dump"
           cargo run --release --example output_html --features="dump" -- grammars-themes/samples/javascript.sample javascript catppuccin-frappe
           cargo run --release --example output_html --features="dump" -- grammars-themes/samples/javascript.sample javascript catppuccin-frappe red
