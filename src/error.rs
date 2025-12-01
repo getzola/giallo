@@ -24,20 +24,21 @@ pub enum Error {
 
     /// An invalid hex color was encountered.
     /// Can only happen when loading a theme.
+    #[allow(missing_docs)]
     InvalidHexColor { value: String, reason: String },
 
     /// A grammar was not found in the registry.
     /// Only happens when asking to highlight something with a grammar we can't find
-    GrammarNotFound { name: String },
+    GrammarNotFound(String),
 
     /// A theme was not found in the registry.
     /// Only happens when asking to highlight something with a theme we can't find
-    ThemeNotFound { name: String },
+    ThemeNotFound(String),
 
     /// A regex compilation error occurred during tokenization.
     /// This can happen because some regex patterns are modified at runtime so we can't validate
     /// them all ahead.
-    TokenizeRegex { message: String },
+    TokenizeRegex(String),
 }
 
 impl fmt::Display for Error {
@@ -52,9 +53,9 @@ impl fmt::Display for Error {
             Error::InvalidHexColor { value, reason } => {
                 write!(f, "invalid hex color '{}': {}", value, reason)
             }
-            Error::GrammarNotFound { name } => write!(f, "grammar '{}' not found", name),
-            Error::ThemeNotFound { name } => write!(f, "theme '{}' not found", name),
-            Error::TokenizeRegex { message } => write!(f, "regex compilation error: {}", message),
+            Error::GrammarNotFound(name) => write!(f, "grammar '{}' not found", name),
+            Error::ThemeNotFound(name) => write!(f, "theme '{}' not found", name),
+            Error::TokenizeRegex(message) => write!(f, "regex compilation error: {}", message),
         }
     }
 }
@@ -69,9 +70,9 @@ impl std::error::Error for Error {
             #[cfg(feature = "dump")]
             Error::MsgPackDecode(err) => Some(err),
             Error::InvalidHexColor { .. }
-            | Error::GrammarNotFound { .. }
-            | Error::ThemeNotFound { .. }
-            | Error::TokenizeRegex { .. } => None,
+            | Error::GrammarNotFound(_)
+            | Error::ThemeNotFound(_)
+            | Error::TokenizeRegex(_) => None,
         }
     }
 }

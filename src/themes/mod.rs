@@ -14,8 +14,15 @@ pub use raw::RawTheme;
 /// Generic enum for single or dual (light/dark) theme values
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ThemeVariant<T> {
+    /// A single theme was requested
     Single(T),
-    Dual { light: T, dark: T },
+    /// Light/dark themes were requested
+    Dual {
+        /// The light theme
+        light: T,
+        /// The dark theme
+        dark: T,
+    },
 }
 
 impl ThemeVariant<Style> {

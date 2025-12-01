@@ -267,11 +267,6 @@ pub struct RawGrammar {
 }
 
 impl RawGrammar {
-    pub fn load_from_str(content: &str) -> GialloResult<Self> {
-        let raw_grammar = serde_json::from_str(content)?;
-        Ok(raw_grammar)
-    }
-
     pub fn load_from_file<P: AsRef<Path>>(path: P) -> GialloResult<Self> {
         let file = File::open(&path)?;
         let raw_grammar = serde_json::from_reader(&file)?;

@@ -5,11 +5,15 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 #[derive(Debug, PartialEq, Clone, Default)]
+/// A renderer that will output proper HTML code
 pub struct HtmlRenderer {
+    /// Any metadata we want to add as `<code>` data-* attribute
     pub other_metadata: BTreeMap<String, String>,
 }
 
 impl HtmlRenderer {
+    /// Renders the given highlighted code to an HTML string.
+    /// This will also handle automatic light/dark theming and escaping characters.
     pub fn render(&self, highlighted: &HighlightedCode, options: &Options) -> String {
         let lang = highlighted.language;
 
@@ -114,7 +118,7 @@ impl HtmlRenderer {
                     &dark.default_style.background,
                 );
                 format!(
-                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}"><code {data_attrs}>{lines}/code></pre>"#
+                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}"><code {data_attrs}>{lines}</code></pre>"#
                 )
             }
         }

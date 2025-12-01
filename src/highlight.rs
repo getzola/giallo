@@ -8,10 +8,13 @@ use crate::scope::Scope;
 use crate::themes::{Color, CompiledTheme, Style, ThemeVariant};
 use crate::tokenizer::Token;
 
-/// A token with associated styling information
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// A token with associated styling information
 pub struct HighlightedText {
+    /// The text from the input string for that specific token
     pub text: String,
+    /// The assigned style. It can be a single theme or dual theme if light/dark
+    /// support was requested.
     pub style: ThemeVariant<Style>,
 }
 
@@ -327,7 +330,7 @@ mod tests {
             default_style: Style {
                 foreground: color("#D4D4D4"),
                 background: color("#1E1E1E"),
-                font_style: FontStyle::empty(),
+                font_style: FontStyle::default(),
             },
             highlight_background_color: None,
             rules: vec![
@@ -422,7 +425,7 @@ mod tests {
         let base = Style {
             foreground: color("#FFFFFF"),
             background: color("#000000"),
-            font_style: FontStyle::empty(),
+            font_style: FontStyle::default(),
         };
 
         let modifier = StyleModifier {

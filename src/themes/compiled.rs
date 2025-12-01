@@ -36,12 +36,14 @@ impl Specificity {
     }
 }
 
-/// A complete, concrete, style with foreground, background colors and font styling
-/// This is what is returned by the highlighter for each token
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
+/// A complete, concrete, style with foreground, background colors and font styling
 pub struct Style {
+    /// The foreground color
     pub foreground: Color,
+    /// The background color
     pub background: Color,
+    /// Any associated font style
     pub font_style: FontStyle,
 }
 
@@ -50,13 +52,13 @@ impl Default for Style {
         Style {
             foreground: Color::BLACK,
             background: Color::WHITE,
-            font_style: FontStyle::empty(),
+            font_style: FontStyle::default(),
         }
     }
 }
 
 impl Style {
-    pub fn has_decorations(&self) -> bool {
+    pub(crate) fn has_decorations(&self) -> bool {
         self.font_style.contains(FontStyle::UNDERLINE)
             || self.font_style.contains(FontStyle::STRIKETHROUGH)
     }
@@ -137,6 +139,7 @@ pub struct CompiledThemeRule {
 /// Compiled theme optimized for fast lookups
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledTheme {
+    /// The name of the theme
     pub name: String,
     /// Theme type ("light" or "dark")
     pub(crate) theme_type: ThemeType,
@@ -149,7 +152,7 @@ pub struct CompiledTheme {
 }
 
 impl CompiledTheme {
-    pub fn from_raw_theme(raw_theme: RawTheme) -> GialloResult<Self> {
+    pub(crate) fn from_raw_theme(raw_theme: RawTheme) -> GialloResult<Self> {
         let theme_type = raw_theme
             .kind
             .map(|s| ThemeType::from_theme_str(&s))
@@ -166,7 +169,7 @@ impl CompiledTheme {
         let mut default_style = Style {
             foreground,
             background,
-            font_style: FontStyle::empty(),
+            font_style: FontStyle::default(),
         };
 
         let mut rules_with_specificity = Vec::new();

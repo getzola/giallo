@@ -1,3 +1,27 @@
+//! A syntax highlighting library using TextMate grammars and themes and producing the same
+//! output as VSCode.
+//!
+//! # Example
+//!
+//! ```ignore
+//! use giallo::{HighlightOptions, HtmlRenderer, Options, Registry};
+//!
+//! // Using the `dump` feature and loading the prebuilt assets
+//! let registry = Registry::load_from_file("builtin.msgpack")?;
+//! let code = "let x = 42;";
+//!
+//! let options = HighlightOptions::new("javascript").single_theme("catppuccin-frappe");
+//! let highlighted = registry.highlight(code, options)?;
+//!
+//! let render_options = Options {
+//!     show_line_numbers: true,
+//!     ..Default::default()
+//! };
+//! let html = HtmlRenderer::default().render(&highlighted, &render_options);
+//! ```
+
+#![deny(missing_docs)]
+
 mod error;
 mod grammars;
 mod registry;
@@ -16,6 +40,7 @@ pub use registry::{HighlightOptions, HighlightedCode, Registry};
 pub use renderers::{Options, html::HtmlRenderer};
 pub use themes::{Color, CompiledTheme, FontStyle, Style, ThemeVariant};
 
+/// The CSS needed for the line number gutter to display properly
 pub const GIALLO_CSS: &str = r#".giallo-l {
   display: block;
 }
