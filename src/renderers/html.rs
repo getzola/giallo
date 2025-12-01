@@ -1,5 +1,5 @@
 use crate::registry::HighlightedCode;
-use crate::renderers::Options;
+use crate::renderers::RenderOptions;
 use crate::themes::{Color, ThemeVariant};
 use std::collections::BTreeMap;
 use std::fmt;
@@ -14,7 +14,7 @@ pub struct HtmlRenderer {
 impl HtmlRenderer {
     /// Renders the given highlighted code to an HTML string.
     /// This will also handle automatic light/dark theming and escaping characters.
-    pub fn render(&self, highlighted: &HighlightedCode, options: &Options) -> String {
+    pub fn render(&self, highlighted: &HighlightedCode, options: &RenderOptions) -> String {
         let lang = highlighted.language;
 
         // Pre-compute highlight background CSS if available
@@ -189,7 +189,7 @@ mod tests {
         let options = HighlightOptions::new("javascript").single_theme("vitesse-black");
         let highlighted = registry.highlight(code, options).unwrap();
 
-        let render_options = Options {
+        let render_options = RenderOptions {
             show_line_numbers: true,
             line_number_start: 10,
             highlight_lines: vec![2..=2, 4..=4],

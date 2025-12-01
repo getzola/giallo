@@ -4,7 +4,7 @@ pub mod html;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// All options you can select across renderers
-pub struct Options {
+pub struct RenderOptions {
     /// Whether to show the line numbers in a gutter. Defaults to false.
     pub show_line_numbers: bool,
     /// At which number do the line numbering start. Defaults to 1.
@@ -16,7 +16,7 @@ pub struct Options {
     pub hide_lines: Vec<RangeInclusive<usize>>,
 }
 
-impl Default for Options {
+impl Default for RenderOptions {
     fn default() -> Self {
         Self {
             show_line_numbers: false,

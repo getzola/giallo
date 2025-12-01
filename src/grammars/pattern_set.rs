@@ -104,7 +104,7 @@ impl PatternSet {
         let regset = regset_ref.as_ref().unwrap();
 
         // We need to specify pos/text.len() because some regex might do lookbehind
-        if let Some((pattern_index, captures)) = regset.captures_with_encoding(
+        if let Some((pattern_index, captures)) = regset.captures_with_options(
             text,       // Full text (not sliced)
             pos,        // Start searching from this position
             text.len(), // Search to end of text

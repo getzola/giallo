@@ -1,11 +1,11 @@
-use crate::Options;
+use crate::RenderOptions;
 use std::collections::BTreeMap;
 use std::ops::RangeInclusive;
 
 #[derive(Debug)]
 pub struct ParsedFence<'f> {
     pub lang: &'f str,
-    pub options: Options,
+    pub options: RenderOptions,
     pub rest: BTreeMap<String, String>,
 }
 
@@ -39,7 +39,7 @@ fn parse_range(s: &str) -> Option<RangeInclusive<usize>> {
 /// - `hide_lines`: will hide those lines. Ranges are 1 inclusive and separated by spaces
 pub fn parse_markdown_fence(fence: &str) -> ParsedFence<'_> {
     let mut language = None;
-    let mut options = Options::default();
+    let mut options = RenderOptions::default();
     let mut rest = BTreeMap::new();
 
     for token in fence.split(',') {
@@ -99,7 +99,7 @@ mod tests {
     fn test_language_only() {
         let result = parse_markdown_fence("rust");
         assert_eq!(result.lang, "rust");
-        assert_eq!(result.options, Options::default());
+        assert_eq!(result.options, RenderOptions::default());
         assert!(result.rest.is_empty());
     }
 
@@ -107,7 +107,7 @@ mod tests {
     fn test_empty_string() {
         let result = parse_markdown_fence("");
         assert_eq!(result.lang, "");
-        assert_eq!(result.options, Options::default());
+        assert_eq!(result.options, RenderOptions::default());
         assert!(result.rest.is_empty());
     }
 

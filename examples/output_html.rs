@@ -3,7 +3,7 @@ use std::env;
 use std::fs;
 
 use giallo::{HighlightOptions, Registry};
-use giallo::{HtmlRenderer, Options};
+use giallo::{HtmlRenderer, RenderOptions};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let highlighted = registry.highlight(&file_content, options)?;
-    let render_options = Options {
+    let render_options = RenderOptions {
         show_line_numbers: true,
         ..Default::default()
     };
