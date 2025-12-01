@@ -1,12 +1,12 @@
 mod error;
-pub mod grammars;
-pub mod registry;
-pub mod scope;
-pub mod themes;
+mod grammars;
+mod registry;
+mod scope;
+mod themes;
 
 mod highlight;
 mod markdown_fence;
-pub(crate) mod renderers;
+mod renderers;
 mod tokenizer;
 
 pub use error::Error;

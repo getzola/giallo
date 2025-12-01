@@ -31,13 +31,6 @@ impl Reference {
     pub fn is_local(&self) -> bool {
         matches!(self, Reference::Local(_))
     }
-
-    pub fn is_other(&self) -> bool {
-        matches!(
-            self,
-            Reference::OtherComplete(_) | Reference::OtherSpecific(_, _)
-        )
-    }
 }
 
 impl From<&str> for Reference {

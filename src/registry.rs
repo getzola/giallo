@@ -414,6 +414,7 @@ mod tests {
 
     use super::*;
     use crate::highlight::HighlightedText;
+    use crate::themes::font_style::FontStyle;
 
     fn get_registry() -> Registry {
         let mut registry = Registry::default();
@@ -458,22 +459,16 @@ mod tests {
                     let mut abbr = String::from("[");
 
                     // Check each style flag and add corresponding character
-                    if style.font_style.contains(crate::themes::FontStyle::BOLD) {
+                    if style.font_style.contains(FontStyle::BOLD) {
                         abbr.push('b');
                     }
-                    if style.font_style.contains(crate::themes::FontStyle::ITALIC) {
+                    if style.font_style.contains(FontStyle::ITALIC) {
                         abbr.push('i');
                     }
-                    if style
-                        .font_style
-                        .contains(crate::themes::FontStyle::UNDERLINE)
-                    {
+                    if style.font_style.contains(FontStyle::UNDERLINE) {
                         abbr.push('u');
                     }
-                    if style
-                        .font_style
-                        .contains(crate::themes::FontStyle::STRIKETHROUGH)
-                    {
+                    if style.font_style.contains(FontStyle::STRIKETHROUGH) {
                         abbr.push('s');
                     }
 

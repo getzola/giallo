@@ -107,10 +107,6 @@ impl StyleModifier {
             font_style: self.font_style.unwrap_or(base.font_style),
         }
     }
-
-    pub fn has_properties(&self) -> bool {
-        self.foreground.is_some() || self.background.is_some() || self.font_style.is_some()
-    }
 }
 
 /// Theme type for determining fallback colors
@@ -122,14 +118,6 @@ pub enum ThemeType {
 }
 
 impl ThemeType {
-    // (fg, bg)
-    pub fn default_colors(&self) -> (Color, Color) {
-        match self {
-            ThemeType::Light => (Color::LIGHT_FG_FALLBACK, Color::LIGHT_BG_FALLBACK),
-            ThemeType::Dark => (Color::DARK_FG_FALLBACK, Color::DARK_BG_FALLBACK),
-        }
-    }
-
     pub fn from_theme_str(s: &str) -> ThemeType {
         if s.eq_ignore_ascii_case("light") {
             ThemeType::Light
@@ -246,14 +234,6 @@ impl CompiledTheme {
             highlight_background_color,
             rules,
         })
-    }
-
-    pub fn is_dark(&self) -> bool {
-        self.theme_type == ThemeType::Dark
-    }
-
-    pub fn is_light(&self) -> bool {
-        self.theme_type == ThemeType::Light
     }
 }
 

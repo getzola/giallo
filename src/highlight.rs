@@ -295,10 +295,11 @@ impl<'r> Highlighter<'r> {
 mod tests {
     use super::*;
     use crate::scope::Scope;
-    use crate::themes::{
-        Color, Colors, CompiledTheme, CompiledThemeRule, FontStyle, RawTheme, StyleModifier,
-        ThemeType, TokenColorRule, TokenColorSettings, parse_selector,
-    };
+    use crate::themes::compiled::{CompiledThemeRule, StyleModifier, ThemeType};
+    use crate::themes::font_style::FontStyle;
+    use crate::themes::raw::{Colors, TokenColorRule, TokenColorSettings};
+    use crate::themes::selector::parse_selector;
+    use crate::themes::{Color, CompiledTheme, RawTheme};
     use crate::tokenizer::Token;
     use std::ops::Range;
     use std::path::PathBuf;

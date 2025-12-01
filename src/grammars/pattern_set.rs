@@ -3,7 +3,7 @@ use std::fmt::{Debug, Formatter};
 
 use onig::{RegSet, RegexOptions};
 
-use crate::grammars::{END_RULE_ID, GlobalRuleRef};
+use crate::grammars::GlobalRuleRef;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PatternSetMatch {
@@ -11,16 +11,6 @@ pub struct PatternSetMatch {
     pub start: usize,
     pub end: usize,
     pub capture_pos: Vec<Option<(usize, usize)>>,
-}
-
-impl PatternSetMatch {
-    pub fn is_end_rule(&self) -> bool {
-        self.rule_ref.rule == END_RULE_ID
-    }
-
-    pub fn has_advanced(&self) -> bool {
-        self.end > self.start
-    }
 }
 
 /// A lazily compiled pattern set for efficient batch regex matching using onig RegSet

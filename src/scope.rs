@@ -1,7 +1,7 @@
 //! Scope system using u128 bit-packing taken from syntect
 //!
 //! Scopes like "source.rust.meta.function" are packed into a single u128:
-//! Memory layout: [atom0][atom1][atom2][atom3][atom4][atom5][atom6][atom7]
+//! Memory layout: `[atom0][atom1][atom2][atom3][atom4][atom5][atom6][atom7]`
 //! Each atom is 16 bits, storing repository_index + 1 (0 = unused slot)
 //! Any atom above the 8th will be ignored
 
