@@ -3,6 +3,7 @@ use std::ops::RangeInclusive;
 pub mod html;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+/// All options you can select across renderers
 pub struct Options {
     /// Whether to show the line numbers in a gutter. Defaults to false.
     pub show_line_numbers: bool,

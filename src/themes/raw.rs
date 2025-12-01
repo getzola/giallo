@@ -5,6 +5,7 @@ use std::path::Path;
 use serde::de::{MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, de};
 
+use crate::error::GialloResult;
 use crate::themes::compiled::CompiledTheme;
 
 /// Token color settings from VSCode theme JSON
@@ -161,14 +162,14 @@ pub struct RawTheme {
 }
 
 impl RawTheme {
-    pub fn load_from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn load_from_file<P: AsRef<Path>>(path: P) -> GialloResult<Self> {
         let file = File::open(path)?;
         let theme = serde_json::from_reader(file)?;
         Ok(theme)
     }
 
     /// Compile this raw grammar into an optimized compiled grammar
-    pub fn compile(self) -> Result<CompiledTheme, Box<dyn std::error::Error>> {
+    pub fn compile(self) -> GialloResult<CompiledTheme> {
         CompiledTheme::from_raw_theme(self)
     }
 }

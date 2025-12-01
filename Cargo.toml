@@ -19,7 +19,6 @@ log = { version = "0.4", optional = true }
 [features]
 tools = ["dump"]
 debug = ["dep:log"]
-builtins = []
 dump = ["dep:rmp-serde", "dep:flate2"]
 
 [dev-dependencies]
@@ -53,8 +52,13 @@ required-features = ["dump"]
 name = "output_html"
 required-features = ["dump"]
 
+[[example]]
+name = "custom_rendering"
+required-features = ["dump"]
+
 [[bin]]
 name = "build-registry"
 path = "tools/build_registry.rs"
 required-features = ["tools"]
+
 

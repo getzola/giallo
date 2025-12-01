@@ -1,5 +1,5 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use giallo::registry::{HighlightOptions, Registry};
+use giallo::{HighlightOptions, Registry};
 use std::fs;
 
 fn highlight_jquery_benchmark(c: &mut Criterion) {

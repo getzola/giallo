@@ -1,61 +1,38 @@
 use serde::{Deserialize, Serialize};
 
+use crate::error::{Error, GialloResult};
+
 /// RGBA color with 8-bit components
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
 pub struct Color {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
-    pub a: u8,
+    pub(crate) r: u8,
+    pub(crate) g: u8,
+    pub(crate) b: u8,
+    pub(crate) a: u8,
 }
 
-fn parse_hex_component(hex: &str) -> Result<u8, String> {
-    u8::from_str_radix(hex, 16).map_err(|e| format!("Invalid hex component '{}': {}", hex, e))
+fn parse_hex_component(hex: &str, original: &str) -> GialloResult<u8> {
+    u8::from_str_radix(hex, 16).map_err(|_| Error::InvalidHexColor {
+        value: original.to_string(),
+        reason: format!("invalid hex component '{}'", hex),
+    })
 }
 
 impl Color {
-    pub const WHITE: Color = Color {
+    pub(crate) const WHITE: Color = Color {
         r: 255,
         g: 255,
         b: 255,
         a: 255,
     };
-    pub const BLACK: Color = Color {
+    pub(crate) const BLACK: Color = Color {
         r: 0,
         g: 0,
         b: 0,
         a: 255,
     };
 
-    // #333333
-    pub const LIGHT_FG_FALLBACK: Color = Color {
-        r: 51,
-        g: 51,
-        b: 51,
-        a: 255,
-    };
-    // #ffffff
-    pub const LIGHT_BG_FALLBACK: Color = Color {
-        r: 255,
-        g: 255,
-        b: 255,
-        a: 255,
-    };
-    // #bbbbbb
-    pub const DARK_FG_FALLBACK: Color = Color {
-        r: 187,
-        g: 187,
-        b: 187,
-        a: 255,
-    };
-    // #1e1e1e
-    pub const DARK_BG_FALLBACK: Color = Color {
-        r: 30,
-        g: 30,
-        b: 30,
-        a: 255,
-    };
-
+    /// Outputs the hex value for that colour.
     #[inline]
     pub fn as_hex(&self) -> String {
         if self.a < 255 {
@@ -66,24 +43,22 @@ impl Color {
     }
 
     #[inline]
-    pub fn as_css_color_property(&self) -> String {
+    pub(crate) fn as_css_color_property(&self) -> String {
         format!("color: {};", self.as_hex())
     }
 
     #[inline]
-    pub fn as_css_bg_color_property(&self) -> String {
+    pub(crate) fn as_css_bg_color_property(&self) -> String {
         format!("background-color: {};", self.as_hex())
     }
 
-    /// Returns a CSS `color` property using `light-dark()` function for automatic theme switching
     #[inline]
-    pub fn as_css_light_dark_color_property(light: &Color, dark: &Color) -> String {
+    pub(crate) fn as_css_light_dark_color_property(light: &Color, dark: &Color) -> String {
         format!("color: light-dark({}, {});", light.as_hex(), dark.as_hex())
     }
 
-    /// Returns a CSS `background-color` property using `light-dark()` function
     #[inline]
-    pub fn as_css_light_dark_bg_color_property(light: &Color, dark: &Color) -> String {
+    pub(crate) fn as_css_light_dark_bg_color_property(light: &Color, dark: &Color) -> String {
         format!(
             "background-color: light-dark({}, {});",
             light.as_hex(),
@@ -91,7 +66,11 @@ impl Color {
         )
     }
 
-    pub fn from_hex(hex: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    /// Creates a Color from a string (in theory a hex but it can also be black/white).
+    ///
+    /// Errors if the string is not a valid hex colour.
+    pub fn from_hex(hex: &str) -> GialloResult<Self> {
+        let original = hex;
         let hex = hex.trim_start_matches('#');
 
         if hex == "white" {
@@ -103,9 +82,9 @@ impl Color {
         match hex.len() {
             // #RGB format (e.g., #F00 for red)
             3 => {
-                let r = parse_hex_component(&hex[0..1])?;
-                let g = parse_hex_component(&hex[1..2])?;
-                let b = parse_hex_component(&hex[2..3])?;
+                let r = parse_hex_component(&hex[0..1], original)?;
+                let g = parse_hex_component(&hex[1..2], original)?;
+                let b = parse_hex_component(&hex[2..3], original)?;
                 Ok(Color {
                     r: r * 17, // Convert 0xF to 0xFF
                     g: g * 17,
@@ -115,10 +94,10 @@ impl Color {
             }
             // #RGBA format (e.g., #F00F for red with full opacity)
             4 => {
-                let r = parse_hex_component(&hex[0..1])?;
-                let g = parse_hex_component(&hex[1..2])?;
-                let b = parse_hex_component(&hex[2..3])?;
-                let a = parse_hex_component(&hex[3..4])?;
+                let r = parse_hex_component(&hex[0..1], original)?;
+                let g = parse_hex_component(&hex[1..2], original)?;
+                let b = parse_hex_component(&hex[2..3], original)?;
+                let a = parse_hex_component(&hex[3..4], original)?;
                 Ok(Color {
                     r: r * 17,
                     g: g * 17,
@@ -128,20 +107,23 @@ impl Color {
             }
             // #RRGGBB format (e.g., #FF0000 for red)
             6 => {
-                let r = parse_hex_component(&hex[0..2])?;
-                let g = parse_hex_component(&hex[2..4])?;
-                let b = parse_hex_component(&hex[4..6])?;
+                let r = parse_hex_component(&hex[0..2], original)?;
+                let g = parse_hex_component(&hex[2..4], original)?;
+                let b = parse_hex_component(&hex[4..6], original)?;
                 Ok(Color { r, g, b, a: 255 })
             }
             // #RRGGBBAA format (e.g., #FF0000FF for red with full opacity)
             8 => {
-                let r = parse_hex_component(&hex[0..2])?;
-                let g = parse_hex_component(&hex[2..4])?;
-                let b = parse_hex_component(&hex[4..6])?;
-                let a = parse_hex_component(&hex[6..8])?;
+                let r = parse_hex_component(&hex[0..2], original)?;
+                let g = parse_hex_component(&hex[2..4], original)?;
+                let b = parse_hex_component(&hex[4..6], original)?;
+                let a = parse_hex_component(&hex[6..8], original)?;
                 Ok(Color { r, g, b, a })
             }
-            _ => Err(format!("Invalid hex color length: {}", hex).into()),
+            _ => Err(Error::InvalidHexColor {
+                value: original.to_string(),
+                reason: format!("invalid length {}", hex.len()),
+            }),
         }
     }
 }

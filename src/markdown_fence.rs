@@ -26,6 +26,17 @@ fn parse_range(s: &str) -> Option<RangeInclusive<usize>> {
     }
 }
 
+/// Parses a markdown fence in the same shape as Zola's.
+///
+/// Eg `rust,linenos,linenostart=10,hl_lines=1-3 5,hide_lines=2,name=test`
+///
+/// Elements are split by `,` and the first element is the language.
+///
+/// For the rest, order does not matter but the following attributes are specific:
+/// - `linenos`: will set the options to show line numbers
+/// - `linenostart=n`: will the options line number start to `n`
+/// - `hl_lines=1-3 5`: will highlight those lines. Ranges are 1 inclusive and separated by spaces
+/// - `hide_lines`: will hide those lines. Ranges are 1 inclusive and separated by spaces
 pub fn parse_markdown_fence(fence: &str) -> ParsedFence<'_> {
     let mut language = None;
     let mut options = Options::default();

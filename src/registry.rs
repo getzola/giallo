@@ -3,6 +3,7 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::error::{Error, GialloResult};
 use crate::grammars::{
     BASE_GLOBAL_RULE_REF, CompiledGrammar, GlobalRuleRef, GrammarId, InjectionPrecedence, Match,
     NO_OP_GLOBAL_RULE_REF, ROOT_RULE_ID, RawGrammar, Rule,
@@ -22,7 +23,13 @@ struct Dump {
     scope_repo: ScopeRepository,
 }
 
+// We always include the data but if the `dump` feature is not enabled, we can't actually
+// use it
+#[allow(dead_code)]
+const BUILTIN_DATA: &[u8] = include_bytes!("../builtin.msgpack");
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+/// Options for highlighting by the registry, NOT rendering.
 pub struct HighlightOptions<'a> {
     pub(crate) lang: &'a str,
     pub(crate) theme: ThemeVariant<&'a str>,
@@ -42,6 +49,7 @@ impl<'a> Default for HighlightOptions<'a> {
 }
 
 impl<'a> HighlightOptions<'a> {
+    /// Creates a new builder for the options
     pub fn new(lang: &'a str) -> Self {
         Self {
             lang,
@@ -81,8 +89,11 @@ impl<'a> HighlightOptions<'a> {
 /// Highlighted code with language, theme, and tokens
 #[derive(Debug, Clone)]
 pub struct HighlightedCode<'a> {
+    /// The requested language
     pub language: &'a str,
-    pub(crate) theme: ThemeVariant<&'a CompiledTheme>,
+    /// The compiled theme(s) we got from the registry based on the requested themes
+    pub theme: ThemeVariant<&'a CompiledTheme>,
+    /// The generated tokens. Each line is a Vector
     pub tokens: Vec<Vec<HighlightedText>>,
 }
 
@@ -92,6 +103,10 @@ pub(crate) fn normalize_string(s: &str) -> String {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+/// The main struct in giallo.
+///
+/// Holds all the grammars and themes and is responsible for highlighting a text. It is not
+/// responsible for actually rendering those highlighted texts.
 pub struct Registry {
     // Vector of compiled grammars for ID-based access
     pub(crate) grammars: Vec<CompiledGrammar>,
@@ -109,12 +124,9 @@ pub struct Registry {
 }
 
 impl Registry {
-    fn add_grammar_from_raw(
-        &mut self,
-        raw_grammar: RawGrammar,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    fn add_grammar_from_raw(&mut self, raw_grammar: RawGrammar) -> GialloResult<()> {
         let grammar_id = GrammarId(self.grammars.len() as u16);
-        let grammar = CompiledGrammar::from_raw_grammar(raw_grammar, grammar_id)?;
+        let grammar = CompiledGrammar::from_raw_grammar(raw_grammar, grammar_id);
         let grammar_name = grammar.name.clone();
         let grammar_scope_name = grammar.scope_name.clone();
         self.grammars.push(grammar);
@@ -125,22 +137,13 @@ impl Registry {
         Ok(())
     }
 
-    pub fn add_grammar_from_str(
-        &mut self,
-        grammar: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let raw_grammar = RawGrammar::load_from_str(grammar)?;
-        self.add_grammar_from_raw(raw_grammar)
-    }
-
-    pub fn add_grammar_from_path(
-        &mut self,
-        path: impl AsRef<Path>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    /// Reads the file and add it as a grammar.
+    pub fn add_grammar_from_path(&mut self, path: impl AsRef<Path>) -> GialloResult<()> {
         let raw_grammar = RawGrammar::load_from_file(path)?;
         self.add_grammar_from_raw(raw_grammar)
     }
 
+    /// Adds an alias for the given grammar
     pub fn add_alias(&mut self, grammar_name: &str, alias: &str) {
         if let Some(grammar_id) = self.grammar_id_by_name.get(grammar_name) {
             self.grammar_id_by_name
@@ -148,22 +151,8 @@ impl Registry {
         }
     }
 
-    pub fn add_theme_from_str(
-        &mut self,
-        name: &str,
-        content: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let raw_theme: RawTheme = serde_json::from_str(content)?;
-        let compiled_theme = raw_theme.compile()?;
-        self.themes.insert(name.to_string(), compiled_theme);
-        Ok(())
-    }
-
-    pub fn add_theme_from_path(
-        &mut self,
-        name: &str,
-        path: impl AsRef<Path>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    /// Reads the file and add it as a theme.
+    pub fn add_theme_from_path(&mut self, name: &str, path: impl AsRef<Path>) -> GialloResult<()> {
         let raw_theme = RawTheme::load_from_file(path)?;
         let compiled_theme = raw_theme.compile()?;
         self.themes.insert(name.to_string(), compiled_theme);
@@ -174,23 +163,30 @@ impl Registry {
         &self,
         grammar_id: GrammarId,
         content: &str,
-    ) -> Result<Vec<Vec<Token>>, Box<dyn std::error::Error>> {
+    ) -> GialloResult<Vec<Vec<Token>>> {
         let mut tokenizer = Tokenizer::new(grammar_id, self);
-        match tokenizer.tokenize_string(content) {
-            Ok(tokens) => Ok(tokens),
-            Err(e) => Err(Box::new(e)),
-        }
+        let tokens = tokenizer
+            .tokenize_string(content)
+            .map_err(Error::TokenizeRegex)?;
+        Ok(tokens)
     }
 
+    /// The main entry point for the actual giallo usage.
+    ///
+    /// This returns the raw output of the tokenizer + theme matching. It's up to you to use
+    /// a provided renderer or to use your own afterwards.
+    ///
+    /// Make sure `link_grammars` is called before calling `highligh` if you are not using
+    /// the provided dump.
     pub fn highlight<'a>(
         &'a self,
         content: &str,
         options: HighlightOptions<'a>,
-    ) -> Result<HighlightedCode<'a>, Box<dyn std::error::Error>> {
+    ) -> GialloResult<HighlightedCode<'a>> {
         let grammar_id = *self
             .grammar_id_by_name
             .get(options.lang)
-            .ok_or_else(|| format!("no grammar found for {}", options.lang))?;
+            .ok_or_else(|| Error::GrammarNotFound(options.lang.to_string()))?;
 
         let normalized_content = normalize_string(content);
         let tokens = self.tokenize(grammar_id, &normalized_content)?;
@@ -205,7 +201,7 @@ impl Registry {
                 let theme = self
                     .themes
                     .get(*theme_name)
-                    .ok_or_else(|| format!("no theme found for {}", theme_name))?;
+                    .ok_or_else(|| Error::ThemeNotFound((*theme_name).to_string()))?;
 
                 let mut highlighter = Highlighter::new(theme);
                 let highlighted_tokens =
@@ -221,11 +217,11 @@ impl Registry {
                 let light_theme = self
                     .themes
                     .get(*light)
-                    .ok_or_else(|| format!("no light theme found for {}", light))?;
+                    .ok_or_else(|| Error::ThemeNotFound((*light).to_string()))?;
                 let dark_theme = self
                     .themes
                     .get(*dark)
-                    .ok_or_else(|| format!("no dark theme found for {}", dark))?;
+                    .ok_or_else(|| Error::ThemeNotFound((*dark).to_string()))?;
 
                 let mut highlighter = Highlighter::new_dual(light_theme, dark_theme);
                 let highlighted_tokens =
@@ -243,6 +239,11 @@ impl Registry {
         }
     }
 
+    /// Will find all references to external grammars and use the correct target for them.
+    /// Call that if you're not using the provided dump otherwise things will not work well.
+    ///
+    /// TODO: this is currently destructive so if you link, then add a new version of an existing grammar
+    /// then relink, things will not work well.
     pub fn link_grammars(&mut self) {
         let grammar_names_ptr = &self.grammar_id_by_scope_name as *const HashMap<String, GrammarId>;
         let grammars_ptr = &self.grammars as *const Vec<CompiledGrammar>;
@@ -378,7 +379,8 @@ impl Registry {
     }
 
     #[cfg(feature = "dump")]
-    pub fn dump_to_file(&self, path: impl AsRef<Path>) -> Result<(), Box<dyn std::error::Error>> {
+    /// Dump the registry + scope repository to a binary file that can be loaded later
+    pub fn dump_to_file(&self, path: impl AsRef<Path>) -> GialloResult<()> {
         use crate::scope::lock_global_scope_repo;
         use flate2::{Compression, write::GzEncoder};
         use std::io::Write;
@@ -400,13 +402,12 @@ impl Registry {
     }
 
     #[cfg(feature = "dump")]
-    pub fn load_from_file(path: impl AsRef<Path>) -> Result<Self, Box<dyn std::error::Error>> {
+    fn load_from_bytes(compressed_data: &[u8]) -> GialloResult<Self> {
         use crate::scope::replace_global_scope_repo;
         use flate2::read::GzDecoder;
         use std::io::Read;
 
-        let compressed_data = std::fs::read(path)?;
-        let mut decoder = GzDecoder::new(&compressed_data[..]);
+        let mut decoder = GzDecoder::new(compressed_data);
         let mut msgpack_data = Vec::new();
         decoder.read_to_end(&mut msgpack_data)?;
 
@@ -414,6 +415,19 @@ impl Registry {
         replace_global_scope_repo(dump.scope_repo);
 
         Ok(dump.registry)
+    }
+
+    #[cfg(feature = "dump")]
+    /// Read a binary dump from giallo and load registry + scope repository from it
+    pub fn load_from_file(path: impl AsRef<Path>) -> GialloResult<Self> {
+        let compressed_data = std::fs::read(path)?;
+        Self::load_from_bytes(&compressed_data)
+    }
+
+    #[cfg(feature = "dump")]
+    /// Load the builtin registry containing all grammars and themes from grammars-themes
+    pub fn builtin() -> GialloResult<Self> {
+        Self::load_from_bytes(BUILTIN_DATA)
     }
 }
 
@@ -424,6 +438,7 @@ mod tests {
 
     use super::*;
     use crate::highlight::HighlightedText;
+    use crate::themes::font_style::FontStyle;
 
     fn get_registry() -> Registry {
         let mut registry = Registry::default();
@@ -468,22 +483,16 @@ mod tests {
                     let mut abbr = String::from("[");
 
                     // Check each style flag and add corresponding character
-                    if style.font_style.contains(crate::themes::FontStyle::BOLD) {
+                    if style.font_style.contains(FontStyle::BOLD) {
                         abbr.push('b');
                     }
-                    if style.font_style.contains(crate::themes::FontStyle::ITALIC) {
+                    if style.font_style.contains(FontStyle::ITALIC) {
                         abbr.push('i');
                     }
-                    if style
-                        .font_style
-                        .contains(crate::themes::FontStyle::UNDERLINE)
-                    {
+                    if style.font_style.contains(FontStyle::UNDERLINE) {
                         abbr.push('u');
                     }
-                    if style
-                        .font_style
-                        .contains(crate::themes::FontStyle::STRIKETHROUGH)
-                    {
+                    if style.font_style.contains(FontStyle::STRIKETHROUGH) {
                         abbr.push('s');
                     }
 

@@ -5,6 +5,8 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::error::GialloResult;
+
 /// per vscode-textmate:
 ///  Allowed values:
 ///  * Scope Name, e.g. `source.ts`
@@ -28,13 +30,6 @@ pub enum Reference {
 impl Reference {
     pub fn is_local(&self) -> bool {
         matches!(self, Reference::Local(_))
-    }
-
-    pub fn is_other(&self) -> bool {
-        matches!(
-            self,
-            Reference::OtherComplete(_) | Reference::OtherSpecific(_, _)
-        )
     }
 }
 
@@ -272,12 +267,7 @@ pub struct RawGrammar {
 }
 
 impl RawGrammar {
-    pub fn load_from_str(content: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        let raw_grammar = serde_json::from_str(content)?;
-        Ok(raw_grammar)
-    }
-
-    pub fn load_from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn load_from_file<P: AsRef<Path>>(path: P) -> GialloResult<Self> {
         let file = File::open(&path)?;
         let raw_grammar = serde_json::from_reader(&file)?;
         Ok(raw_grammar)

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::error::{Error, GialloResult};
 use crate::themes::Color;
 use crate::themes::font_style::FontStyle;
 use crate::themes::raw::{RawTheme, TokenColorSettings};
@@ -35,12 +36,14 @@ impl Specificity {
     }
 }
 
-/// A complete, concrete, style with foreground, background colors and font styling
-/// This is what is returned by the highlighter for each token
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
+/// A complete, concrete, style with foreground, background colors and font styling
 pub struct Style {
+    /// The foreground color
     pub foreground: Color,
+    /// The background color
     pub background: Color,
+    /// Any associated font style
     pub font_style: FontStyle,
 }
 
@@ -49,13 +52,13 @@ impl Default for Style {
         Style {
             foreground: Color::BLACK,
             background: Color::WHITE,
-            font_style: FontStyle::empty(),
+            font_style: FontStyle::default(),
         }
     }
 }
 
 impl Style {
-    pub fn has_decorations(&self) -> bool {
+    pub(crate) fn has_decorations(&self) -> bool {
         self.font_style.contains(FontStyle::UNDERLINE)
             || self.font_style.contains(FontStyle::STRIKETHROUGH)
     }
@@ -73,9 +76,9 @@ pub struct StyleModifier {
 }
 
 impl TryFrom<TokenColorSettings> for StyleModifier {
-    type Error = Box<dyn std::error::Error>;
+    type Error = Error;
 
-    fn try_from(settings: TokenColorSettings) -> Result<Self, Self::Error> {
+    fn try_from(settings: TokenColorSettings) -> GialloResult<Self> {
         let foreground = if let Some(s) = settings.foreground() {
             Some(Color::from_hex(s)?)
         } else {
@@ -106,10 +109,6 @@ impl StyleModifier {
             font_style: self.font_style.unwrap_or(base.font_style),
         }
     }
-
-    pub fn has_properties(&self) -> bool {
-        self.foreground.is_some() || self.background.is_some() || self.font_style.is_some()
-    }
 }
 
 /// Theme type for determining fallback colors
@@ -121,14 +120,6 @@ pub enum ThemeType {
 }
 
 impl ThemeType {
-    // (fg, bg)
-    pub fn default_colors(&self) -> (Color, Color) {
-        match self {
-            ThemeType::Light => (Color::LIGHT_FG_FALLBACK, Color::LIGHT_BG_FALLBACK),
-            ThemeType::Dark => (Color::DARK_FG_FALLBACK, Color::DARK_BG_FALLBACK),
-        }
-    }
-
     pub fn from_theme_str(s: &str) -> ThemeType {
         if s.eq_ignore_ascii_case("light") {
             ThemeType::Light
@@ -148,6 +139,7 @@ pub struct CompiledThemeRule {
 /// Compiled theme optimized for fast lookups
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledTheme {
+    /// The name of the theme
     pub name: String,
     /// Theme type ("light" or "dark")
     pub(crate) theme_type: ThemeType,
@@ -160,7 +152,7 @@ pub struct CompiledTheme {
 }
 
 impl CompiledTheme {
-    pub fn from_raw_theme(raw_theme: RawTheme) -> Result<Self, Box<dyn std::error::Error>> {
+    pub(crate) fn from_raw_theme(raw_theme: RawTheme) -> GialloResult<Self> {
         let theme_type = raw_theme
             .kind
             .map(|s| ThemeType::from_theme_str(&s))
@@ -177,7 +169,7 @@ impl CompiledTheme {
         let mut default_style = Style {
             foreground,
             background,
-            font_style: FontStyle::empty(),
+            font_style: FontStyle::default(),
         };
 
         let mut rules_with_specificity = Vec::new();
@@ -245,14 +237,6 @@ impl CompiledTheme {
             highlight_background_color,
             rules,
         })
-    }
-
-    pub fn is_dark(&self) -> bool {
-        self.theme_type == ThemeType::Dark
-    }
-
-    pub fn is_light(&self) -> bool {
-        self.theme_type == ThemeType::Light
     }
 }
 

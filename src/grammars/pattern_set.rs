@@ -3,8 +3,7 @@ use std::fmt::{Debug, Formatter};
 
 use onig::{RegSet, RegexOptions};
 
-use crate::grammars::{END_RULE_ID, GlobalRuleRef};
-use crate::tokenizer::TokenizeError;
+use crate::grammars::GlobalRuleRef;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PatternSetMatch {
@@ -12,16 +11,6 @@ pub struct PatternSetMatch {
     pub start: usize,
     pub end: usize,
     pub capture_pos: Vec<Option<(usize, usize)>>,
-}
-
-impl PatternSetMatch {
-    pub fn is_end_rule(&self) -> bool {
-        self.rule_ref.rule == END_RULE_ID
-    }
-
-    pub fn has_advanced(&self) -> bool {
-        self.end > self.start
-    }
 }
 
 /// A lazily compiled pattern set for efficient batch regex matching using onig RegSet
@@ -71,11 +60,11 @@ impl PatternSet {
         self.update(self.patterns.len() - 1, pat)
     }
 
-    pub fn find_at(
+    pub(crate) fn find_at(
         &self,
         text: &str,
         pos: usize,
-    ) -> Result<Option<PatternSetMatch>, TokenizeError> {
+    ) -> Result<Option<PatternSetMatch>, String> {
         if self.patterns.is_empty() {
             return Ok(None);
         }
@@ -103,11 +92,11 @@ impl PatternSet {
                                 pattern
                             );
                         }
-                        TokenizeError::InvalidRegex(format!(
+                        format!(
                             "Failed to compile pattern set with {} patterns: {:?}",
                             pattern_strs.len(),
                             e
-                        ))
+                        )
                     })?;
             *self.regset.borrow_mut() = Some(regset);
         }

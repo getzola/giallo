@@ -1,4 +1,4 @@
-use giallo::registry::{HighlightOptions, Registry};
+use giallo::{HighlightOptions, Registry};
 use std::fs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

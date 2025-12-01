@@ -5,11 +5,15 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 #[derive(Debug, PartialEq, Clone, Default)]
+/// A renderer that will output proper HTML code
 pub struct HtmlRenderer {
+    /// Any metadata we want to add as `<code>` data-* attribute
     pub other_metadata: BTreeMap<String, String>,
 }
 
 impl HtmlRenderer {
+    /// Renders the given highlighted code to an HTML string.
+    /// This will also handle automatic light/dark theming and escaping characters.
     pub fn render(&self, highlighted: &HighlightedCode, options: &Options) -> String {
         let lang = highlighted.language;
 
@@ -78,12 +82,30 @@ impl HtmlRenderer {
         }
         let lines = lines.join("");
 
+        // Build data attributes from other_metadata
+        let mut data_attrs = format!(r#"data-lang="{lang}""#);
+        for (key, value) in &self.other_metadata {
+            // lowercase and replace non-alphanumeric chars with hyphens
+            let slugified_key: String = key
+                .to_lowercase()
+                .chars()
+                .map(|c| {
+                    if c.is_alphanumeric() || c == '-' {
+                        c
+                    } else {
+                        '-'
+                    }
+                })
+                .collect();
+            data_attrs.push_str(&format!(r#" data-{slugified_key}="{value}""#));
+        }
+
         match &highlighted.theme {
             ThemeVariant::Single(theme) => {
                 let fg = theme.default_style.foreground.as_css_color_property();
                 let bg = theme.default_style.background.as_css_bg_color_property();
                 format!(
-                    r#"<pre class="giallo" style="{fg} {bg}"><code data-lang="{lang}">{lines}</code></pre>"#
+                    r#"<pre class="giallo" style="{fg} {bg}"><code {data_attrs}>{lines}</code></pre>"#
                 )
             }
             ThemeVariant::Dual { light, dark } => {
@@ -96,7 +118,7 @@ impl HtmlRenderer {
                     &dark.default_style.background,
                 );
                 format!(
-                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}"><code data-lang="{lang}">{lines}/code></pre>"#
+                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}"><code {data_attrs}>{lines}</code></pre>"#
                 )
             }
         }
@@ -174,7 +196,12 @@ mod tests {
             hide_lines: vec![3..=3],
         };
 
-        let html = HtmlRenderer::default().render(&highlighted, &render_options);
+        let mut other_metadata = BTreeMap::new();
+        other_metadata.insert("copy".to_string(), "true".to_string());
+        other_metadata.insert("name".to_string(), "Hello world".to_string());
+        other_metadata.insert("name with space1".to_string(), "other".to_string());
+
+        let html = HtmlRenderer { other_metadata }.render(&highlighted, &render_options);
         insta::assert_snapshot!(html);
     }
 }
