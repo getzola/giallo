@@ -1,4 +1,4 @@
-use giallo::registry::Registry;
+use giallo::Registry;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -24,18 +24,12 @@ fn load_grammar_metadata() -> Result<HashMap<String, Vec<String>>, Box<dyn std::
     let metadata_content = fs::read_to_string(metadata_path)?;
     let metadata: Vec<GrammarMetadata> = serde_json::from_str(&metadata_content)?;
 
-    // Create lookup map from grammar name to aliases
+    // Create lookup map from grammar name to aliases (include all grammars)
     let mut alias_map = HashMap::new();
     for grammar in metadata {
-        if !grammar.aliases.is_empty() {
-            alias_map.insert(grammar.name.clone(), grammar.aliases);
-        }
+        alias_map.insert(grammar.name.clone(), grammar.aliases);
     }
 
-    println!(
-        "📋 Loaded metadata for {} grammars with aliases",
-        alias_map.len()
-    );
     Ok(alias_map)
 }
 
@@ -53,7 +47,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut aliases_registered = 0;
 
     // Load grammars
-    println!("\nLoading grammars...");
     let grammars_dir = "grammars-themes/packages/tm-grammars/grammars";
 
     for entry in fs::read_dir(grammars_dir)? {
@@ -64,7 +57,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             match registry.add_grammar_from_path(&path) {
                 Ok(_) => {
-                    println!("✓ Loaded grammar: {}", grammar_name);
                     grammar_count += 1;
 
                     // Register aliases for this grammar if they exist
@@ -73,11 +65,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             registry.add_alias(grammar_name, alias);
                             aliases_registered += 1;
                         }
-                        println!(
-                            "  └─ Registered {} aliases: [{}]",
-                            aliases.len(),
-                            aliases.join(", ")
-                        );
                     }
                 }
                 Err(e) => {
@@ -89,8 +76,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Load themes
-    println!("\nLoading themes...");
     let themes_dir = "grammars-themes/packages/tm-themes/themes";
+    let mut theme_names: Vec<String> = Vec::new();
 
     for entry in fs::read_dir(themes_dir)? {
         let entry = entry?;
@@ -100,7 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             match registry.add_theme_from_path(theme_name, &path) {
                 Ok(_) => {
-                    println!("✓ Loaded theme: {}", theme_name);
+                    theme_names.push(theme_name.to_string());
                     theme_count += 1;
                 }
                 Err(e) => {
@@ -109,6 +96,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
+    }
+
+    // Print syntaxes with aliases
+    println!("\nSyntaxes:");
+    let mut syntax_aliases: Vec<_> = alias_map.iter().collect();
+    syntax_aliases.sort_by_key(|(name, _)| name.as_str());
+    for (name, aliases) in syntax_aliases {
+        if aliases.is_empty() {
+            println!("- {}", name);
+        } else {
+            println!("- {} -> {:?}", name, aliases);
+        }
+    }
+
+    // Print themes
+    println!("\nThemes:");
+    theme_names.sort();
+    for name in &theme_names {
+        println!("- {}", name);
     }
 
     println!("\nSummary:");

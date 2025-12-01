@@ -374,6 +374,7 @@ impl Registry {
     }
 
     #[cfg(feature = "dump")]
+    /// Dump the registry + scope repository to a binary file that can be loaded later
     pub fn dump_to_file(&self, path: impl AsRef<Path>) -> GialloResult<()> {
         use crate::scope::lock_global_scope_repo;
         use flate2::{Compression, write::GzEncoder};
@@ -396,6 +397,7 @@ impl Registry {
     }
 
     #[cfg(feature = "dump")]
+    /// Read a binary dump from giallo and load registry + scope repository from it
     pub fn load_from_file(path: impl AsRef<Path>) -> GialloResult<Self> {
         use crate::scope::replace_global_scope_repo;
         use flate2::read::GzDecoder;
