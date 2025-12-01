@@ -432,7 +432,7 @@ pub struct CompiledGrammar {
 }
 
 impl CompiledGrammar {
-    pub fn from_raw_grammar(raw: RawGrammar, id: GrammarId) -> Result<Self, CompileError> {
+    pub(crate) fn from_raw_grammar(raw: RawGrammar, id: GrammarId) -> Self {
         let mut grammar = Self {
             id,
             name: raw.name,
@@ -457,7 +457,7 @@ impl CompiledGrammar {
             repository: raw.repository,
             ..Default::default()
         };
-        let root_rule_id = grammar.compile_rule(root_rule, RepositoryStack::default())?;
+        let root_rule_id = grammar.compile_rule(root_rule, RepositoryStack::default());
         assert_eq!(root_rule_id.as_index(), 0);
 
         // Compile injections
@@ -467,7 +467,7 @@ impl CompiledGrammar {
             if !grammar.repositories.is_empty() {
                 repo_stack = repo_stack.push(RepositoryId(0));
             }
-            let rule_id = grammar.compile_rule(raw_rule, repo_stack)?;
+            let rule_id = grammar.compile_rule(raw_rule, repo_stack);
 
             grammar.injections.push((
                 matchers,
@@ -481,14 +481,10 @@ impl CompiledGrammar {
         // Resolve all Local references after compilation is complete
         grammar.resolve_local_references();
 
-        Ok(grammar)
+        grammar
     }
 
-    fn compile_rule(
-        &mut self,
-        raw_rule: RawRule,
-        repository_stack: RepositoryStack,
-    ) -> Result<RuleId, CompileError> {
+    fn compile_rule(&mut self, raw_rule: RawRule, repository_stack: RepositoryStack) -> RuleId {
         let local_id = RuleId(self.rules.len() as u16);
         let global_id = GlobalRuleRef {
             grammar: self.id,
@@ -518,7 +514,7 @@ impl CompiledGrammar {
                     name,
                     scopes,
                     regex_id: Some(self.compile_regex(pat).0),
-                    captures: self.compile_captures(raw_rule.captures, repository_stack)?,
+                    captures: self.compile_captures(raw_rule.captures, repository_stack),
                     repository_stack,
                 })
             }
@@ -527,8 +523,7 @@ impl CompiledGrammar {
             let apply_end_pattern_last = raw_rule.apply_end_pattern_last;
             if let Some(while_pat) = raw_rule.while_ {
                 let (while_, while_has_backrefs) = self.compile_regex(while_pat);
-                let patterns =
-                    self.compile_patterns(local_id, raw_rule.patterns, repository_stack)?;
+                let patterns = self.compile_patterns(local_id, raw_rule.patterns, repository_stack);
                 let name_is_capturing = has_captures(name.as_deref());
                 let content_name_is_capturing = has_captures(content_name.as_deref());
                 let scopes = scopes_from_name(&name, name_is_capturing);
@@ -550,7 +545,7 @@ impl CompiledGrammar {
                             raw_rule.captures.clone()
                         },
                         repository_stack,
-                    )?,
+                    ),
                     while_,
                     while_has_backrefs,
                     while_captures: self.compile_captures(
@@ -560,7 +555,7 @@ impl CompiledGrammar {
                             raw_rule.captures
                         },
                         repository_stack,
-                    )?,
+                    ),
                     patterns,
                     repository_stack,
                 })
@@ -572,8 +567,7 @@ impl CompiledGrammar {
                     Some(pattern) => pattern,
                 };
                 let (end, end_has_backrefs) = self.compile_regex(end_pat.to_string());
-                let patterns =
-                    self.compile_patterns(local_id, raw_rule.patterns, repository_stack)?;
+                let patterns = self.compile_patterns(local_id, raw_rule.patterns, repository_stack);
                 let name_is_capturing = has_captures(name.as_deref());
                 let content_name_is_capturing = has_captures(content_name.as_deref());
                 let scopes = scopes_from_name(&name, name_is_capturing);
@@ -595,7 +589,7 @@ impl CompiledGrammar {
                             raw_rule.captures.clone()
                         },
                         repository_stack,
-                    )?,
+                    ),
                     end,
                     end_has_backrefs,
                     end_captures: self.compile_captures(
@@ -605,7 +599,7 @@ impl CompiledGrammar {
                             raw_rule.captures
                         },
                         repository_stack,
-                    )?,
+                    ),
                     patterns,
                     apply_end_pattern_last,
                     repository_stack,
@@ -615,7 +609,7 @@ impl CompiledGrammar {
             let repository_stack = if raw_rule.repository.is_empty() {
                 repository_stack
             } else {
-                let repo_id = self.compile_repository(raw_rule.repository, repository_stack)?;
+                let repo_id = self.compile_repository(raw_rule.repository, repository_stack);
                 repository_stack.push(repo_id)
             };
 
@@ -656,7 +650,7 @@ impl CompiledGrammar {
                     Rule::Noop
                 } else {
                     let compiled_patterns =
-                        self.compile_patterns(local_id, patterns, repository_stack)?;
+                        self.compile_patterns(local_id, patterns, repository_stack);
                     let name_is_capturing = has_captures(name.as_deref());
                     let content_name_is_capturing = has_captures(raw_rule.content_name.as_deref());
                     let scopes = if !name_is_capturing {
@@ -687,7 +681,7 @@ impl CompiledGrammar {
         };
 
         self.rules[local_id] = rule;
-        Ok(local_id)
+        local_id
     }
 
     fn compile_regex(&mut self, pattern: String) -> (RegexId, bool) {
@@ -703,7 +697,7 @@ impl CompiledGrammar {
         &mut self,
         raw_repository: BTreeMap<String, RawRule>,
         repository_stack: RepositoryStack,
-    ) -> Result<RepositoryId, CompileError> {
+    ) -> RepositoryId {
         let repo_id = RepositoryId(self.repositories.len() as u16);
 
         self.repositories.push(Repository::default());
@@ -712,21 +706,21 @@ impl CompiledGrammar {
         let mut rules = BTreeMap::new();
 
         for (name, raw_rule) in raw_repository {
-            rules.insert(name, self.compile_rule(raw_rule, stack)?);
+            rules.insert(name, self.compile_rule(raw_rule, stack));
         }
 
         self.repositories[repo_id] = Repository(rules);
 
-        Ok(repo_id)
+        repo_id
     }
 
     fn compile_captures(
         &mut self,
         captures: Captures,
         repository_stack: RepositoryStack,
-    ) -> Result<Vec<Option<GlobalRuleRef>>, CompileError> {
+    ) -> Vec<Option<GlobalRuleRef>> {
         if captures.is_empty() {
-            return Ok(Vec::new());
+            return Vec::new();
         }
 
         // mdc.json syntax has actually a 912 backref
@@ -734,7 +728,7 @@ impl CompiledGrammar {
         let mut out: Vec<_> = vec![None; max_capture + 1];
 
         for (key, rule) in captures.0 {
-            let local_id = self.compile_rule(rule, repository_stack)?;
+            let local_id = self.compile_rule(rule, repository_stack);
             let global_id = GlobalRuleRef {
                 grammar: self.id,
                 rule: local_id,
@@ -742,7 +736,7 @@ impl CompiledGrammar {
             out[key] = Some(global_id);
         }
 
-        Ok(out)
+        out
     }
 
     /// Resolve all Local references after self compilation is complete.
@@ -899,7 +893,7 @@ impl CompiledGrammar {
         rule_id: RuleId,
         rules: Vec<RawRule>,
         repository_stack: RepositoryStack,
-    ) -> Result<Vec<GlobalRuleRef>, CompileError> {
+    ) -> Vec<GlobalRuleRef> {
         let mut out = vec![];
 
         for (index, r) in rules.into_iter().enumerate() {
@@ -936,7 +930,7 @@ impl CompiledGrammar {
                     }
                 }
             } else {
-                let local_id = self.compile_rule(r, repository_stack)?;
+                let local_id = self.compile_rule(r, repository_stack);
                 out.push(GlobalRuleRef {
                     grammar: self.id,
                     rule: local_id,
@@ -944,7 +938,7 @@ impl CompiledGrammar {
             }
         }
 
-        Ok(out)
+        out
     }
 
     #[cfg(feature = "debug")]
@@ -1009,32 +1003,6 @@ impl IndexMut<RepositoryId> for Vec<Repository> {
         &mut self[index.as_index()]
     }
 }
-
-/// Errors that can occur during grammar compilation
-#[derive(Debug)]
-pub enum CompileError {
-    InvalidRegex { pattern: String, error: onig::Error },
-    UnknownScope { scope: String },
-    UnresolvedInclude { include: String },
-}
-
-impl std::fmt::Display for CompileError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CompileError::InvalidRegex { pattern, error } => {
-                write!(f, "Invalid regex pattern '{}': {}", pattern, error)
-            }
-            CompileError::UnknownScope { scope } => {
-                write!(f, "Unknown scope '{}'", scope)
-            }
-            CompileError::UnresolvedInclude { include } => {
-                write!(f, "Unresolved include '{}'", include)
-            }
-        }
-    }
-}
-
-impl std::error::Error for CompileError {}
 
 #[cfg(test)]
 mod tests {
@@ -1175,7 +1143,7 @@ mod tests {
             let raw_grammar = RawGrammar::load_from_file(&path).unwrap();
 
             println!(">> {path:#?}");
-            let _ = CompiledGrammar::from_raw_grammar(raw_grammar, GrammarId(0)).unwrap();
+            let _ = CompiledGrammar::from_raw_grammar(raw_grammar, GrammarId(0));
         }
     }
 }

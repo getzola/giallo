@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fmt;
 use std::ops::Range;
 
 use serde::{Deserialize, Serialize};
@@ -117,7 +116,7 @@ impl<'g> Tokenizer<'g> {
         pos: usize,
         is_first_line: bool,
         anchor_position: Option<usize>,
-    ) -> Result<Option<(InjectionPrecedence, PatternSetMatch)>, TokenizeError> {
+    ) -> Result<Option<(InjectionPrecedence, PatternSetMatch)>, String> {
         let injection_patterns = self
             .registry
             .collect_injection_patterns(self.base_grammar_id, &stack.top().content_scopes);
@@ -167,7 +166,7 @@ impl<'g> Tokenizer<'g> {
         pos: usize,
         is_first_line: bool,
         anchor_position: Option<usize>,
-    ) -> Result<Option<PatternSetMatch>, TokenizeError> {
+    ) -> Result<Option<PatternSetMatch>, String> {
         // Get regular rule patterns
         let pattern_set =
             self.get_or_create_pattern_set(stack, pos, is_first_line, anchor_position, None);
@@ -204,7 +203,7 @@ impl<'g> Tokenizer<'g> {
         pos: &mut usize,
         acc: &mut TokenAccumulator,
         is_first_line: bool,
-    ) -> Result<(StateStack, Option<usize>, bool), TokenizeError> {
+    ) -> Result<(StateStack, Option<usize>, bool), String> {
         // Initialize anchor position: reset to 0 if previous rule captured EOL, otherwise use stack value
         let mut anchor_position: Option<usize> = if stack.top().begin_rule_has_captured_eol {
             Some(0)
@@ -273,9 +272,9 @@ impl<'g> Tokenizer<'g> {
             };
 
             let search_text = line.get(*pos..).unwrap_or("");
-            let compiled_re = re.compiled().ok_or_else(|| {
-                TokenizeError::InvalidRegex(format!("While pattern {while_pat} was invalid"))
-            })?;
+            let compiled_re = re
+                .compiled()
+                .ok_or_else(|| format!("While pattern {while_pat} was invalid"))?;
 
             if let Some(cap) = compiled_re.captures(search_text)
                 && let Some((start, end)) = cap.pos(0)
@@ -450,7 +449,7 @@ impl<'g> Tokenizer<'g> {
         captures: &[Option<(usize, usize)>],
         accumulator: &mut TokenAccumulator,
         is_first_line: bool,
-    ) -> Result<(), TokenizeError> {
+    ) -> Result<(), String> {
         if rule_captures.is_empty() {
             return Ok(());
         }
@@ -567,7 +566,7 @@ impl<'g> Tokenizer<'g> {
         line_pos: usize,
         is_first_line: bool,
         check_while_conditions: bool,
-    ) -> Result<(TokenAccumulator, StateStack), TokenizeError> {
+    ) -> Result<(TokenAccumulator, StateStack), String> {
         let mut accumulator = TokenAccumulator::default();
         let mut pos = line_pos;
         let mut anchor_position = None;
@@ -697,7 +696,7 @@ impl<'g> Tokenizer<'g> {
                     let mut handle_begin_rule = |re_id: RegexId,
                                                  end_has_backrefs: bool,
                                                  begin_captures: &[Option<GlobalRuleRef>]|
-                     -> Result<(), TokenizeError> {
+                     -> Result<(), String> {
                         let re = &self.registry.grammars[m.rule_ref.grammar].regexes[re_id];
                         #[cfg(feature = "debug")]
                         {
@@ -790,7 +789,7 @@ impl<'g> Tokenizer<'g> {
         Ok((accumulator, stack))
     }
 
-    pub(crate) fn tokenize_string(&mut self, text: &str) -> Result<Vec<Vec<Token>>, TokenizeError> {
+    pub(crate) fn tokenize_string(&mut self, text: &str) -> Result<Vec<Vec<Token>>, String> {
         if text.is_empty() {
             return Ok(vec![]);
         }
@@ -818,26 +817,3 @@ impl<'g> Tokenizer<'g> {
         Ok(lines_tokens)
     }
 }
-
-#[derive(Debug)]
-pub enum TokenizeError {
-    /// A regex pattern failed to compile or match.
-    /// Contains the problematic pattern for debugging.
-    InvalidRegex(String),
-    GrammarError(String),
-}
-
-impl fmt::Display for TokenizeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            TokenizeError::InvalidRegex(pattern) => {
-                write!(f, "Invalid regex pattern: {}", pattern)
-            }
-            TokenizeError::GrammarError(msg) => {
-                write!(f, "Grammar error: {}", msg)
-            }
-        }
-    }
-}
-
-impl std::error::Error for TokenizeError {}

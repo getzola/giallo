@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::error::{Error, GialloResult};
+
 /// RGBA color with 8-bit components
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Debug)]
 pub struct Color {
@@ -9,8 +11,11 @@ pub struct Color {
     pub a: u8,
 }
 
-fn parse_hex_component(hex: &str) -> Result<u8, String> {
-    u8::from_str_radix(hex, 16).map_err(|e| format!("Invalid hex component '{}': {}", hex, e))
+fn parse_hex_component(hex: &str, original: &str) -> GialloResult<u8> {
+    u8::from_str_radix(hex, 16).map_err(|_| Error::InvalidHexColor {
+        value: original.to_string(),
+        reason: format!("invalid hex component '{}'", hex),
+    })
 }
 
 impl Color {
@@ -91,7 +96,8 @@ impl Color {
         )
     }
 
-    pub fn from_hex(hex: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_hex(hex: &str) -> GialloResult<Self> {
+        let original = hex;
         let hex = hex.trim_start_matches('#');
 
         if hex == "white" {
@@ -103,9 +109,9 @@ impl Color {
         match hex.len() {
             // #RGB format (e.g., #F00 for red)
             3 => {
-                let r = parse_hex_component(&hex[0..1])?;
-                let g = parse_hex_component(&hex[1..2])?;
-                let b = parse_hex_component(&hex[2..3])?;
+                let r = parse_hex_component(&hex[0..1], original)?;
+                let g = parse_hex_component(&hex[1..2], original)?;
+                let b = parse_hex_component(&hex[2..3], original)?;
                 Ok(Color {
                     r: r * 17, // Convert 0xF to 0xFF
                     g: g * 17,
@@ -115,10 +121,10 @@ impl Color {
             }
             // #RGBA format (e.g., #F00F for red with full opacity)
             4 => {
-                let r = parse_hex_component(&hex[0..1])?;
-                let g = parse_hex_component(&hex[1..2])?;
-                let b = parse_hex_component(&hex[2..3])?;
-                let a = parse_hex_component(&hex[3..4])?;
+                let r = parse_hex_component(&hex[0..1], original)?;
+                let g = parse_hex_component(&hex[1..2], original)?;
+                let b = parse_hex_component(&hex[2..3], original)?;
+                let a = parse_hex_component(&hex[3..4], original)?;
                 Ok(Color {
                     r: r * 17,
                     g: g * 17,
@@ -128,20 +134,23 @@ impl Color {
             }
             // #RRGGBB format (e.g., #FF0000 for red)
             6 => {
-                let r = parse_hex_component(&hex[0..2])?;
-                let g = parse_hex_component(&hex[2..4])?;
-                let b = parse_hex_component(&hex[4..6])?;
+                let r = parse_hex_component(&hex[0..2], original)?;
+                let g = parse_hex_component(&hex[2..4], original)?;
+                let b = parse_hex_component(&hex[4..6], original)?;
                 Ok(Color { r, g, b, a: 255 })
             }
             // #RRGGBBAA format (e.g., #FF0000FF for red with full opacity)
             8 => {
-                let r = parse_hex_component(&hex[0..2])?;
-                let g = parse_hex_component(&hex[2..4])?;
-                let b = parse_hex_component(&hex[4..6])?;
-                let a = parse_hex_component(&hex[6..8])?;
+                let r = parse_hex_component(&hex[0..2], original)?;
+                let g = parse_hex_component(&hex[2..4], original)?;
+                let b = parse_hex_component(&hex[4..6], original)?;
+                let a = parse_hex_component(&hex[6..8], original)?;
                 Ok(Color { r, g, b, a })
             }
-            _ => Err(format!("Invalid hex color length: {}", hex).into()),
+            _ => Err(Error::InvalidHexColor {
+                value: original.to_string(),
+                reason: format!("invalid length {}", hex.len()),
+            }),
         }
     }
 }

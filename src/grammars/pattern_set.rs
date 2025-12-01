@@ -4,7 +4,6 @@ use std::fmt::{Debug, Formatter};
 use onig::{RegSet, RegexOptions};
 
 use crate::grammars::{END_RULE_ID, GlobalRuleRef};
-use crate::tokenizer::TokenizeError;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct PatternSetMatch {
@@ -71,11 +70,11 @@ impl PatternSet {
         self.update(self.patterns.len() - 1, pat)
     }
 
-    pub fn find_at(
+    pub(crate) fn find_at(
         &self,
         text: &str,
         pos: usize,
-    ) -> Result<Option<PatternSetMatch>, TokenizeError> {
+    ) -> Result<Option<PatternSetMatch>, String> {
         if self.patterns.is_empty() {
             return Ok(None);
         }
@@ -103,11 +102,11 @@ impl PatternSet {
                                 pattern
                             );
                         }
-                        TokenizeError::InvalidRegex(format!(
+                        format!(
                             "Failed to compile pattern set with {} patterns: {:?}",
                             pattern_strs.len(),
                             e
-                        ))
+                        )
                     })?;
             *self.regset.borrow_mut() = Some(regset);
         }

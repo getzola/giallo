@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::error::{Error, GialloResult};
 use crate::themes::Color;
 use crate::themes::font_style::FontStyle;
 use crate::themes::raw::{RawTheme, TokenColorSettings};
@@ -73,9 +74,9 @@ pub struct StyleModifier {
 }
 
 impl TryFrom<TokenColorSettings> for StyleModifier {
-    type Error = Box<dyn std::error::Error>;
+    type Error = Error;
 
-    fn try_from(settings: TokenColorSettings) -> Result<Self, Self::Error> {
+    fn try_from(settings: TokenColorSettings) -> GialloResult<Self> {
         let foreground = if let Some(s) = settings.foreground() {
             Some(Color::from_hex(s)?)
         } else {
@@ -160,7 +161,7 @@ pub struct CompiledTheme {
 }
 
 impl CompiledTheme {
-    pub fn from_raw_theme(raw_theme: RawTheme) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_raw_theme(raw_theme: RawTheme) -> GialloResult<Self> {
         let theme_type = raw_theme
             .kind
             .map(|s| ThemeType::from_theme_str(&s))
