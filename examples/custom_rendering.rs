@@ -1,4 +1,4 @@
-use giallo::{HighlightOptions, HighlightedCode, Registry, ThemeVariant};
+use giallo::{FontStyle, HighlightOptions, HighlightedCode, Registry, ThemeVariant};
 
 fn render_html(highlighted: &HighlightedCode) -> String {
     let ThemeVariant::Single(theme) = &highlighted.theme else {
@@ -26,10 +26,10 @@ fn render_html(highlighted: &HighlightedCode) -> String {
             if style.background != default_style.background {
                 css.push_str(&format!("background:{};", style.background.as_hex()));
             }
-            if style.font_style != default_style.font_style {
-                for attr in style.font_style.css_attributes() {
-                    css.push_str(attr);
-                }
+            if style.font_style != default_style.font_style
+                && style.font_style.contains(FontStyle::BOLD)
+            {
+                css.push_str("font-style:bold;");
             }
 
             // Escape HTML in token text

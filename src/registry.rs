@@ -23,6 +23,11 @@ struct Dump {
     scope_repo: ScopeRepository,
 }
 
+// We always include the data but if the `dump` feature is not enabled, we can't actually
+// use it
+#[allow(dead_code)]
+const BUILTIN_DATA: &[u8] = include_bytes!("../builtin.msgpack");
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// Options for highlighting by the registry, NOT rendering.
 pub struct HighlightOptions<'a> {
@@ -397,14 +402,12 @@ impl Registry {
     }
 
     #[cfg(feature = "dump")]
-    /// Read a binary dump from giallo and load registry + scope repository from it
-    pub fn load_from_file(path: impl AsRef<Path>) -> GialloResult<Self> {
+    fn load_from_bytes(compressed_data: &[u8]) -> GialloResult<Self> {
         use crate::scope::replace_global_scope_repo;
         use flate2::read::GzDecoder;
         use std::io::Read;
 
-        let compressed_data = std::fs::read(path)?;
-        let mut decoder = GzDecoder::new(&compressed_data[..]);
+        let mut decoder = GzDecoder::new(compressed_data);
         let mut msgpack_data = Vec::new();
         decoder.read_to_end(&mut msgpack_data)?;
 
@@ -412,6 +415,19 @@ impl Registry {
         replace_global_scope_repo(dump.scope_repo);
 
         Ok(dump.registry)
+    }
+
+    #[cfg(feature = "dump")]
+    /// Read a binary dump from giallo and load registry + scope repository from it
+    pub fn load_from_file(path: impl AsRef<Path>) -> GialloResult<Self> {
+        let compressed_data = std::fs::read(path)?;
+        Self::load_from_bytes(&compressed_data)
+    }
+
+    #[cfg(feature = "dump")]
+    /// Load the builtin registry containing all grammars and themes from grammars-themes
+    pub fn builtin() -> GialloResult<Self> {
+        Self::load_from_bytes(BUILTIN_DATA)
     }
 }
 

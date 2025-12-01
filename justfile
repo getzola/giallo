@@ -1,6 +1,7 @@
 # https://just.systems
 
 generate-dump:
+    touch builtin.msgpack
     node scripts/extract-grammar-metadata.js
     cargo run --release --bin=build-registry --features=tools
 

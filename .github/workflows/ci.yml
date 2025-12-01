@@ -40,7 +40,9 @@ jobs:
           components: clippy
 
       - name: Run clippy
-        run: cargo clippy --all-features --all-targets -- -D warnings
+        run: |
+          touch builtin.msgpack
+          cargo clippy --all-features --all-targets -- -D warnings
 
   tests:
     name: Run tests
