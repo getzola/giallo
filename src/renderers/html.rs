@@ -9,6 +9,10 @@ use std::fmt;
 pub struct HtmlRenderer {
     /// Any metadata we want to add as `<code>` data-* attribute
     pub other_metadata: BTreeMap<String, String>,
+    /// If set, output CSS classes instead of inline styles.
+    /// The value is the class prefix (e.g., "g-" produces classes like "g-keyword").
+    /// Generate corresponding CSS stylesheets using `Registry::generate_css`.
+    pub css_class_prefix: Option<String>,
 }
 
 impl HtmlRenderer {
@@ -16,23 +20,31 @@ impl HtmlRenderer {
     /// This will also handle automatic light/dark theming and escaping characters.
     pub fn render(&self, highlighted: &HighlightedCode, options: &RenderOptions) -> String {
         let lang = highlighted.language;
+        let css_prefix = self.css_class_prefix.as_deref();
 
-        // Pre-compute highlight background CSS if available
-        let highlight_bg_css = if !options.highlight_lines.is_empty() {
-            match &highlighted.theme {
-                ThemeVariant::Single(theme) => theme
-                    .highlight_background_color
-                    .as_ref()
-                    .map(|c| c.as_css_bg_color_property()),
-                ThemeVariant::Dual { light, dark } => {
-                    match (
-                        &light.highlight_background_color,
-                        &dark.highlight_background_color,
-                    ) {
-                        (Some(l), Some(d)) => {
-                            Some(Color::as_css_light_dark_bg_color_property(l, d))
+        // Pre-compute highlight background CSS/class if available
+        let highlight_attr = if !options.highlight_lines.is_empty() {
+            if let Some(prefix) = css_prefix {
+                // CSS class mode: use hl class
+                Some(format!(r#" class="{prefix}hl""#))
+            } else {
+                // Inline style mode
+                match &highlighted.theme {
+                    ThemeVariant::Single(theme) => theme
+                        .highlight_background_color
+                        .as_ref()
+                        .map(|c| format!(r#" style="{}""#, c.as_css_bg_color_property())),
+                    ThemeVariant::Dual { light, dark } => {
+                        match (
+                            &light.highlight_background_color,
+                            &dark.highlight_background_color,
+                        ) {
+                            (Some(l), Some(d)) => Some(format!(
+                                r#" style="{}""#,
+                                Color::as_css_light_dark_bg_color_property(l, d)
+                            )),
+                            _ => None,
                         }
-                        _ => None,
                     }
                 }
             }
@@ -52,7 +64,7 @@ impl HtmlRenderer {
             // Render tokens
             let mut line_content = Vec::with_capacity(line_tokens.len());
             for tok in line_tokens {
-                line_content.push(tok.as_html(&highlighted.theme));
+                line_content.push(tok.as_html(&highlighted.theme, css_prefix));
             }
             let line_content = line_content.join("");
 
@@ -69,10 +81,20 @@ impl HtmlRenderer {
                 .highlight_lines
                 .iter()
                 .any(|r| r.contains(&line_num));
-            let line_html = match (is_highlighted, &highlight_bg_css) {
-                (true, Some(bg_css)) => {
+            let line_html = match (is_highlighted, &highlight_attr) {
+                (true, Some(hl_class_or_style)) => {
                     format!(
-                        r#"<span class="giallo-l" style="{bg_css}">{line_number_html}{line_content}</span>"#
+                        r#"<span class="giallo-l{hl_class_or_style}"{hl_style}>{line_number_html}{line_content}</span>"#,
+                        hl_class_or_style = if css_prefix.is_some() {
+                            format!(" {}hl", css_prefix.unwrap())
+                        } else {
+                            String::new()
+                        },
+                        hl_style = if css_prefix.is_none() {
+                            hl_class_or_style
+                        } else {
+                            ""
+                        }
                     )
                 }
                 _ => format!(r#"<span class="giallo-l">{line_number_html}{line_content}</span>"#),
@@ -100,6 +122,14 @@ impl HtmlRenderer {
             data_attrs.push_str(&format!(r#" data-{slugified_key}="{value}""#));
         }
 
+        // CSS class mode: output class instead of inline styles on <pre>
+        if let Some(prefix) = css_prefix {
+            return format!(
+                r#"<pre class="giallo {prefix}code"><code {data_attrs}>{lines}</code></pre>"#
+            );
+        }
+
+        // Inline style mode
         match &highlighted.theme {
             ThemeVariant::Single(theme) => {
                 let fg = theme.default_style.foreground.as_css_color_property();
@@ -201,7 +231,11 @@ mod tests {
         other_metadata.insert("name".to_string(), "Hello world".to_string());
         other_metadata.insert("name with space1".to_string(), "other".to_string());
 
-        let html = HtmlRenderer { other_metadata }.render(&highlighted, &render_options);
+        let html = HtmlRenderer {
+            other_metadata,
+            css_class_prefix: None,
+        }
+        .render(&highlighted, &render_options);
         insta::assert_snapshot!(html);
     }
 }
