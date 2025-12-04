@@ -121,10 +121,17 @@ pub struct Registry {
     // grammar ID quick lookup to find which external grammars can be loaded for each grammar
     // Most of the inner vecs will be empty since few grammars use injectTo
     injections_by_grammar: Vec<HashSet<GrammarId>>,
+    // Once a registry has linked grammars, it's not possible to replace existing grammars.
+    linked: bool,
 }
 
 impl Registry {
     fn add_grammar_from_raw(&mut self, raw_grammar: RawGrammar) -> GialloResult<()> {
+        if self.linked && self.grammar_id_by_name.contains_key(&raw_grammar.name) {
+            return Err(Error::ReplacingGrammarPostLinking(
+                raw_grammar.name.to_owned(),
+            ));
+        }
         let grammar_id = GrammarId(self.grammars.len() as u16);
         let grammar = CompiledGrammar::from_raw_grammar(raw_grammar, grammar_id);
         let grammar_name = grammar.name.clone();
@@ -176,13 +183,15 @@ impl Registry {
     /// This returns the raw output of the tokenizer + theme matching. It's up to you to use
     /// a provided renderer or to use your own afterwards.
     ///
-    /// Make sure `link_grammars` is called before calling `highligh` if you are not using
-    /// the provided dump.
+    /// Make sure `link_grammars` is called before calling `highlight`.
     pub fn highlight<'a>(
         &'a self,
         content: &str,
         options: HighlightOptions<'a>,
     ) -> GialloResult<HighlightedCode<'a>> {
+        if !self.linked {
+            return Err(Error::UnlinkedGrammars);
+        }
         let grammar_id = *self
             .grammar_id_by_name
             .get(options.lang)
@@ -241,9 +250,6 @@ impl Registry {
 
     /// Will find all references to external grammars and use the correct target for them.
     /// Call that if you're not using the provided dump otherwise things will not work well.
-    ///
-    /// TODO: this is currently destructive so if you link, then add a new version of an existing grammar
-    /// then relink, things will not work well.
     pub fn link_grammars(&mut self) {
         let grammar_names_ptr = &self.grammar_id_by_scope_name as *const HashMap<String, GrammarId>;
         let grammars_ptr = &self.grammars as *const Vec<CompiledGrammar>;
@@ -259,6 +265,8 @@ impl Registry {
                 }
             }
         }
+
+        self.linked = true;
     }
 
     fn get_rule_patterns(
@@ -547,6 +555,19 @@ mod tests {
         }
 
         out
+    }
+
+    #[test]
+    fn cannot_replace_grammar_after_linking() {
+        let mut registry = Registry::default();
+
+        registry
+            .add_grammar_from_path("grammars-themes/packages/tm-grammars/grammars/json.json")
+            .unwrap();
+        registry.link_grammars();
+        let result = registry
+            .add_grammar_from_path("grammars-themes/packages/tm-grammars/grammars/json.json");
+        assert!(result.is_err());
     }
 
     #[test]

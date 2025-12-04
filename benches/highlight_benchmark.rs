@@ -4,8 +4,9 @@ use std::fs;
 
 fn highlight_jquery_benchmark(c: &mut Criterion) {
     // Load registry once for all benchmarks
-    let registry = Registry::load_from_file("builtin.msgpack")
+    let mut registry = Registry::load_from_file("builtin.msgpack")
         .expect("Failed to load registry from builtin.msgpack");
+    registry.link_grammars();
 
     // Read jQuery file content once
     let jquery_content =

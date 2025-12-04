@@ -20,7 +20,8 @@ The `dump` feature is required to use `Registry::builtin()` or create/load your 
 use giallo::{HighlightOptions, HtmlRenderer, RenderOptions, Registry};
 
 // Load the pre-built registry
-let registry = Registry::builtin()?;
+let mut registry = Registry::builtin()?;
+registry.link_grammars();
 
 let code = "let x = 42;";
 let options = HighlightOptions::new("javascript").single_theme("catppuccin-frappe");
