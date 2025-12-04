@@ -53,7 +53,8 @@ fn render_html(highlighted: &HighlightedCode) -> String {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let registry = Registry::load_from_file("builtin.msgpack")?;
+    let mut registry = Registry::load_from_file("builtin.msgpack")?;
+    registry.link_grammars();
     let content = std::fs::read_to_string("grammars-themes/samples/rust.sample")?;
 
     let options = HighlightOptions::new("rust").single_theme("vitesse-black");

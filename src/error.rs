@@ -39,6 +39,14 @@ pub enum Error {
     /// This can happen because some regex patterns are modified at runtime so we can't validate
     /// them all ahead.
     TokenizeRegex(String),
+
+    /// Tried to highlight some content before calling `registry.link_grammars()`
+    /// This might result in broken highlighting for some languages
+    UnlinkedGrammars,
+
+    /// Tried to replace a grammar in the registry after calling `registry.link_grammars()`.
+    /// External references to the original grammar will have
+    ReplacingGrammarPostLinking(String),
 }
 
 impl fmt::Display for Error {
@@ -56,6 +64,12 @@ impl fmt::Display for Error {
             Error::GrammarNotFound(name) => write!(f, "grammar '{}' not found", name),
             Error::ThemeNotFound(name) => write!(f, "theme '{}' not found", name),
             Error::TokenizeRegex(message) => write!(f, "regex compilation error: {}", message),
+            Error::UnlinkedGrammars => {
+                write!(f, "grammars are unlinked, call `registry.link_grammars()`")
+            }
+            Error::ReplacingGrammarPostLinking(s) => {
+                write!(f, "Tried to replace grammar `{s}` after linking")
+            }
         }
     }
 }
@@ -70,6 +84,8 @@ impl std::error::Error for Error {
             #[cfg(feature = "dump")]
             Error::MsgPackDecode(err) => Some(err),
             Error::InvalidHexColor { .. }
+            | Error::UnlinkedGrammars
+            | Error::ReplacingGrammarPostLinking(_)
             | Error::GrammarNotFound(_)
             | Error::ThemeNotFound(_)
             | Error::TokenizeRegex(_) => None,

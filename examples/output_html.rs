@@ -28,7 +28,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let theme = &args[3];
     let dark_theme = args.get(4).map(|s| s.as_str());
 
-    let registry = Registry::load_from_file("builtin.msgpack")?;
+    let mut registry = Registry::load_from_file("builtin.msgpack")?;
+    registry.link_grammars();
     let file_content = fs::read_to_string(file_path)?;
 
     let options = match dark_theme {
