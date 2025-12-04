@@ -50,3 +50,6 @@ something looking good. The minimal CSS is exported as `GIALLO_CSS` by the crate
 This renderer also supports light/dark mode automatically if you highlight the text using 2 themes by using the [light-dark](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/color_value/light-dark)
 function in the `style` attribute.
 
+You can also have Giallo generates the CSS file for any theme and let the HTML renderer use the classes from it. This
+is useful for example if you want a light/dark theme switch where the above inline approach would not work.
+

@@ -166,6 +166,19 @@ impl Registry {
         Ok(())
     }
 
+    /// Generates CSS stylesheet content for a theme.
+    /// All classes will have the given prefix.
+    ///
+    /// Use this with `HtmlRenderer::css_class_prefix` to enable CSS-based theming,
+    /// which allows JavaScript-based theme switching.
+    pub fn generate_css(&self, theme_name: &str, prefix: &str) -> GialloResult<String> {
+        let theme = self
+            .themes
+            .get(theme_name)
+            .ok_or_else(|| Error::ThemeNotFound(theme_name.to_string()))?;
+        Ok(crate::themes::css::generate_css(theme, prefix))
+    }
+
     pub(crate) fn tokenize(
         &self,
         grammar_id: GrammarId,
@@ -183,7 +196,7 @@ impl Registry {
     /// This returns the raw output of the tokenizer + theme matching. It's up to you to use
     /// a provided renderer or to use your own afterwards.
     ///
-    /// Make sure `link_grammars` is called before calling `highlight`.
+    /// Make sure `link_grammars` is called before calling `highlight`, this will error otherwise.
     pub fn highlight<'a>(
         &'a self,
         content: &str,

@@ -1,5 +1,6 @@
 mod color;
 pub(crate) mod compiled;
+pub(crate) mod css;
 pub(crate) mod font_style;
 pub(crate) mod raw;
 pub(crate) mod selector;
@@ -8,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 pub use color::Color;
 pub use compiled::{CompiledTheme, Style};
+pub(crate) use css::scope_to_css_selector;
 pub use font_style::FontStyle;
 pub use raw::RawTheme;
 

@@ -56,6 +56,10 @@ required-features = ["dump"]
 name = "custom_rendering"
 required-features = ["dump"]
 
+[[example]]
+name = "html_classes"
+required-features = ["dump"]
+
 [[bin]]
 name = "build-registry"
 path = "tools/build_registry.rs"

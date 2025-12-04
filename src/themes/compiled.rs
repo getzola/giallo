@@ -109,6 +109,11 @@ impl StyleModifier {
             font_style: self.font_style.unwrap_or(base.font_style),
         }
     }
+
+    /// Returns true if this modifier has any properties set
+    pub fn has_properties(&self) -> bool {
+        self.foreground.is_some() || self.background.is_some() || self.font_style.is_some()
+    }
 }
 
 /// Theme type for determining fallback colors
