@@ -98,6 +98,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    registry.add_plain_grammar(&["txt"])?;
+
     // Print syntaxes with aliases
     println!("\nSyntaxes:");
     let mut syntax_aliases: Vec<_> = alias_map.iter().collect();

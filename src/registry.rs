@@ -28,6 +28,8 @@ struct Dump {
 #[allow(dead_code)]
 const BUILTIN_DATA: &[u8] = include_bytes!("../builtin.msgpack");
 
+pub const PLAIN_GRAMMAR_NAME: &str = "plain";
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// Options for highlighting by the registry, NOT rendering.
 pub struct HighlightOptions<'a> {
@@ -35,6 +37,7 @@ pub struct HighlightOptions<'a> {
     pub(crate) theme: ThemeVariant<&'a str>,
     pub(crate) merge_whitespaces: bool,
     pub(crate) merge_same_style_tokens: bool,
+    pub(crate) fallback_to_plain: bool,
 }
 
 impl<'a> Default for HighlightOptions<'a> {
@@ -44,6 +47,7 @@ impl<'a> Default for HighlightOptions<'a> {
             theme: ThemeVariant::Single(""),
             merge_whitespaces: true,
             merge_same_style_tokens: true,
+            fallback_to_plain: false,
         }
     }
 }
@@ -82,6 +86,13 @@ impl<'a> HighlightOptions<'a> {
     /// Merges tokens with the same style into a single token
     pub fn merge_same_style_tokens(mut self, value: bool) -> Self {
         self.merge_same_style_tokens = value;
+        self
+    }
+
+    /// Whether to fallback to the plain grammar if the requested
+    /// grammar is not found.
+    pub fn fallback_to_plain(mut self, value: bool) -> Self {
+        self.fallback_to_plain = value;
         self
     }
 }
@@ -150,6 +161,22 @@ impl Registry {
         self.add_grammar_from_raw(raw_grammar)
     }
 
+    /// Adds an empty grammar that will not match any token. Useful as a fallback if the grammar is not found.
+    ///
+    /// It will get the `plain` grammar name.
+    pub fn add_plain_grammar(&mut self, aliases: &[&str]) -> GialloResult<()> {
+        let raw = RawGrammar {
+            name: PLAIN_GRAMMAR_NAME.to_owned(),
+            scope_name: PLAIN_GRAMMAR_NAME.to_owned(),
+            ..Default::default()
+        };
+        self.add_grammar_from_raw(raw)?;
+        for alias in aliases {
+            self.add_alias(PLAIN_GRAMMAR_NAME, alias);
+        }
+        Ok(())
+    }
+
     /// Adds an alias for the given grammar
     pub fn add_alias(&mut self, grammar_name: &str, alias: &str) {
         if let Some(grammar_id) = self.grammar_id_by_name.get(grammar_name) {
@@ -208,6 +235,13 @@ impl Registry {
         let grammar_id = *self
             .grammar_id_by_name
             .get(options.lang)
+            .or_else(|| {
+                if options.fallback_to_plain {
+                    self.grammar_id_by_name.get(PLAIN_GRAMMAR_NAME)
+                } else {
+                    None
+                }
+            })
             .ok_or_else(|| Error::GrammarNotFound(options.lang.to_string()))?;
 
         let normalized_content = normalize_string(content);
@@ -598,6 +632,48 @@ mod tests {
             let out = format_tokens(&sample_content, tokens);
             assert_eq!(expected.trim(), out.trim());
         }
+    }
+
+    #[test]
+    fn can_highlight_plain_grammar() {
+        let mut registry = Registry::default();
+        registry.add_plain_grammar(&[]).unwrap();
+        registry
+            .add_theme_from_path(
+                "vitesse-black",
+                "grammars-themes/packages/tm-themes/themes/vitesse-black.json",
+            )
+            .unwrap();
+        registry.link_grammars();
+        let sample_content = normalize_string(
+            &fs::read_to_string("grammars-themes/samples/javascript.sample").unwrap(),
+        );
+        let highlighted = registry
+            .highlight(
+                &sample_content,
+                HighlightOptions::new(PLAIN_GRAMMAR_NAME)
+                    .single_theme("vitesse-black")
+                    .merge_whitespace(false)
+                    .merge_same_style_tokens(false),
+            )
+            .unwrap();
+        let out = format_highlighted_tokens(&highlighted.tokens, &sample_content);
+        insta::assert_snapshot!(out);
+
+        // And then trying to render the same thing with plain fallback set and an unknown grammar
+        // should give the same output
+        let highlighted2 = registry
+            .highlight(
+                &sample_content,
+                HighlightOptions::new("unknown")
+                    .single_theme("vitesse-black")
+                    .merge_whitespace(false)
+                    .merge_same_style_tokens(false)
+                    .fallback_to_plain(true),
+            )
+            .unwrap();
+        let out2 = format_highlighted_tokens(&highlighted2.tokens, &sample_content);
+        assert_eq!(out, out2);
     }
 
     #[test]
