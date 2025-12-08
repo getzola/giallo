@@ -22,7 +22,7 @@ debug = ["dep:log"]
 dump = ["dep:rmp-serde", "dep:flate2"]
 
 [dev-dependencies]
-criterion = "0.7"
+criterion = "0.8"
 insta = { version = "1", features = ["yaml"] }
 # env_logger = "0.11.8"
 
