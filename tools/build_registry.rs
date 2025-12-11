@@ -100,26 +100,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     registry.add_plain_grammar(&["txt"])?;
 
-    // Print syntaxes with aliases
-    println!("\nSyntaxes:");
-    let mut syntax_aliases: Vec<_> = alias_map.iter().collect();
-    syntax_aliases.sort_by_key(|(name, _)| name.as_str());
-    for (name, aliases) in syntax_aliases {
+    // Build grammars list string
+    let mut grammar_entries: Vec<_> = alias_map.iter().collect();
+    grammar_entries.sort_by_key(|(name, _)| name.as_str());
+
+    let mut grammars_list = String::new();
+    for (name, aliases) in grammar_entries {
         if aliases.is_empty() {
-            println!("- {}", name);
+            grammars_list.push_str(&format!("- {}\n", name));
         } else {
-            println!("- {} -> {:?}", name, aliases);
+            grammars_list.push_str(&format!("- {} -> {}\n", name, aliases.join(", ")));
         }
     }
 
-    // Print themes
-    println!("\nThemes:");
+    // Build themes list string
     theme_names.sort();
+    let mut themes_list = String::new();
     for name in &theme_names {
-        println!("- {}", name);
+        themes_list.push_str(&format!("- {}\n", name));
     }
 
-    println!("\nSummary:");
+    // Print lists
+    println!("\nSyntaxes:\n{}", grammars_list);
+    println!("Themes:\n{}", themes_list);
+
+    println!("Summary:");
     println!("- Successfully loaded: {} grammars", grammar_count);
     println!("- Failed to load: {} grammars", grammar_errors);
     println!("- Successfully loaded: {} themes", theme_count);
@@ -164,6 +169,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✓ Registry saved to builtin.msgpack");
 
     println!("\nBuild complete!");
+
+    update_readme(&grammars_list, &themes_list)?;
+
+    Ok(())
+}
+
+fn update_readme(grammars_list: &str, themes_list: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let readme_path = "README.md";
+    let mut readme_content = fs::read_to_string(readme_path)?;
+
+    let mut replace_content = |start_marker: &str, end_marker: &str, text: &str| {
+        let start = readme_content.find(start_marker).expect("to find marker");
+        let end = readme_content.find(end_marker).expect("to find marker");
+        let before = &readme_content[..start + start_marker.len()];
+        let after = &readme_content[end..];
+        readme_content = format!("{before}\n{text}{after}");
+    };
+
+    replace_content(
+        "<!-- GRAMMARS_START -->",
+        "<!-- GRAMMARS_END -->",
+        grammars_list,
+    );
+    replace_content("<!-- THEMES_START -->", "<!-- THEMES_END -->", themes_list);
+
+    fs::write(readme_path, readme_content)?;
+    println!("\n✓ Updated README.md");
 
     Ok(())
 }
