@@ -218,6 +218,17 @@ impl Registry {
         Ok(tokens)
     }
 
+    /// Checks whether the given lang is available in the registry with its grammar name
+    /// or aliases
+    pub fn contains_grammar(&self, name: &str) -> bool {
+        self.grammar_id_by_name.contains_key(name)
+    }
+
+    /// Checks whether the given theme is available in the registry
+    pub fn contains_theme(&self, name: &str) -> bool {
+        self.themes.contains_key(name)
+    }
+
     /// The main entry point for the actual giallo usage.
     ///
     /// This returns the raw output of the tokenizer + theme matching. It's up to you to use
