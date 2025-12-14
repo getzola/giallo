@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn test_empty_string() {
         let result = parse_markdown_fence("");
-        assert_eq!(result.lang, "");
+        assert_eq!(result.lang, PLAIN_GRAMMAR_NAME);
         assert_eq!(result.options, RenderOptions::default());
         assert!(result.rest.is_empty());
     }

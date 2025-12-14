@@ -85,7 +85,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if path.is_file() && path.extension() == Some("json".as_ref()) {
             let theme_name = path.file_stem().and_then(|s| s.to_str()).unwrap();
 
-            match registry.add_theme_from_path(theme_name, &path) {
+            match registry.add_theme_from_path(&path) {
                 Ok(_) => {
                     theme_names.push(theme_name.to_string());
                     theme_count += 1;
