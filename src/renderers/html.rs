@@ -204,10 +204,7 @@ mod tests {
         }
         registry.link_grammars();
         registry
-            .add_theme_from_path(
-                "vitesse-black",
-                "grammars-themes/packages/tm-themes/themes/vitesse-black.json",
-            )
+            .add_theme_from_path("grammars-themes/packages/tm-themes/themes/vitesse-black.json")
             .unwrap();
         registry
     }

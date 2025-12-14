@@ -135,14 +135,14 @@ impl ThemeType {
 }
 
 /// Compiled theme rule for efficient matching
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompiledThemeRule {
     pub selector: ThemeSelector,
     pub style_modifier: StyleModifier,
 }
 
 /// Compiled theme optimized for fast lookups
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompiledTheme {
     /// The name of the theme
     pub name: String,
