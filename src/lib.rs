@@ -35,8 +35,8 @@ mod tokenizer;
 
 pub use error::Error;
 pub use highlight::HighlightedText;
-pub use markdown_fence::parse_markdown_fence;
-pub use registry::{HighlightOptions, HighlightedCode, Registry};
+pub use markdown_fence::{ParsedFence, parse_markdown_fence};
+pub use registry::{HighlightOptions, HighlightedCode, PLAIN_GRAMMAR_NAME, Registry};
 pub use renderers::{RenderOptions, html::HtmlRenderer};
 pub use themes::{Color, CompiledTheme, FontStyle, Style, ThemeVariant};
 

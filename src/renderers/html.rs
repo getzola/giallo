@@ -85,8 +85,8 @@ impl HtmlRenderer {
                 (true, Some(hl_class_or_style)) => {
                     format!(
                         r#"<span class="giallo-l{hl_class_or_style}"{hl_style}>{line_number_html}{line_content}</span>"#,
-                        hl_class_or_style = if css_prefix.is_some() {
-                            format!(" {}hl", css_prefix.unwrap())
+                        hl_class_or_style = if let Some(p) = css_prefix {
+                            format!(" {p}hl")
                         } else {
                             String::new()
                         },
@@ -204,10 +204,7 @@ mod tests {
         }
         registry.link_grammars();
         registry
-            .add_theme_from_path(
-                "vitesse-black",
-                "grammars-themes/packages/tm-themes/themes/vitesse-black.json",
-            )
+            .add_theme_from_path("grammars-themes/packages/tm-themes/themes/vitesse-black.json")
             .unwrap();
         registry
     }

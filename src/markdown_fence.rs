@@ -1,12 +1,27 @@
 use crate::RenderOptions;
+use crate::registry::PLAIN_GRAMMAR_NAME;
 use std::collections::BTreeMap;
 use std::ops::RangeInclusive;
 
+/// A parsed code block parameters
 #[derive(Debug)]
-pub struct ParsedFence<'f> {
-    pub lang: &'f str,
+pub struct ParsedFence {
+    /// Language in use, first word of the fence
+    pub lang: String,
+    /// Any known render options
     pub options: RenderOptions,
+    /// Whatever we don't recognize
     pub rest: BTreeMap<String, String>,
+}
+
+impl Default for ParsedFence {
+    fn default() -> Self {
+        Self {
+            lang: PLAIN_GRAMMAR_NAME.to_string(),
+            options: RenderOptions::default(),
+            rest: BTreeMap::new(),
+        }
+    }
 }
 
 fn parse_range(s: &str) -> Option<RangeInclusive<usize>> {
@@ -37,7 +52,11 @@ fn parse_range(s: &str) -> Option<RangeInclusive<usize>> {
 /// - `linenostart=n`: will the options line number start to `n`
 /// - `hl_lines=1-3 5`: will highlight those lines. Ranges are 1 inclusive and separated by spaces
 /// - `hide_lines`: will hide those lines. Ranges are 1 inclusive and separated by spaces
-pub fn parse_markdown_fence(fence: &str) -> ParsedFence<'_> {
+pub fn parse_markdown_fence(fence: &str) -> ParsedFence {
+    if fence.trim().is_empty() {
+        return ParsedFence::default();
+    }
+
     let mut language = None;
     let mut options = RenderOptions::default();
     let mut rest = BTreeMap::new();
@@ -85,7 +104,7 @@ pub fn parse_markdown_fence(fence: &str) -> ParsedFence<'_> {
     }
 
     ParsedFence {
-        lang: language.unwrap_or(""),
+        lang: language.unwrap_or_default().to_string(),
         options,
         rest,
     }
@@ -106,7 +125,7 @@ mod tests {
     #[test]
     fn test_empty_string() {
         let result = parse_markdown_fence("");
-        assert_eq!(result.lang, "");
+        assert_eq!(result.lang, PLAIN_GRAMMAR_NAME);
         assert_eq!(result.options, RenderOptions::default());
         assert!(result.rest.is_empty());
     }

@@ -98,6 +98,12 @@ impl fmt::Debug for Regex {
     }
 }
 
+impl PartialEq for Regex {
+    fn eq(&self, other: &Self) -> bool {
+        self.pattern == other.pattern
+    }
+}
+
 impl Regex {
     pub fn new(pattern: String) -> Self {
         // Transform \z to $(?!\n)(?<!\n) to match vscode-textmate behavior

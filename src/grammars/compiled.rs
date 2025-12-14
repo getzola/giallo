@@ -412,7 +412,7 @@ struct RefToReplace {
     reference: Reference,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompiledGrammar {
     pub id: GrammarId,
     pub name: String,

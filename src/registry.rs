@@ -28,10 +28,11 @@ struct Dump {
 #[allow(dead_code)]
 const BUILTIN_DATA: &[u8] = include_bytes!("../builtin.msgpack");
 
+/// The default grammar name, where nothing is highlighted
 pub const PLAIN_GRAMMAR_NAME: &str = "plain";
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// Options for highlighting by the registry, NOT rendering.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HighlightOptions<'a> {
     pub(crate) lang: &'a str,
     pub(crate) theme: ThemeVariant<&'a str>,
@@ -113,11 +114,11 @@ pub(crate) fn normalize_string(s: &str) -> String {
     s.replace("\r\n", "\n").replace('\r', "\n")
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 /// The main struct in giallo.
 ///
 /// Holds all the grammars and themes and is responsible for highlighting a text. It is not
 /// responsible for actually rendering those highlighted texts.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Registry {
     // Vector of compiled grammars for ID-based access
     pub(crate) grammars: Vec<CompiledGrammar>,
@@ -186,10 +187,11 @@ impl Registry {
     }
 
     /// Reads the file and add it as a theme.
-    pub fn add_theme_from_path(&mut self, name: &str, path: impl AsRef<Path>) -> GialloResult<()> {
+    pub fn add_theme_from_path(&mut self, path: impl AsRef<Path>) -> GialloResult<()> {
         let raw_theme = RawTheme::load_from_file(path)?;
         let compiled_theme = raw_theme.compile()?;
-        self.themes.insert(name.to_string(), compiled_theme);
+        self.themes
+            .insert(compiled_theme.name.to_string(), compiled_theme);
         Ok(())
     }
 
@@ -216,6 +218,17 @@ impl Registry {
             .tokenize_string(content)
             .map_err(Error::TokenizeRegex)?;
         Ok(tokens)
+    }
+
+    /// Checks whether the given lang is available in the registry with its grammar name
+    /// or aliases
+    pub fn contains_grammar(&self, name: &str) -> bool {
+        self.grammar_id_by_name.contains_key(name)
+    }
+
+    /// Checks whether the given theme is available in the registry
+    pub fn contains_theme(&self, name: &str) -> bool {
+        self.themes.contains_key(name)
     }
 
     /// The main entry point for the actual giallo usage.
@@ -502,10 +515,7 @@ mod tests {
         }
         registry.link_grammars();
         registry
-            .add_theme_from_path(
-                "vitesse-black",
-                "grammars-themes/packages/tm-themes/themes/vitesse-black.json",
-            )
+            .add_theme_from_path("grammars-themes/packages/tm-themes/themes/vitesse-black.json")
             .unwrap();
         registry
     }
@@ -638,10 +648,7 @@ mod tests {
         let mut registry = Registry::default();
         registry.add_plain_grammar(&[]).unwrap();
         registry
-            .add_theme_from_path(
-                "vitesse-black",
-                "grammars-themes/packages/tm-themes/themes/vitesse-black.json",
-            )
+            .add_theme_from_path("grammars-themes/packages/tm-themes/themes/vitesse-black.json")
             .unwrap();
         registry.link_grammars();
         let sample_content = normalize_string(
