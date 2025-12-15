@@ -1146,4 +1146,69 @@ mod tests {
             let _ = CompiledGrammar::from_raw_grammar(raw_grammar, GrammarId(0));
         }
     }
+
+    #[test]
+    fn check_fancy_regex_compatibility() {
+        use std::collections::BTreeMap;
+
+        let entries = fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap();
+
+        let mut all_failures: BTreeMap<String, Vec<(String, String)>> = BTreeMap::new();
+        let mut total_passed = 0;
+        let mut total_failed = 0;
+        let mut num_total = 0;
+
+        for entry in entries {
+            let entry = entry.unwrap();
+            num_total += 1;
+            let path = entry.path();
+            let grammar_name = path
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap()
+                .to_string();
+
+            let raw_grammar = RawGrammar::load_from_file(&path).unwrap();
+            let compiled = CompiledGrammar::from_raw_grammar(raw_grammar, GrammarId(0));
+
+            let mut failures = Vec::new();
+
+            for regex in &compiled.regexes {
+                let pattern = regex.pattern();
+
+                // Skip patterns with backreferences
+                if super::has_backreferences(pattern) {
+                    continue;
+                }
+
+                match fancy_regex::Regex::new(pattern) {
+                    Ok(_) => total_passed += 1,
+                    Err(e) => {
+                        total_failed += 1;
+                        failures.push((pattern.to_string(), e.to_string()));
+                    }
+                }
+            }
+
+            if !failures.is_empty() {
+                all_failures.insert(grammar_name, failures);
+            }
+        }
+
+        for (grammar, failures) in &all_failures {
+            println!("--- {} ({} failures) ---", grammar, failures.len());
+            for (pattern, error) in failures {
+                println!("  Pattern: {}", pattern);
+                println!("  Error: {}\n", error);
+            }
+        }
+
+        println!("=== Summary ===");
+        println!("Total passed: {total_passed}");
+        println!("Total failed: {total_failed}");
+        println!(
+            "Languages with failures: {} / {num_total}",
+            all_failures.len(),
+        );
+    }
 }
