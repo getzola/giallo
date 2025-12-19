@@ -12,7 +12,8 @@ starting kit and testing, but you can start from an empty canvas if you want.
 giallo = { version = "0.1.0", features = ["dump"] }
 ```
 
-The `dump` feature is required to use `Registry::builtin()` or create/load your own dump.
+The `dump` feature is required to use `Registry::builtin()` or create/load your own dump. The dump is not tracked
+in git since it might change frequently, and is generated in the CI release script.
 
 Giallo currently uses a fork of [rust-onig](https://github.com/rust-onig/rust-onig). Once <https://github.com/rust-onig/rust-onig/pull/210>
 or something similar is released on crates.io, I will switch back to the rust-onig crate.
@@ -37,7 +38,10 @@ let highlighted = registry.highlight(code, options)?;
 
 // Render to HTML
 let html = HtmlRenderer::default().render(&highlighted, &RenderOptions::default());
+println!("{html}");
 ```
+
+See the `examples` directory for more examples.
 
 ## Renderers
 
@@ -360,3 +364,18 @@ You can use [Shiki playground](https://textmate-grammars-themes.netlify.app/) to
 - vitesse-dark
 - vitesse-light
 <!-- THEMES_END -->
+
+
+## Why not?
+
+### syntect
+
+syntect is using _old_ Sublime Text syntaxes, it doesn't support features that recent syntaxes use (see https://github.com/trishume/syntect/issues/271).
+Projects like [bat](https://github.com/sharkdp/bat) keep their own curated set of grammars, sometimes applying patches to fix things.
+The Rust syntax for example is about 6 years old and does not know about async/await.
+
+### tree-sitter
+
+This repository initially started as a tree-sitter highlighter but the grammars were at the time very big (eg easily
+adding 100MB+ to a binary for ~50 languages) and queries were slow to load (see https://github.com/getzola/zola/issues/1787#issuecomment-1458569776)
+Both are kind of dealbreakers for something meant to be added to Zola.
