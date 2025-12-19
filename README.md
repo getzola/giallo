@@ -7,15 +7,15 @@ starting kit and testing, but you can start from an empty canvas if you want.
 
 ## Installation
 
-NOT ON CRATES.IO yet.
-
-
 ```toml
 [dependencies]
 giallo = { version = "0.1.0", features = ["dump"] }
 ```
 
 The `dump` feature is required to use `Registry::builtin()` or create/load your own dump.
+
+Giallo currently uses a fork of [rust-onig](https://github.com/rust-onig/rust-onig). Once <https://github.com/rust-onig/rust-onig/pull/210>
+or something similar is released on crates.io, I will switch back to the rust-onig crate.
 
 ## Usage
 
