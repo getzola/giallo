@@ -373,6 +373,7 @@ You can use [Shiki playground](https://textmate-grammars-themes.netlify.app/) to
 syntect is using _old_ Sublime Text syntaxes, it doesn't support features that recent syntaxes use (see https://github.com/trishume/syntect/issues/271).
 Projects like [bat](https://github.com/sharkdp/bat) keep their own curated set of grammars, sometimes applying patches to fix things.
 The Rust syntax for example is about 6 years old and does not know about async/await.
+VSCode is also a LOT more popular than Sublime these days.
 
 ### tree-sitter
 

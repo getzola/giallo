@@ -62,6 +62,10 @@ harness = false
 required-features = ["dump"]
 
 [[example]]
+name = "basic"
+required-features = ["dump"]
+
+[[example]]
 name = "profile_jquery"
 required-features = ["dump"]
 
