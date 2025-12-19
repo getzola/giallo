@@ -6,6 +6,23 @@ license = "EUPL-1.2"
 description = "A code highlighter giving the same output as VSCode"
 repository = "https://github.com/getzola/giallo"
 
+include = [
+    "src/**/*.rs",
+    "benches/**/*",
+    "examples/**/*",
+    "tools/**/*",
+    "Cargo.toml",
+    "/LICENSE",
+    "/README.md",
+    "builtin.msgpack",
+]
+#exclude = [
+#    "grammars-themes",
+#    "vscode-textmate",
+#    "src/fixtures/snapshots",
+#    "src/fixtures/tokens",
+#]
+
 [dependencies]
 onig = { package = "onig-regset", version = "6", default-features = false }
 serde_json = "1"
