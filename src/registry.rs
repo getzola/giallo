@@ -23,7 +23,6 @@ struct Dump {
     scope_repo: ScopeRepository,
 }
 
-
 #[cfg(feature = "dump")]
 const BUILTIN_DATA: &[u8] = include_bytes!("../builtin.msgpack");
 
