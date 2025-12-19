@@ -2,7 +2,7 @@ use giallo::GIALLO_CSS;
 use std::env;
 use std::fs;
 
-use giallo::{HighlightOptions, Registry};
+use giallo::{HighlightOptions, Registry, ThemeVariant};
 use giallo::{HtmlRenderer, RenderOptions};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -33,8 +33,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let file_content = fs::read_to_string(file_path)?;
 
     let options = match dark_theme {
-        Some(dark) => HighlightOptions::new(language).light_dark_themes(theme, dark),
-        None => HighlightOptions::new(language).single_theme(theme),
+        Some(dark) => HighlightOptions::new(language, ThemeVariant::Dual { light: theme, dark }),
+        None => HighlightOptions::new(language, ThemeVariant::Single(theme)),
     };
 
     let highlighted = registry.highlight(&file_content, options)?;

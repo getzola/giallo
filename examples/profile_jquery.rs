@@ -1,4 +1,4 @@
-use giallo::{HighlightOptions, Registry};
+use giallo::{HighlightOptions, Registry, ThemeVariant};
 use std::fs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -6,7 +6,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     registry.link_grammars();
     let jquery_content = fs::read_to_string("src/fixtures/samples/jquery.js")?;
 
-    let options = HighlightOptions::new("javascript").single_theme("vitesse-black");
+    let options = HighlightOptions::new("javascript", ThemeVariant::Single("vitesse-black"));
 
     let highlighted_tokens = registry.highlight(&jquery_content, options)?;
 

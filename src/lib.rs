@@ -4,13 +4,13 @@
 //! # Example
 //!
 //! ```ignore
-//! use giallo::{HighlightOptions, HtmlRenderer, Options, Registry};
+//! use giallo::{HighlightOptions, HtmlRenderer, Options, Registry, ThemeVariant};
 //!
 //! // Using the `dump` feature and loading the prebuilt assets
 //! let registry = Registry::load_from_file("builtin.msgpack")?;
 //! let code = "let x = 42;";
 //!
-//! let options = HighlightOptions::new("javascript").single_theme("catppuccin-frappe");
+//! let options = HighlightOptions::new("javascript", ThemeVariant::Single("catppuccin-frappe"));
 //! let highlighted = registry.highlight(code, options)?;
 //!
 //! let render_options = Options {
@@ -55,3 +55,22 @@ pub const GIALLO_CSS: &str = r#".giallo-l {
   opacity: 0.8;
 }
 "#;
+
+#[cfg(test)]
+pub(crate) mod test_utils {
+    use crate::Registry;
+    use std::fs;
+
+    pub fn get_registry() -> Registry {
+        let mut registry = Registry::default();
+        for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
+            let path = entry.unwrap().path();
+            registry.add_grammar_from_path(path).unwrap();
+        }
+        registry.link_grammars();
+        registry
+            .add_theme_from_path("grammars-themes/packages/tm-themes/themes/vitesse-black.json")
+            .unwrap();
+        registry
+    }
+}

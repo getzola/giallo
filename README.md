@@ -7,34 +7,41 @@ starting kit and testing, but you can start from an empty canvas if you want.
 
 ## Installation
 
-NOT ON CRATES.IO yet.
-
-
 ```toml
 [dependencies]
 giallo = { version = "0.1.0", features = ["dump"] }
 ```
 
-The `dump` feature is required to use `Registry::builtin()` or create/load your own dump.
+The `dump` feature is required to use `Registry::builtin()` or create/load your own dump. The dump is not tracked
+in git since it might change frequently, and is generated in the CI release script.
+
+Giallo currently uses a fork of [rust-onig](https://github.com/rust-onig/rust-onig). Once <https://github.com/rust-onig/rust-onig/pull/210>
+or something similar is released on crates.io, I will switch back to the rust-onig crate.
 
 ## Usage
 
 ```rust
-use giallo::{HighlightOptions, HtmlRenderer, RenderOptions, Registry};
+use giallo::{HighlightOptions, HtmlRenderer, RenderOptions, Registry, ThemeVariant};
 
 // Load the pre-built registry
 let mut registry = Registry::builtin()?;
 registry.link_grammars();
 
 let code = "let x = 42;";
-let options = HighlightOptions::new("javascript").single_theme("catppuccin-frappe");
+let options = HighlightOptions::new("javascript", ThemeVariant::Single("catppuccin-frappe"));
 // For light/dark support, you can specify 2 themes
-// let options = HighlightOptions::new("javascript").light_dark_themes("catppuccin-latte", "catppuccin-mocha");
+// let options = HighlightOptions::new("javascript", ThemeVariant::Dual {
+//     light: "catppuccin-latte",
+//     dark: "catppuccin-mocha",
+// });
 let highlighted = registry.highlight(code, options)?;
 
 // Render to HTML
 let html = HtmlRenderer::default().render(&highlighted, &RenderOptions::default());
+println!("{html}");
 ```
+
+See the `examples` directory for more examples.
 
 ## Renderers
 
@@ -59,7 +66,7 @@ is useful for example if you want a light/dark theme switch where the above inli
 ## Built in
 
 If you use the `dump` feature, giallo provides the following 220+ grammars and ~60 themes.
-You can use [Shiki playground](https://textmate-grammars-themes.netlify.app/) to see the various themes and languages in action.
+You can use [Shiki playground](https://textmate-grammars-themes.netlify.app/) to see the various themes and languages in action or open VSCode.
 
 ### Grammars
 
@@ -204,6 +211,7 @@ You can use [Shiki playground](https://textmate-grammars-themes.netlify.app/) to
 - perl
 - php
 - pkl
+- plain -> txt
 - plsql
 - po -> pot, potx
 - polar
@@ -356,3 +364,19 @@ You can use [Shiki playground](https://textmate-grammars-themes.netlify.app/) to
 - vitesse-dark
 - vitesse-light
 <!-- THEMES_END -->
+
+
+## Why not?
+
+### syntect
+
+syntect is using _old_ Sublime Text syntaxes, it doesn't support features that recent syntaxes use (see https://github.com/trishume/syntect/issues/271).
+Projects like [bat](https://github.com/sharkdp/bat) keep their own curated set of grammars, sometimes applying patches to fix things.
+The Rust syntax for example is about 6 years old and does not know about async/await.
+VSCode is also a LOT more popular than Sublime these days.
+
+### tree-sitter
+
+This repository initially started as a tree-sitter highlighter but the grammars were at the time very big (eg easily
+adding 100MB+ to a binary for ~50 languages) and queries were slow to load (see https://github.com/getzola/zola/issues/1787#issuecomment-1458569776)
+Both are kind of dealbreakers for something meant to be added to Zola.

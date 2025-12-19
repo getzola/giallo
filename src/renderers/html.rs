@@ -193,27 +193,14 @@ impl fmt::Display for HtmlEscaped<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::registry::{HighlightOptions, Registry};
-    use std::fs;
-
-    fn get_registry() -> Registry {
-        let mut registry = Registry::default();
-        for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
-            let path = entry.unwrap().path();
-            registry.add_grammar_from_path(path).unwrap();
-        }
-        registry.link_grammars();
-        registry
-            .add_theme_from_path("grammars-themes/packages/tm-themes/themes/vitesse-black.json")
-            .unwrap();
-        registry
-    }
+    use crate::registry::HighlightOptions;
+    use crate::test_utils::get_registry;
 
     #[test]
     fn test_highlight_and_hide_lines() {
         let registry = get_registry();
         let code = "let a = 1;\nlet b = 2;\nlet c = 3;\nlet d = 4;\nlet e = 5;";
-        let options = HighlightOptions::new("javascript").single_theme("vitesse-black");
+        let options = HighlightOptions::new("javascript", ThemeVariant::Single("vitesse-black"));
         let highlighted = registry.highlight(code, options).unwrap();
 
         let render_options = RenderOptions {

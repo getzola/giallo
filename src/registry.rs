@@ -41,41 +41,21 @@ pub struct HighlightOptions<'a> {
     pub(crate) fallback_to_plain: bool,
 }
 
-impl<'a> Default for HighlightOptions<'a> {
-    fn default() -> Self {
-        Self {
-            lang: "",
-            theme: ThemeVariant::Single(""),
-            merge_whitespaces: true,
-            merge_same_style_tokens: true,
-            fallback_to_plain: false,
-        }
-    }
-}
-
 impl<'a> HighlightOptions<'a> {
-    /// Creates a new builder for the options
-    pub fn new(lang: &'a str) -> Self {
+    /// Creates a new highlight options with the given language and theme.
+    ///
+    /// For dual themes (light/dark), `merge_same_style_tokens` is automatically
+    /// disabled since tokens might get merged differently depending on theme.
+    /// Even if you set it back to `true`, it will be ignored when rendering.
+    pub fn new(lang: &'a str, theme: ThemeVariant<&'a str>) -> Self {
+        let merge_same_style_tokens = matches!(theme, ThemeVariant::Single(_));
         Self {
             lang,
-            ..Self::default()
+            theme,
+            merge_same_style_tokens,
+            merge_whitespaces: true,
+            fallback_to_plain: false,
         }
-    }
-
-    /// Use a single theme for the output
-    pub fn single_theme(mut self, theme: &'a str) -> Self {
-        self.theme = ThemeVariant::Single(theme);
-        self
-    }
-
-    /// Use a light and dark themes for the output
-    /// This disables `merge_same_style_tokens` since tokens might get merged differently
-    /// depending on theme
-    pub fn light_dark_themes(mut self, light: &'a str, dark: &'a str) -> Self {
-        self.theme = ThemeVariant::Dual { light, dark };
-        // We set it to false but we will ignore that values either way when highlighting
-        self.merge_same_style_tokens = false;
-        self
     }
 
     /// Whitespace tokens are merged with the next non-ws tokens.
@@ -505,20 +485,8 @@ mod tests {
 
     use super::*;
     use crate::highlight::HighlightedText;
+    use crate::test_utils::get_registry;
     use crate::themes::font_style::FontStyle;
-
-    fn get_registry() -> Registry {
-        let mut registry = Registry::default();
-        for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
-            let path = entry.unwrap().path();
-            registry.add_grammar_from_path(path).unwrap();
-        }
-        registry.link_grammars();
-        registry
-            .add_theme_from_path("grammars-themes/packages/tm-themes/themes/vitesse-black.json")
-            .unwrap();
-        registry
-    }
 
     fn format_highlighted_tokens(
         highlighted_tokens: &[Vec<HighlightedText>],
@@ -533,8 +501,8 @@ mod tests {
             }
 
             for token in line_tokens {
-                let crate::themes::ThemeVariant::Single(style) = &token.style else {
-                    panic!()
+                let ThemeVariant::Single(style) = &token.style else {
+                    unreachable!()
                 };
                 // Use proper hex format that includes alpha channel when needed
                 let hex_color = style.foreground.as_hex();
@@ -657,8 +625,7 @@ mod tests {
         let highlighted = registry
             .highlight(
                 &sample_content,
-                HighlightOptions::new(PLAIN_GRAMMAR_NAME)
-                    .single_theme("vitesse-black")
+                HighlightOptions::new(PLAIN_GRAMMAR_NAME, ThemeVariant::Single("vitesse-black"))
                     .merge_whitespace(false)
                     .merge_same_style_tokens(false),
             )
@@ -671,8 +638,7 @@ mod tests {
         let highlighted2 = registry
             .highlight(
                 &sample_content,
-                HighlightOptions::new("unknown")
-                    .single_theme("vitesse-black")
+                HighlightOptions::new("unknown", ThemeVariant::Single("vitesse-black"))
                     .merge_whitespace(false)
                     .merge_same_style_tokens(false)
                     .fallback_to_plain(true),
@@ -694,8 +660,7 @@ mod tests {
             let highlighted = registry
                 .highlight(
                     &sample_content,
-                    HighlightOptions::new(&grammar)
-                        .single_theme("vitesse-black")
+                    HighlightOptions::new(&grammar, ThemeVariant::Single("vitesse-black"))
                         .merge_whitespace(false)
                         .merge_same_style_tokens(false),
                 )

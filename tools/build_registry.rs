@@ -1,4 +1,4 @@
-use giallo::Registry;
+use giallo::{PLAIN_GRAMMAR_NAME, Registry};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Building Registry with all grammars and themes from grammars-themes folder...");
 
     // Load grammar metadata (aliases)
-    let alias_map = load_grammar_metadata()?;
+    let mut alias_map = load_grammar_metadata()?;
 
     let mut registry = Registry::default();
     let mut grammar_count = 0;
@@ -98,7 +98,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    registry.add_plain_grammar(&["txt"])?;
+    let plain_aliases = vec!["txt"];
+    registry.add_plain_grammar(&plain_aliases)?;
+    alias_map.insert(
+        PLAIN_GRAMMAR_NAME.to_string(),
+        plain_aliases.into_iter().map(String::from).collect(),
+    );
 
     // Build grammars list string
     let mut grammar_entries: Vec<_> = alias_map.iter().collect();

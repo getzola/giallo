@@ -1,12 +1,30 @@
 [package]
 name = "giallo"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2024"
 license = "EUPL-1.2"
 description = "A code highlighter giving the same output as VSCode"
+repository = "https://github.com/getzola/giallo"
+
+include = [
+    "src/**/*.rs",
+    "benches/**/*",
+    "examples/**/*",
+    "tools/**/*",
+    "Cargo.toml",
+    "/LICENSE",
+    "/README.md",
+    "builtin.msgpack",
+]
+#exclude = [
+#    "grammars-themes",
+#    "vscode-textmate",
+#    "src/fixtures/snapshots",
+#    "src/fixtures/tokens",
+#]
 
 [dependencies]
-onig = { version = "6", default-features = false, git = "https://github.com/Keats/rust-onig", branch = "main" }
+onig = { package = "onig-regset", version = "6", default-features = false }
 serde_json = "1"
 serde = { version = "1", features = ["derive"] }
 
@@ -41,6 +59,10 @@ required-features = ["dump"]
 [[bench]]
 name = "highlight_benchmark"
 harness = false
+required-features = ["dump"]
+
+[[example]]
+name = "basic"
 required-features = ["dump"]
 
 [[example]]
