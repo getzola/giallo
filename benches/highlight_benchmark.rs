@@ -1,5 +1,5 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use giallo::{HighlightOptions, Registry};
+use giallo::{HighlightOptions, Registry, ThemeVariant};
 use std::fs;
 
 fn highlight_jquery_benchmark(c: &mut Criterion) {
@@ -12,7 +12,7 @@ fn highlight_jquery_benchmark(c: &mut Criterion) {
     let jquery_content =
         fs::read_to_string("src/fixtures/samples/jquery.js").expect("Failed to read jQuery file");
 
-    let options = HighlightOptions::new("javascript").single_theme("vitesse-black");
+    let options = HighlightOptions::new("javascript", ThemeVariant::Single("vitesse-black"));
 
     c.bench_function("highlight jquery.js", |b| {
         b.iter(|| {
