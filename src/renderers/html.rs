@@ -200,7 +200,7 @@ mod tests {
     fn test_highlight_and_hide_lines() {
         let registry = get_registry();
         let code = "let a = 1;\nlet b = 2;\nlet c = 3;\nlet d = 4;\nlet e = 5;";
-        let options = HighlightOptions::new("javascript").single_theme("vitesse-black");
+        let options = HighlightOptions::new("javascript", ThemeVariant::Single("vitesse-black"));
         let highlighted = registry.highlight(code, options).unwrap();
 
         let render_options = RenderOptions {

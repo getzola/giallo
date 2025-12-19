@@ -20,16 +20,19 @@ The `dump` feature is required to use `Registry::builtin()` or create/load your 
 ## Usage
 
 ```rust
-use giallo::{HighlightOptions, HtmlRenderer, RenderOptions, Registry};
+use giallo::{HighlightOptions, HtmlRenderer, RenderOptions, Registry, ThemeVariant};
 
 // Load the pre-built registry
 let mut registry = Registry::builtin()?;
 registry.link_grammars();
 
 let code = "let x = 42;";
-let options = HighlightOptions::new("javascript").single_theme("catppuccin-frappe");
+let options = HighlightOptions::new("javascript", ThemeVariant::Single("catppuccin-frappe"));
 // For light/dark support, you can specify 2 themes
-// let options = HighlightOptions::new("javascript").light_dark_themes("catppuccin-latte", "catppuccin-mocha");
+// let options = HighlightOptions::new("javascript", ThemeVariant::Dual {
+//     light: "catppuccin-latte",
+//     dark: "catppuccin-mocha",
+// });
 let highlighted = registry.highlight(code, options)?;
 
 // Render to HTML

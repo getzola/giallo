@@ -4,13 +4,13 @@
 //! # Example
 //!
 //! ```ignore
-//! use giallo::{HighlightOptions, HtmlRenderer, Options, Registry};
+//! use giallo::{HighlightOptions, HtmlRenderer, Options, Registry, ThemeVariant};
 //!
 //! // Using the `dump` feature and loading the prebuilt assets
 //! let registry = Registry::load_from_file("builtin.msgpack")?;
 //! let code = "let x = 42;";
 //!
-//! let options = HighlightOptions::new("javascript").single_theme("catppuccin-frappe");
+//! let options = HighlightOptions::new("javascript", ThemeVariant::Single("catppuccin-frappe"));
 //! let highlighted = registry.highlight(code, options)?;
 //!
 //! let render_options = Options {
