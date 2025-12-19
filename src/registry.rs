@@ -23,9 +23,8 @@ struct Dump {
     scope_repo: ScopeRepository,
 }
 
-// We always include the data but if the `dump` feature is not enabled, we can't actually
-// use it
-#[allow(dead_code)]
+
+#[cfg(feature = "dump")]
 const BUILTIN_DATA: &[u8] = include_bytes!("../builtin.msgpack");
 
 /// The default grammar name, where nothing is highlighted
