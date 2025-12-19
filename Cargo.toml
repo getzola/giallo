@@ -1,9 +1,10 @@
 [package]
 name = "giallo"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2024"
 license = "EUPL-1.2"
 description = "A code highlighter giving the same output as VSCode"
+repository = "https://github.com/getzola/giallo"
 
 [dependencies]
 onig = { version = "6", default-features = false, git = "https://github.com/Keats/rust-onig", branch = "main" }

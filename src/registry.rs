@@ -505,20 +505,8 @@ mod tests {
 
     use super::*;
     use crate::highlight::HighlightedText;
+    use crate::test_utils::get_registry;
     use crate::themes::font_style::FontStyle;
-
-    fn get_registry() -> Registry {
-        let mut registry = Registry::default();
-        for entry in fs::read_dir("grammars-themes/packages/tm-grammars/grammars").unwrap() {
-            let path = entry.unwrap().path();
-            registry.add_grammar_from_path(path).unwrap();
-        }
-        registry.link_grammars();
-        registry
-            .add_theme_from_path("grammars-themes/packages/tm-themes/themes/vitesse-black.json")
-            .unwrap();
-        registry
-    }
 
     fn format_highlighted_tokens(
         highlighted_tokens: &[Vec<HighlightedText>],
@@ -533,8 +521,8 @@ mod tests {
             }
 
             for token in line_tokens {
-                let crate::themes::ThemeVariant::Single(style) = &token.style else {
-                    panic!()
+                let ThemeVariant::Single(style) = &token.style else {
+                    unreachable!()
                 };
                 // Use proper hex format that includes alpha channel when needed
                 let hex_color = style.foreground.as_hex();

@@ -1,4 +1,4 @@
-//! This file replicates the logic of https://github.com/microsoft/vscode-textmate
+//! This file replicates the logic of <https://github.com/microsoft/vscode-textmate>
 
 use std::collections::HashMap;
 use std::ops::Range;

@@ -59,7 +59,7 @@ is useful for example if you want a light/dark theme switch where the above inli
 ## Built in
 
 If you use the `dump` feature, giallo provides the following 220+ grammars and ~60 themes.
-You can use [Shiki playground](https://textmate-grammars-themes.netlify.app/) to see the various themes and languages in action.
+You can use [Shiki playground](https://textmate-grammars-themes.netlify.app/) to see the various themes and languages in action or open VSCode.
 
 ### Grammars
 
@@ -204,6 +204,7 @@ You can use [Shiki playground](https://textmate-grammars-themes.netlify.app/) to
 - perl
 - php
 - pkl
+- plain -> txt
 - plsql
 - po -> pot, potx
 - polar
