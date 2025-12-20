@@ -289,13 +289,12 @@ impl Registry {
     /// Will find all references to external grammars and use the correct target for them.
     /// Call that if you're not using the provided dump otherwise things will not work well.
     pub fn link_grammars(&mut self) {
-        let grammar_names_ptr = &self.grammar_id_by_scope_name as *const HashMap<String, GrammarId>;
+        let grammar_names = &self.grammar_id_by_scope_name;
         let grammars_ptr = &self.grammars as *const Vec<CompiledGrammar>;
         for grammar in self.grammars.iter_mut() {
             // SAFETY: We only modify the content of the current grammar being iterated
-            unsafe {
-                grammar.resolve_external_references(&*grammar_names_ptr, &*grammars_ptr);
-            }
+            let grammars_ptr = unsafe { &*grammars_ptr };
+            grammar.resolve_external_references(grammar_names, grammars_ptr);
 
             for inject_to in &grammar.inject_to {
                 if let Some(g_id) = self.grammar_id_by_name.get(inject_to) {
