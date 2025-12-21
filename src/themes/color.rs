@@ -1,3 +1,5 @@
+use std::fmt::{self, Write};
+
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, GialloResult};
@@ -55,6 +57,16 @@ impl Color {
     #[inline]
     pub(crate) fn as_css_light_dark_color_property(light: &Color, dark: &Color) -> String {
         format!("color: light-dark({}, {});", light.as_hex(), dark.as_hex())
+    }
+
+    /// Render as a foreground color ANSI escape code in the terminal
+    pub(crate) fn as_ansi_fg(self, f: &mut impl Write) -> fmt::Result {
+        write!(f, "38;2;{};{};{}", self.r, self.g, self.b)
+    }
+
+    /// Render as a background color ANSI escape code in the terminal
+    pub(crate) fn as_ansi_bg(self, f: &mut impl Write) -> fmt::Result {
+        write!(f, "48;2;{};{};{}", self.r, self.g, self.b)
     }
 
     #[inline]

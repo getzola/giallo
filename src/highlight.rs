@@ -1,4 +1,6 @@
+use core::fmt;
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::ops::Range;
 
 use serde::{Deserialize, Serialize};
@@ -22,6 +24,59 @@ pub struct HighlightedText {
 }
 
 impl HighlightedText {
+    /// Renders this highlighted text using terminal ANSI escape codes
+    pub(crate) fn as_ansi(
+        &self,
+        theme: &ThemeVariant<&CompiledTheme>,
+        use_dark_theme: bool,
+        f: &mut impl Write,
+    ) -> fmt::Result {
+        let s = self.text.as_str();
+
+        if self.scopes.is_empty() {
+            return write!(f, "{s}");
+        }
+
+        let (style, theme) = match (self.style, theme) {
+            (ThemeVariant::Single(style), ThemeVariant::Single(theme)) => (style, theme),
+            (
+                ThemeVariant::Dual {
+                    dark: dark_style, ..
+                },
+                ThemeVariant::Dual {
+                    dark: dark_theme, ..
+                },
+            ) if use_dark_theme => (dark_style, dark_theme),
+            (
+                ThemeVariant::Dual {
+                    light: light_style, ..
+                },
+                ThemeVariant::Dual {
+                    light: light_theme, ..
+                },
+            ) if !use_dark_theme => (light_style, light_theme),
+            _ => unreachable!(),
+        };
+
+        let default = &theme.default_style;
+        if style == *default {
+            return write!(f, "{s}");
+        }
+
+        write!(f, "\x1b[")?;
+        if style.foreground != default.foreground {
+            style.foreground.as_ansi_fg(f)?;
+        }
+        if style.background != default.background {
+            style.background.as_ansi_bg(f)?;
+        }
+        style.font_style.ansi_escapes(f)?;
+        write!(f, "m{s}")?;
+        // reset
+        write!(f, "\x1b[0m")?;
+        Ok(())
+    }
+
     /// Renders this highlighted text as an HTML span element with either classes or inline style.
     pub(crate) fn as_html(
         &self,
