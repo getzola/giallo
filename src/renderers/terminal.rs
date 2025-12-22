@@ -1,13 +1,11 @@
-use crate::{HighlightedCode, RenderOptions};
+use crate::{HighlightedCode, RenderOptions, themes::compiled::ThemeType};
 use std::fmt::Write;
 
 /// Terminal renderer via ANSI escape codes. Requires a terminal that supports truecolor
-#[derive(Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Copy, Clone, PartialEq, Eq)]
 pub struct TerminalRenderer {
-    /// If [`ThemeVariant::Dual`](crate::ThemeVariant::Dual) is provided, uses `dark` theme if this
-    /// is set to `true`, and `light` if it is set to `false`, since terminals
-    /// don't allow light or dark theme
-    pub use_dark_theme: bool,
+    /// The theme type to use if [`ThemeVariant::Dual`](crate::ThemeVariant::Dual) is provided, since terminals don't allow light or dark theme
+    pub theme_type: ThemeType,
 }
 
 impl TerminalRenderer {
@@ -52,7 +50,7 @@ impl TerminalRenderer {
             }
             for token in line_tokens {
                 token
-                    .as_ansi(&highlighted.theme, self.use_dark_theme, &mut output)
+                    .as_ansi(&highlighted.theme, self.theme_type, &mut output)
                     .expect("writing to `String` is infallible");
             }
             writeln!(output).expect("writing to `String` is infallible");

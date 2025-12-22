@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::renderers::html::HtmlEscaped;
 use crate::scope::Scope;
+use crate::themes::compiled::ThemeType;
 use crate::themes::{Color, CompiledTheme, Style, ThemeVariant, scope_to_css_selector};
 use crate::tokenizer::Token;
 
@@ -28,7 +29,7 @@ impl HighlightedText {
     pub(crate) fn as_ansi(
         &self,
         theme: &ThemeVariant<&CompiledTheme>,
-        use_dark_theme: bool,
+        theme_type: ThemeType,
         f: &mut String,
     ) -> fmt::Result {
         let s = self.text.as_str();
@@ -46,7 +47,7 @@ impl HighlightedText {
                 ThemeVariant::Dual {
                     dark: dark_theme, ..
                 },
-            ) if use_dark_theme => (dark_style, dark_theme),
+            ) if theme_type == ThemeType::Dark => (dark_style, dark_theme),
             (
                 ThemeVariant::Dual {
                     light: light_style, ..
@@ -54,7 +55,7 @@ impl HighlightedText {
                 ThemeVariant::Dual {
                     light: light_theme, ..
                 },
-            ) if !use_dark_theme => (light_style, light_theme),
+            ) if theme_type == ThemeType::Light => (light_style, light_theme),
             _ => unreachable!(),
         };
 
