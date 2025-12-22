@@ -30,6 +30,7 @@ impl HighlightedText {
         theme: &ThemeVariant<&CompiledTheme>,
         theme_type: ThemeType,
         f: &mut String,
+        bg_color: Option<Color>,
     ) {
         let s = self.text.as_str();
 
@@ -74,6 +75,14 @@ impl HighlightedText {
         }
         style.font_style.ansi_escapes(f);
         f.push('m');
+
+        // Highlight background color
+        if let Some(bg) = bg_color {
+            f.push_str("\x1b[");
+            bg.as_ansi_bg(f);
+            f.push('m');
+        }
+
         f.push_str(s);
         // reset
         f.push_str("\x1b[0m");

@@ -31,7 +31,7 @@ impl TerminalRenderer {
         };
 
         // Color of line numbers
-        let (line_number_foreground, _highlight_background_color) = match highlighted.theme {
+        let (line_number_foreground, highlight_background_color) = match highlighted.theme {
             crate::ThemeVariant::Single(theme) => (
                 theme.line_number_foreground,
                 theme.highlight_background_color,
@@ -57,7 +57,7 @@ impl TerminalRenderer {
             }
 
             // If this line is highlighted
-            let _is_highlighted = options
+            let is_highlighted = options
                 .highlight_lines
                 .iter()
                 .any(|r| r.contains(&line_num));
@@ -83,21 +83,17 @@ impl TerminalRenderer {
 
             // Highlight individual tokens
             for token in line_tokens {
-                token.as_ansi(&highlighted.theme, self.theme_type, &mut output)
+                token.as_ansi(
+                    &highlighted.theme,
+                    self.theme_type,
+                    &mut output,
+                    highlight_background_color.filter(|_| is_highlighted),
+                )
             }
 
             if !is_last_line {
                 output.push('\n');
             }
-
-            // // Add background highlight color
-            // if let Some(highlight_background_color) = highlight_background_color
-            //     && is_highlighted
-            // {
-            //     output.push_str("\x1b[");
-            //     highlight_background_color.as_ansi_bg(&mut output);
-            //     output.push('m');
-            // }
         }
 
         output
@@ -126,7 +122,6 @@ mod tests {
         };
 
         let ansi = TerminalRenderer::default().render(&highlighted, &render_options);
-        println!("{ansi}");
 
         insta::assert_snapshot!(ansi);
     }
