@@ -51,18 +51,18 @@ impl FontStyle {
     }
 
     /// Render the ANSI escape codes for the terminal
-    pub(crate) fn ansi_escapes(self, f: &mut String) {
+    pub(crate) fn ansi_escapes(self, s: &mut String) {
         if self.contains(FontStyle::BOLD) {
-            f.push_str(";1");
+            s.push_str(";1");
         }
         if self.contains(FontStyle::ITALIC) {
-            f.push_str(";3");
+            s.push_str(";3");
         }
         if self.contains(FontStyle::UNDERLINE) {
-            f.push_str(";4");
+            s.push_str(";4");
         }
         if self.contains(FontStyle::STRIKETHROUGH) {
-            f.push_str(";9");
+            s.push_str(";9");
         }
     }
 
