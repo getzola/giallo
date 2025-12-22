@@ -31,7 +31,7 @@ impl TerminalRenderer {
         };
 
         // Color of line numbers
-        let (line_number_foreground, highlight_background_color) = match highlighted.theme {
+        let (line_number_foreground, _highlight_background_color) = match highlighted.theme {
             crate::ThemeVariant::Single(theme) => (
                 theme.line_number_foreground,
                 theme.highlight_background_color,
@@ -57,7 +57,7 @@ impl TerminalRenderer {
             }
 
             // If this line is highlighted
-            let is_highlighted = options
+            let _is_highlighted = options
                 .highlight_lines
                 .iter()
                 .any(|r| r.contains(&line_num));
@@ -128,7 +128,6 @@ mod tests {
         let ansi = TerminalRenderer::default().render(&highlighted, &render_options);
         println!("{ansi}");
 
-        panic!();
-        // insta::assert_snapshot!(ansi);
+        insta::assert_snapshot!(ansi);
     }
 }
