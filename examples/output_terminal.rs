@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let language = &args[2];
     let theme = &args[3];
 
-    let mut registry = Registry::builtin().unwrap();
+    let mut registry = Registry::load_from_file("builtin.msgpack")?;
     registry.link_grammars();
 
     let file_content = fs::read_to_string(file_path)?;

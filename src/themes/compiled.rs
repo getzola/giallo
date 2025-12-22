@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ThemeVariant;
 use crate::error::{Error, GialloResult};
 use crate::themes::Color;
 use crate::themes::font_style::FontStyle;
@@ -152,6 +153,8 @@ pub struct CompiledTheme {
     pub default_style: Style,
     /// Value of `editor.lineHighlightBackground`
     pub highlight_background_color: Option<Color>,
+    /// Value of `editorLineNumber.foreground`
+    pub line_number_foreground: Option<Color>,
     /// Theme rules sorted by specificity (most specific first)
     pub(crate) rules: Vec<CompiledThemeRule>,
 }
@@ -167,6 +170,12 @@ impl CompiledTheme {
         let background = Color::from_hex(&raw_theme.colors.background)?;
         let highlight_background_color = if let Some(bg) = raw_theme.colors.highlight_background {
             Some(Color::from_hex(&bg)?)
+        } else {
+            None
+        };
+        let line_number_foreground = if let Some(fg) = raw_theme.colors.line_number_foreground {
+            // Some(Color::from_hex(&fg)?)
+            Some(Color::from_hex("#ffffff")?)
         } else {
             None
         };
@@ -240,6 +249,7 @@ impl CompiledTheme {
             theme_type,
             default_style,
             highlight_background_color,
+            line_number_foreground,
             rules,
         })
     }

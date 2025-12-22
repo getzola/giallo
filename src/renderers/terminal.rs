@@ -31,8 +31,22 @@ impl TerminalRenderer {
             0
         };
 
+        // Color of line numbers
+        let line_number_foreground = match highlighted.theme {
+            crate::ThemeVariant::Single(theme) => theme.line_number_foreground,
+            crate::ThemeVariant::Dual { light, .. } if self.theme_type == ThemeType::Light => {
+                light.line_number_foreground
+            }
+            crate::ThemeVariant::Dual { dark, .. } if self.theme_type == ThemeType::Dark => {
+                dark.line_number_foreground
+            }
+            _ => unreachable!(),
+        };
+
+        let line_count = highlighted.tokens.len();
         for (idx, line_tokens) in highlighted.tokens.iter().enumerate() {
             let line_num = idx + 1; // 1-indexed
+            let is_last_line = line_count == line_num;
 
             // Skip hidden lines
             if options.hide_lines.iter().any(|r| r.contains(&line_num)) {
@@ -46,14 +60,33 @@ impl TerminalRenderer {
                 let s = std::iter::repeat_n(' ', line_numbers_size - line_num_s.chars().count())
                     .chain(line_num_s.chars())
                     .collect::<String>();
-                write!(output, " {s} │ ").expect("writing to `String` is infallible");
+                if !is_last_line {
+                    if let Some(line_number_foreground) = line_number_foreground {
+                        write!(output, "\x1b[").unwrap();
+                        line_number_foreground
+                            .as_ansi_fg(&mut output)
+                            .expect("writing to `String` is infallible");
+                        write!(output, "m").unwrap();
+                    }
+                    write!(output, "  {s} ").expect("writing to `String` is infallible");
+                    if line_number_foreground.is_some() {
+                        // reset
+                        write!(output, "\x1b[0m").expect("writing to `String` is infallible");
+                    }
+                }
             }
             for token in line_tokens {
                 token
                     .as_ansi(&highlighted.theme, self.theme_type, &mut output)
                     .expect("writing to `String` is infallible");
             }
-            writeln!(output).expect("writing to `String` is infallible");
+
+            // Don't add a newline after the last line to match bat's output
+            let is_second_to_last_line = idx + 2 == line_count;
+
+            if !is_last_line && !is_second_to_last_line {
+                writeln!(output).expect("writing to `String` is infallible");
+            }
         }
 
         output
