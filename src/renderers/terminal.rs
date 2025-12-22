@@ -31,13 +31,17 @@ impl TerminalRenderer {
         };
 
         // Color of line numbers
-        let line_number_foreground = match highlighted.theme {
-            crate::ThemeVariant::Single(theme) => theme.line_number_foreground,
-            crate::ThemeVariant::Dual { light, .. } if self.theme_type == ThemeType::Light => {
-                light.line_number_foreground
-            }
+        let (line_number_foreground, highlight_background_color) = match highlighted.theme {
+            crate::ThemeVariant::Single(theme) => (
+                theme.line_number_foreground,
+                theme.highlight_background_color,
+            ),
+            crate::ThemeVariant::Dual { light, .. } if self.theme_type == ThemeType::Light => (
+                light.line_number_foreground,
+                light.highlight_background_color,
+            ),
             crate::ThemeVariant::Dual { dark, .. } if self.theme_type == ThemeType::Dark => {
-                dark.line_number_foreground
+                (dark.line_number_foreground, dark.highlight_background_color)
             }
             _ => unreachable!(),
         };
@@ -52,6 +56,12 @@ impl TerminalRenderer {
                 continue;
             }
 
+            // If this line is highlighted
+            let is_highlighted = options
+                .highlight_lines
+                .iter()
+                .any(|r| r.contains(&line_num));
+
             // Render tokens
             if options.show_line_numbers {
                 let line_num = options.line_number_start + (idx as isize);
@@ -59,29 +69,35 @@ impl TerminalRenderer {
                 let s = std::iter::repeat_n(' ', line_numbers_size - line_num_s.chars().count())
                     .chain(line_num_s.chars())
                     .collect::<String>();
-                if !is_last_line {
-                    if let Some(line_number_foreground) = line_number_foreground {
-                        output.push_str("\x1b[");
-                        line_number_foreground.as_ansi_fg(&mut output);
-                        output.push('m');
-                    }
-                    output.push_str(&format!("  {s} "));
-                    if line_number_foreground.is_some() {
-                        // reset
-                        output.push_str("\x1b[0m");
-                    }
+                if let Some(line_number_foreground) = line_number_foreground {
+                    output.push_str("\x1b[");
+                    line_number_foreground.as_ansi_fg(&mut output);
+                    output.push('m');
+                }
+                output.push_str(&format!("  {s} "));
+                if line_number_foreground.is_some() {
+                    // reset
+                    output.push_str("\x1b[0m");
                 }
             }
+
+            // Highlight individual tokens
             for token in line_tokens {
                 token.as_ansi(&highlighted.theme, self.theme_type, &mut output)
             }
 
-            // Don't add a newline after the last line to match bat's output
-            let is_second_to_last_line = idx + 2 == line_count;
-
-            if !is_last_line && !is_second_to_last_line {
+            if !is_last_line {
                 output.push('\n');
             }
+
+            // // Add background highlight color
+            // if let Some(highlight_background_color) = highlight_background_color
+            //     && is_highlighted
+            // {
+            //     output.push_str("\x1b[");
+            //     highlight_background_color.as_ansi_bg(&mut output);
+            //     output.push('m');
+            // }
         }
 
         output
@@ -110,6 +126,9 @@ mod tests {
         };
 
         let ansi = TerminalRenderer::default().render(&highlighted, &render_options);
-        insta::assert_snapshot!(ansi);
+        println!("{ansi}");
+
+        panic!();
+        // insta::assert_snapshot!(ansi);
     }
 }
