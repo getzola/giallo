@@ -472,6 +472,7 @@ mod tests {
                 background: color("#1E1E1E"),
                 font_style: FontStyle::default(),
             },
+            line_number_foreground: None,
             highlight_background_color: None,
             rules: vec![
                 CompiledThemeRule {
@@ -595,6 +596,7 @@ mod tests {
                 foreground: "#D4D4D4".to_string(),
                 background: "#1E1E1E".to_string(),
                 highlight_background: None,
+                line_number_foreground: None,
             },
             token_colors: vec![
                 // Parent: constant - has both foreground and fontStyle

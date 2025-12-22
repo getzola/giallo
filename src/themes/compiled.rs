@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ThemeVariant;
 use crate::error::{Error, GialloResult};
 use crate::themes::Color;
 use crate::themes::font_style::FontStyle;
@@ -174,8 +173,7 @@ impl CompiledTheme {
             None
         };
         let line_number_foreground = if let Some(fg) = raw_theme.colors.line_number_foreground {
-            // Some(Color::from_hex(&fg)?)
-            Some(Color::from_hex("#ffffff")?)
+            Some(Color::from_hex(&fg)?)
         } else {
             None
         };
