@@ -47,9 +47,21 @@ impl TerminalRenderer {
         };
 
         let line_count = highlighted.tokens.len();
-        for (idx, line_tokens) in highlighted.tokens.iter().enumerate() {
+        let mut tokens = highlighted.tokens.iter().enumerate().peekable();
+        while let Some((idx, line_tokens)) = tokens.next() {
             let line_num = idx + 1; // 1-indexed
             let is_last_line = line_count == line_num;
+
+            // Special case: If the current line is the last newline of the file,
+            // then don't render it. This matches the behaviour of "cat" and "bat"
+            if tokens.peek().is_none() && line_tokens.is_empty() {
+                continue;
+            }
+            // Semantically, it's as if this newline is being added at the end of each iteration.
+            // But if the previous condition fires, then we don't want the newline to have been added.
+            else if idx != 0 && !is_last_line {
+                output.push('\n');
+            }
 
             // Skip hidden lines
             if options.hide_lines.iter().any(|r| r.contains(&line_num)) {
@@ -89,10 +101,6 @@ impl TerminalRenderer {
                     &mut output,
                     highlight_background_color.filter(|_| is_highlighted),
                 )
-            }
-
-            if !is_last_line {
-                output.push('\n');
             }
         }
 
