@@ -1,6 +1,3 @@
-use core::fmt;
-use std::fmt::Write;
-
 use serde::{Deserialize, Serialize};
 
 #[derive(
@@ -54,20 +51,19 @@ impl FontStyle {
     }
 
     /// Render the ANSI escape codes for the terminal
-    pub(crate) fn ansi_escapes(self, f: &mut String) -> fmt::Result {
+    pub(crate) fn ansi_escapes(self, f: &mut String) {
         if self.contains(FontStyle::BOLD) {
-            write!(f, ";1")?;
+            f.push_str(";1");
         }
         if self.contains(FontStyle::ITALIC) {
-            write!(f, ";3")?;
+            f.push_str(";3");
         }
         if self.contains(FontStyle::UNDERLINE) {
-            write!(f, ";4")?;
+            f.push_str(";4");
         }
         if self.contains(FontStyle::STRIKETHROUGH) {
-            write!(f, ";9")?;
+            f.push_str(";9");
         }
-        Ok(())
     }
 
     pub(crate) fn css_attributes(&self) -> Vec<&'static str> {

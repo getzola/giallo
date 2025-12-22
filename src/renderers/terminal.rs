@@ -1,5 +1,4 @@
 use crate::{HighlightedCode, RenderOptions, themes::compiled::ThemeType};
-use std::fmt::Write;
 
 /// Terminal renderer via ANSI escape codes. Requires a terminal that supports truecolor
 #[derive(Default, Copy, Clone, PartialEq, Eq)]
@@ -62,30 +61,26 @@ impl TerminalRenderer {
                     .collect::<String>();
                 if !is_last_line {
                     if let Some(line_number_foreground) = line_number_foreground {
-                        write!(output, "\x1b[").unwrap();
-                        line_number_foreground
-                            .as_ansi_fg(&mut output)
-                            .expect("writing to `String` is infallible");
-                        write!(output, "m").unwrap();
+                        output.push_str("\x1b[");
+                        line_number_foreground.as_ansi_fg(&mut output);
+                        output.push('m');
                     }
-                    write!(output, "  {s} ").expect("writing to `String` is infallible");
+                    output.push_str(&format!("  {s} "));
                     if line_number_foreground.is_some() {
                         // reset
-                        write!(output, "\x1b[0m").expect("writing to `String` is infallible");
+                        output.push_str("\x1b[0m");
                     }
                 }
             }
             for token in line_tokens {
-                token
-                    .as_ansi(&highlighted.theme, self.theme_type, &mut output)
-                    .expect("writing to `String` is infallible");
+                token.as_ansi(&highlighted.theme, self.theme_type, &mut output)
             }
 
             // Don't add a newline after the last line to match bat's output
             let is_second_to_last_line = idx + 2 == line_count;
 
             if !is_last_line && !is_second_to_last_line {
-                writeln!(output).expect("writing to `String` is infallible");
+                output.push('\n');
             }
         }
 

@@ -1,4 +1,3 @@
-use std::fmt::{self, Write};
 
 use serde::{Deserialize, Serialize};
 
@@ -60,13 +59,13 @@ impl Color {
     }
 
     /// Render as a foreground color ANSI escape code in the terminal
-    pub(crate) fn as_ansi_fg(self, f: &mut String) -> fmt::Result {
-        write!(f, "38;2;{};{};{}", self.r, self.g, self.b)
+    pub(crate) fn as_ansi_fg(self, s: &mut String) {
+        s.push_str(&format!("38;2;{};{};{}", self.r, self.g, self.b));
     }
 
     /// Render as a background color ANSI escape code in the terminal
-    pub(crate) fn as_ansi_bg(self, f: &mut String) -> fmt::Result {
-        write!(f, "48;2;{};{};{}", self.r, self.g, self.b)
+    pub(crate) fn as_ansi_bg(self, s: &mut String) {
+        s.push_str(&format!("48;2;{};{};{}", self.r, self.g, self.b));
     }
 
     #[inline]

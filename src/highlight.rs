@@ -1,6 +1,5 @@
-use core::fmt;
 use std::collections::HashMap;
-use std::fmt::Write;
+
 use std::ops::Range;
 
 use serde::{Deserialize, Serialize};
@@ -31,11 +30,12 @@ impl HighlightedText {
         theme: &ThemeVariant<&CompiledTheme>,
         theme_type: ThemeType,
         f: &mut String,
-    ) -> fmt::Result {
+    ) {
         let s = self.text.as_str();
 
         if self.scopes.is_empty() {
-            return write!(f, "{s}");
+            f.push_str(s);
+            return;
         }
 
         let (style, theme) = match (self.style, theme) {
@@ -61,21 +61,22 @@ impl HighlightedText {
 
         let default = &theme.default_style;
         if style == *default {
-            return write!(f, "{s}");
+            f.push_str(s);
+            return;
         }
 
-        write!(f, "\x1b[")?;
+        f.push_str("\x1b[");
         if style.foreground != default.foreground {
-            style.foreground.as_ansi_fg(f)?;
+            style.foreground.as_ansi_fg(f);
         }
         if style.background != default.background {
-            style.background.as_ansi_bg(f)?;
+            style.background.as_ansi_bg(f);
         }
-        style.font_style.ansi_escapes(f)?;
-        write!(f, "m{s}")?;
+        style.font_style.ansi_escapes(f);
+        f.push('m');
+        f.push_str(s);
         // reset
-        write!(f, "\x1b[0m")?;
-        Ok(())
+        f.push_str("\x1b[0m");
     }
 
     /// Renders this highlighted text as an HTML span element with either classes or inline style.
