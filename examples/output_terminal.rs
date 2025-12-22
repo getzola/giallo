@@ -1,10 +1,16 @@
-use std::env;
-use std::fs;
+#[cfg(not(feature = "dump"))]
+fn main() {
+    println!("requires `dump` feature")
+}
 
-use giallo::{HighlightOptions, Registry, ThemeVariant};
-use giallo::{RenderOptions, TerminalRenderer};
-
+#[cfg(feature = "dump")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use std::env;
+    use std::fs;
+
+    use giallo::{HighlightOptions, Registry, ThemeVariant};
+    use giallo::{RenderOptions, TerminalRenderer};
+
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 3 {
@@ -23,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let language = &args[2];
     let theme = &args[3];
 
-    let mut registry = Registry::load_from_file("builtin.msgpack")?;
+    let mut registry = Registry::builtin()?;
     registry.link_grammars();
 
     let file_content = fs::read_to_string(file_path)?;
