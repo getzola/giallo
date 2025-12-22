@@ -54,7 +54,7 @@ impl FontStyle {
     }
 
     /// Render the ANSI escape codes for the terminal
-    pub(crate) fn ansi_escapes(self, f: &mut impl Write) -> fmt::Result {
+    pub(crate) fn ansi_escapes(self, f: &mut String) -> fmt::Result {
         if self.contains(FontStyle::BOLD) {
             write!(f, ";1")?;
         }

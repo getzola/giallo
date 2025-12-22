@@ -60,12 +60,12 @@ impl Color {
     }
 
     /// Render as a foreground color ANSI escape code in the terminal
-    pub(crate) fn as_ansi_fg(self, f: &mut impl Write) -> fmt::Result {
+    pub(crate) fn as_ansi_fg(self, f: &mut String) -> fmt::Result {
         write!(f, "38;2;{};{};{}", self.r, self.g, self.b)
     }
 
     /// Render as a background color ANSI escape code in the terminal
-    pub(crate) fn as_ansi_bg(self, f: &mut impl Write) -> fmt::Result {
+    pub(crate) fn as_ansi_bg(self, f: &mut String) -> fmt::Result {
         write!(f, "48;2;{};{};{}", self.r, self.g, self.b)
     }
 

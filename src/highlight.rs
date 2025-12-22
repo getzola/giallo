@@ -29,7 +29,7 @@ impl HighlightedText {
         &self,
         theme: &ThemeVariant<&CompiledTheme>,
         use_dark_theme: bool,
-        f: &mut impl Write,
+        f: &mut String,
     ) -> fmt::Result {
         let s = self.text.as_str();
 
