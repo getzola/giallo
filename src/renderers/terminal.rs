@@ -1,7 +1,7 @@
 use crate::{HighlightedCode, RenderOptions};
 use std::fmt::Write;
 
-/// Terminal renderer via ANSI escape codes
+/// Terminal renderer via ANSI escape codes. Requires a terminal that supports truecolor
 #[derive(Default, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TerminalRenderer {
     /// If [`ThemeVariant::Dual`](crate::ThemeVariant::Dual) is provided, uses `dark` theme if this
