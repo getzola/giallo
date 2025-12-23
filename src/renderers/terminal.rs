@@ -101,8 +101,8 @@ impl TerminalRenderer {
                 token.as_ansi(
                     &highlighted.theme,
                     self.theme_type,
-                    &mut output,
                     highlight_background_color.filter(|_| is_highlighted),
+                    &mut output,
                 )
             }
         }

@@ -29,8 +29,8 @@ impl HighlightedText {
         &self,
         theme: &ThemeVariant<&CompiledTheme>,
         theme_type: Option<ThemeType>,
-        f: &mut String,
         bg_color: Option<Color>,
+        f: &mut String,
     ) {
         let s = self.text.as_str();
 
