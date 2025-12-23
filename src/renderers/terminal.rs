@@ -3,8 +3,9 @@ use crate::{HighlightedCode, RenderOptions, themes::compiled::ThemeType};
 /// Terminal renderer via ANSI escape codes. Requires a terminal that supports truecolor
 #[derive(Default, Copy, Clone, PartialEq, Eq)]
 pub struct TerminalRenderer {
-    /// The theme type to use if [`ThemeVariant::Dual`](crate::ThemeVariant::Dual) is provided, since terminals don't allow light or dark theme
-    pub theme_type: ThemeType,
+    /// The theme type to use if [`ThemeVariant::Dual`](crate::ThemeVariant::Dual) is provided,
+    /// since terminals don't allow light or dark theme
+    pub theme_type: Option<ThemeType>,
 }
 
 impl TerminalRenderer {
@@ -36,11 +37,15 @@ impl TerminalRenderer {
                 theme.line_number_foreground,
                 theme.highlight_background_color,
             ),
-            crate::ThemeVariant::Dual { light, .. } if self.theme_type == ThemeType::Light => (
-                light.line_number_foreground,
-                light.highlight_background_color,
-            ),
-            crate::ThemeVariant::Dual { dark, .. } if self.theme_type == ThemeType::Dark => {
+            crate::ThemeVariant::Dual { light, .. }
+                if self.theme_type == Some(ThemeType::Light) =>
+            {
+                (
+                    light.line_number_foreground,
+                    light.highlight_background_color,
+                )
+            }
+            crate::ThemeVariant::Dual { dark, .. } if self.theme_type == Some(ThemeType::Dark) => {
                 (dark.line_number_foreground, dark.highlight_background_color)
             }
             _ => unreachable!(),

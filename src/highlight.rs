@@ -28,7 +28,7 @@ impl HighlightedText {
     pub(crate) fn as_ansi(
         &self,
         theme: &ThemeVariant<&CompiledTheme>,
-        theme_type: ThemeType,
+        theme_type: Option<ThemeType>,
         f: &mut String,
         bg_color: Option<Color>,
     ) {
@@ -48,7 +48,7 @@ impl HighlightedText {
                 ThemeVariant::Dual {
                     dark: dark_theme, ..
                 },
-            ) if theme_type == ThemeType::Dark => (dark_style, dark_theme),
+            ) if theme_type == Some(ThemeType::Dark) => (dark_style, dark_theme),
             (
                 ThemeVariant::Dual {
                     light: light_style, ..
@@ -56,7 +56,7 @@ impl HighlightedText {
                 ThemeVariant::Dual {
                     light: light_theme, ..
                 },
-            ) if theme_type == ThemeType::Light => (light_style, light_theme),
+            ) if theme_type == Some(ThemeType::Light) => (light_style, light_theme),
             _ => unreachable!(),
         };
 
