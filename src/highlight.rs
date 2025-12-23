@@ -1,10 +1,12 @@
 use std::collections::HashMap;
+
 use std::ops::Range;
 
 use serde::{Deserialize, Serialize};
 
 use crate::renderers::html::HtmlEscaped;
 use crate::scope::Scope;
+use crate::themes::compiled::ThemeType;
 use crate::themes::{Color, CompiledTheme, Style, ThemeVariant, scope_to_css_selector};
 use crate::tokenizer::Token;
 
@@ -22,6 +24,70 @@ pub struct HighlightedText {
 }
 
 impl HighlightedText {
+    /// Renders this highlighted text using terminal ANSI escape codes
+    pub(crate) fn as_ansi(
+        &self,
+        theme: &ThemeVariant<&CompiledTheme>,
+        theme_type: Option<ThemeType>,
+        bg_color: Option<Color>,
+        f: &mut String,
+    ) {
+        let s = self.text.as_str();
+
+        if self.scopes.is_empty() {
+            f.push_str(s);
+            return;
+        }
+
+        let (style, theme) = match (self.style, theme) {
+            (ThemeVariant::Single(style), ThemeVariant::Single(theme)) => (style, theme),
+            (
+                ThemeVariant::Dual {
+                    dark: dark_style, ..
+                },
+                ThemeVariant::Dual {
+                    dark: dark_theme, ..
+                },
+            ) if theme_type == Some(ThemeType::Dark) => (dark_style, dark_theme),
+            (
+                ThemeVariant::Dual {
+                    light: light_style, ..
+                },
+                ThemeVariant::Dual {
+                    light: light_theme, ..
+                },
+            ) if theme_type == Some(ThemeType::Light) => (light_style, light_theme),
+            _ => unreachable!(),
+        };
+
+        let default = &theme.default_style;
+        if style == *default {
+            f.push_str(s);
+            return;
+        }
+
+        f.push_str("\x1b[");
+        if style.foreground != default.foreground {
+            style.foreground.as_ansi_fg(f);
+        }
+        if style.background != default.background {
+            style.background.as_ansi_bg(f);
+        }
+        style.font_style.ansi_escapes(f);
+        f.push('m');
+
+        // Highlight background color
+        if let Some(bg) = bg_color {
+            f.push_str("\x1b[");
+            bg.as_ansi_bg(f);
+            f.push('m');
+        }
+
+        f.push_str(s);
+        // reset
+        f.push_str("\x1b[0m");
+    }
+
     /// Renders this highlighted text as an HTML span element with either classes or inline style.
     pub(crate) fn as_html(
         &self,
@@ -416,6 +482,7 @@ mod tests {
                 background: color("#1E1E1E"),
                 font_style: FontStyle::default(),
             },
+            line_number_foreground: None,
             highlight_background_color: None,
             rules: vec![
                 CompiledThemeRule {
@@ -539,6 +606,7 @@ mod tests {
                 foreground: "#D4D4D4".to_string(),
                 background: "#1E1E1E".to_string(),
                 highlight_background: None,
+                line_number_foreground: None,
             },
             token_colors: vec![
                 // Parent: constant - has both foreground and fontStyle
