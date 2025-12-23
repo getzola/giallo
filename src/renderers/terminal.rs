@@ -73,7 +73,6 @@ impl TerminalRenderer {
                 continue;
             }
 
-            // If this line is highlighted
             let is_highlighted = options
                 .highlight_lines
                 .iter()
