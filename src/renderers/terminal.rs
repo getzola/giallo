@@ -79,7 +79,6 @@ impl TerminalRenderer {
                 .iter()
                 .any(|r| r.contains(&line_num));
 
-            // Render tokens
             if options.show_line_numbers {
                 let line_num = options.line_number_start + (idx as isize);
                 let line_num_s = line_num.to_string();
