@@ -1,6 +1,7 @@
 use std::ops::RangeInclusive;
 
 pub mod html;
+pub mod terminal;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// All options you can select across renderers

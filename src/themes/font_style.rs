@@ -50,6 +50,22 @@ impl FontStyle {
         self.bits |= other.bits;
     }
 
+    /// Render the ANSI escape codes for the terminal
+    pub(crate) fn ansi_escapes(self, s: &mut String) {
+        if self.contains(FontStyle::BOLD) {
+            s.push_str(";1");
+        }
+        if self.contains(FontStyle::ITALIC) {
+            s.push_str(";3");
+        }
+        if self.contains(FontStyle::UNDERLINE) {
+            s.push_str(";4");
+        }
+        if self.contains(FontStyle::STRIKETHROUGH) {
+            s.push_str(";9");
+        }
+    }
+
     pub(crate) fn css_attributes(&self) -> Vec<&'static str> {
         let mut out = Vec::new();
 
