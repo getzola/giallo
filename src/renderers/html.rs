@@ -52,6 +52,27 @@ impl HtmlRenderer {
             None
         };
 
+        // Pre-compute line number color style if available (inline style mode only)
+        let line_number_style = if options.show_line_numbers && css_prefix.is_none() {
+            match &highlighted.theme {
+                ThemeVariant::Single(theme) => theme
+                    .line_number_foreground
+                    .as_ref()
+                    .map(|c| format!(r#" style="{}""#, c.as_css_color_property())),
+                ThemeVariant::Dual { light, dark } => {
+                    match (&light.line_number_foreground, &dark.line_number_foreground) {
+                        (Some(l), Some(d)) => Some(format!(
+                            r#" style="{}""#,
+                            Color::as_css_light_dark_color_property(l, d)
+                        )),
+                        _ => None,
+                    }
+                }
+            }
+        } else {
+            None
+        };
+
         let mut lines = Vec::with_capacity(highlighted.tokens.len() + 4);
         for (idx, line_tokens) in highlighted.tokens.iter().enumerate() {
             let line_num = idx + 1; // 1-indexed
@@ -71,7 +92,10 @@ impl HtmlRenderer {
             // Line number (uses original source line number)
             let display_line_num = options.line_number_start + (idx as isize);
             let line_number_html = if options.show_line_numbers {
-                format!(r#"<span class="giallo-ln">{display_line_num}</span>"#)
+                format!(
+                    r#"<span class="giallo-ln"{}>{display_line_num}</span>"#,
+                    line_number_style.as_deref().unwrap_or_default()
+                )
             } else {
                 String::new()
             };

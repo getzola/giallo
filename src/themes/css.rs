@@ -33,10 +33,17 @@ pub fn generate_css(theme: &CompiledTheme, prefix: &str) -> String {
     writeln!(css, "}}").unwrap();
     writeln!(css).unwrap();
 
-    // Generate highlight background class if theme has one
     if let Some(ref highlight_bg) = theme.highlight_background_color {
         writeln!(css, ".{prefix}hl {{").unwrap();
         writeln!(css, "  {}", highlight_bg.as_css_bg_color_property()).unwrap();
+        writeln!(css, "}}").unwrap();
+        writeln!(css).unwrap();
+    }
+
+    // Generate line number color class if theme has one
+    if let Some(ref line_number_fg) = theme.line_number_foreground {
+        writeln!(css, ".giallo-ln {{").unwrap();
+        writeln!(css, "  {}", line_number_fg.as_css_color_property()).unwrap();
         writeln!(css, "}}").unwrap();
         writeln!(css).unwrap();
     }
