@@ -16,9 +16,7 @@ fn highlight_jquery_benchmark(c: &mut Criterion) {
 
     c.bench_function("highlight jquery.js", |b| {
         b.iter(|| {
-            let result = registry
-                .highlight(&jquery_content, options.clone())
-                .unwrap();
+            let result = registry.highlight(&jquery_content, &options).unwrap();
             std::hint::black_box(result);
         })
     });

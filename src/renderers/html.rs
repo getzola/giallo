@@ -74,8 +74,14 @@ impl HtmlRenderer {
         };
 
         let mut lines = Vec::with_capacity(highlighted.tokens.len() + 4);
-        for (idx, line_tokens) in highlighted.tokens.iter().enumerate() {
+        let mut tokens = highlighted.tokens.iter().enumerate().peekable();
+        while let Some((idx, line_tokens)) = tokens.next() {
             let line_num = idx + 1; // 1-indexed
+
+            // Skip trailing empty line
+            if tokens.peek().is_none() && line_tokens.is_empty() {
+                continue;
+            }
 
             // Skip hidden lines
             if options.hide_lines.iter().any(|r| r.contains(&line_num)) {
@@ -223,7 +229,7 @@ mod tests {
     #[test]
     fn test_highlight_and_hide_lines() {
         let registry = get_registry();
-        let code = "let a = 1;\n\nlet b = 2;\nlet c = 3;\nlet d = 4;\nlet e = 5;";
+        let code = "let a = 1;\n\nlet b = 2;\nlet c = 3;\nlet d = 4;\nlet e = 5;\n";
         let options = HighlightOptions::new("javascript", ThemeVariant::Single("vitesse-black"));
         let highlighted = registry.highlight(code, &options).unwrap();
 

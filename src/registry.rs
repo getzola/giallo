@@ -166,7 +166,10 @@ impl Registry {
 
     /// Adds an alias for the given grammar
     pub fn add_alias(&mut self, grammar_name: &str, alias: &str) {
-        if let Some(grammar_id) = self.grammar_id_by_name.get(grammar_name.to_lowercase().as_str()) {
+        if let Some(grammar_id) = self
+            .grammar_id_by_name
+            .get(grammar_name.to_lowercase().as_str())
+        {
             self.grammar_id_by_name
                 .insert(alias.to_lowercase(), *grammar_id);
         }
@@ -209,7 +212,8 @@ impl Registry {
     /// Checks whether the given lang is available in the registry with its grammar name
     /// or aliases
     pub fn contains_grammar(&self, name: &str) -> bool {
-        self.grammar_id_by_name.contains_key(name.to_lowercase().as_str())
+        self.grammar_id_by_name
+            .contains_key(name.to_lowercase().as_str())
     }
 
     /// Checks whether the given theme is available in the registry
@@ -223,7 +227,11 @@ impl Registry {
     /// a provided renderer or to use your own afterwards.
     ///
     /// Make sure `link_grammars` is called before calling `highlight`, this will error otherwise.
-    pub fn highlight(&self, content: &str, options: &HighlightOptions) -> GialloResult<HighlightedCode<'_>> {
+    pub fn highlight(
+        &self,
+        content: &str,
+        options: &HighlightOptions,
+    ) -> GialloResult<HighlightedCode<'_>> {
         if !self.linked {
             return Err(Error::UnlinkedGrammars);
         }

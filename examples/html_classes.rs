@@ -31,7 +31,7 @@ console.log(`Fibonacci(10) = ${result}`);
 
     // Highlight code (we can use either theme since CSS classes are theme-independent)
     let options = HighlightOptions::new("javascript", ThemeVariant::Single(light_theme));
-    let highlighted = registry.highlight(code, options)?;
+    let highlighted = registry.highlight(code, &options)?;
 
     // Render with CSS classes instead of inline styles
     let renderer = HtmlRenderer {

@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let content = std::fs::read_to_string("grammars-themes/samples/rust.sample")?;
 
     let options = HighlightOptions::new("rust", ThemeVariant::Single("vitesse-black"));
-    let highlighted = registry.highlight(&content, options)?;
+    let highlighted = registry.highlight(&content, &options)?;
 
     let html = render_html(&highlighted);
     println!("{}", html);

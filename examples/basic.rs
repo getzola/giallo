@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let code = "let x = 42;";
     let options = HighlightOptions::new("javascript", ThemeVariant::Single("catppuccin-frappe"));
-    let highlighted = registry.highlight(code, options)?;
+    let highlighted = registry.highlight(code, &options)?;
 
     // Render to HTML
     let html = HtmlRenderer::default().render(&highlighted, &RenderOptions::default());

@@ -16,12 +16,7 @@ include = [
     "/README.md",
     "builtin.msgpack",
 ]
-#exclude = [
-#    "grammars-themes",
-#    "vscode-textmate",
-#    "src/fixtures/snapshots",
-#    "src/fixtures/tokens",
-#]
+
 
 [dependencies]
 onig = { package = "onig-regset", version = "6", default-features = false }
@@ -71,6 +66,10 @@ required-features = ["dump"]
 
 [[example]]
 name = "output_html"
+required-features = ["dump"]
+
+[[example]]
+name = "output_terminal"
 required-features = ["dump"]
 
 [[example]]

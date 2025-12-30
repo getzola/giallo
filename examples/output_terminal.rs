@@ -1,16 +1,10 @@
-#[cfg(not(feature = "dump"))]
-fn main() {
-    println!("requires `dump` feature")
-}
+use std::env;
+use std::fs;
 
-#[cfg(feature = "dump")]
+use giallo::{HighlightOptions, Registry, ThemeVariant};
+use giallo::{RenderOptions, TerminalRenderer};
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use std::env;
-    use std::fs;
-
-    use giallo::{HighlightOptions, Registry, ThemeVariant};
-    use giallo::{RenderOptions, TerminalRenderer};
-
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 3 {
@@ -36,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let options = HighlightOptions::new(language, ThemeVariant::Single(theme));
 
-    let highlighted = registry.highlight(&file_content, options)?;
+    let highlighted = registry.highlight(&file_content, &options)?;
     let render_options = RenderOptions {
         show_line_numbers: true,
         ..Default::default()

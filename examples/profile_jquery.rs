@@ -8,7 +8,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let options = HighlightOptions::new("javascript", ThemeVariant::Single("vitesse-black"));
 
-    let highlighted_tokens = registry.highlight(&jquery_content, options)?;
+    let highlighted_tokens = registry.highlight(&jquery_content, &options)?;
 
     // Use the result to prevent optimization from removing the work
     std::hint::black_box(highlighted_tokens);

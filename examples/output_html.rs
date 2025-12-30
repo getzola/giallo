@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         None => HighlightOptions::new(language, ThemeVariant::Single(theme)),
     };
 
-    let highlighted = registry.highlight(&file_content, options)?;
+    let highlighted = registry.highlight(&file_content, &options)?;
     let render_options = RenderOptions {
         show_line_numbers: true,
         ..Default::default()
