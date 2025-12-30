@@ -9,7 +9,7 @@ starting kit and testing, but you can start from an empty canvas if you want.
 
 ```toml
 [dependencies]
-giallo = { version = "0.1.0", features = ["dump"] }
+giallo = { version = "0.2.0", features = ["dump"] }
 ```
 
 The `dump` feature is required to use `Registry::builtin()` or create/load your own dump. The dump is not tracked
