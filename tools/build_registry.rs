@@ -98,7 +98,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let plain_aliases = vec!["txt"];
+    let plain_aliases = vec!["txt", "text"];
     registry.add_plain_grammar(&plain_aliases)?;
     alias_map.insert(
         PLAIN_GRAMMAR_NAME.to_string(),

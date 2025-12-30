@@ -225,7 +225,7 @@ mod tests {
         let registry = get_registry();
         let code = "let a = 1;\n\nlet b = 2;\nlet c = 3;\nlet d = 4;\nlet e = 5;";
         let options = HighlightOptions::new("javascript", ThemeVariant::Single("vitesse-black"));
-        let highlighted = registry.highlight(code, options).unwrap();
+        let highlighted = registry.highlight(code, &options).unwrap();
 
         let render_options = RenderOptions {
             show_line_numbers: true,

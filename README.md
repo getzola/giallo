@@ -72,6 +72,8 @@ You can use [Shiki playground](https://textmate-grammars-themes.netlify.app/) to
 
 ### Grammars
 
+The list below is in the form: `{lang name} -> aliases`.
+
 <!-- GRAMMARS_START -->
 - abap
 - actionscript-3
@@ -213,7 +215,7 @@ You can use [Shiki playground](https://textmate-grammars-themes.netlify.app/) to
 - perl
 - php
 - pkl
-- plain -> txt
+- plain -> txt, text
 - plsql
 - po -> pot, potx
 - polar

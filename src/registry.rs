@@ -31,24 +31,32 @@ pub const PLAIN_GRAMMAR_NAME: &str = "plain";
 
 /// Options for highlighting by the registry, NOT rendering.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct HighlightOptions<'a> {
-    pub(crate) lang: &'a str,
-    pub(crate) theme: ThemeVariant<&'a str>,
+pub struct HighlightOptions {
+    pub(crate) lang: String,
+    pub(crate) theme: ThemeVariant<String>,
     pub(crate) merge_whitespaces: bool,
     pub(crate) merge_same_style_tokens: bool,
     pub(crate) fallback_to_plain: bool,
 }
 
-impl<'a> HighlightOptions<'a> {
+impl HighlightOptions {
     /// Creates a new highlight options with the given language and theme.
+    /// Language and themes are case-insensitive.
     ///
     /// For dual themes (light/dark), `merge_same_style_tokens` is automatically
     /// disabled since tokens might get merged differently depending on theme.
     /// Even if you set it back to `true`, it will be ignored when rendering.
-    pub fn new(lang: &'a str, theme: ThemeVariant<&'a str>) -> Self {
+    pub fn new(lang: impl AsRef<str>, theme: ThemeVariant<&str>) -> Self {
         let merge_same_style_tokens = matches!(theme, ThemeVariant::Single(_));
+        let theme = match theme {
+            ThemeVariant::Single(t) => ThemeVariant::Single(t.to_lowercase()),
+            ThemeVariant::Dual { light, dark } => ThemeVariant::Dual {
+                light: light.to_lowercase(),
+                dark: dark.to_lowercase(),
+            },
+        };
         Self {
-            lang,
+            lang: lang.as_ref().to_lowercase(),
             theme,
             merge_same_style_tokens,
             merge_whitespaces: true,
@@ -124,7 +132,7 @@ impl Registry {
         }
         let grammar_id = GrammarId(self.grammars.len() as u16);
         let grammar = CompiledGrammar::from_raw_grammar(raw_grammar, grammar_id);
-        let grammar_name = grammar.name.clone();
+        let grammar_name = grammar.name.to_lowercase();
         let grammar_scope_name = grammar.scope_name.clone();
         self.grammars.push(grammar);
         self.grammar_id_by_scope_name
@@ -158,9 +166,9 @@ impl Registry {
 
     /// Adds an alias for the given grammar
     pub fn add_alias(&mut self, grammar_name: &str, alias: &str) {
-        if let Some(grammar_id) = self.grammar_id_by_name.get(grammar_name) {
+        if let Some(grammar_id) = self.grammar_id_by_name.get(grammar_name.to_lowercase().as_str()) {
             self.grammar_id_by_name
-                .insert(alias.to_string(), *grammar_id);
+                .insert(alias.to_lowercase(), *grammar_id);
         }
     }
 
@@ -169,7 +177,7 @@ impl Registry {
         let raw_theme = RawTheme::load_from_file(path)?;
         let compiled_theme = raw_theme.compile()?;
         self.themes
-            .insert(compiled_theme.name.to_string(), compiled_theme);
+            .insert(compiled_theme.name.to_lowercase(), compiled_theme);
         Ok(())
     }
 
@@ -181,7 +189,7 @@ impl Registry {
     pub fn generate_css(&self, theme_name: &str, prefix: &str) -> GialloResult<String> {
         let theme = self
             .themes
-            .get(theme_name)
+            .get(theme_name.to_lowercase().as_str())
             .ok_or_else(|| Error::ThemeNotFound(theme_name.to_string()))?;
         Ok(crate::themes::css::generate_css(theme, prefix))
     }
@@ -201,12 +209,12 @@ impl Registry {
     /// Checks whether the given lang is available in the registry with its grammar name
     /// or aliases
     pub fn contains_grammar(&self, name: &str) -> bool {
-        self.grammar_id_by_name.contains_key(name)
+        self.grammar_id_by_name.contains_key(name.to_lowercase().as_str())
     }
 
     /// Checks whether the given theme is available in the registry
     pub fn contains_theme(&self, name: &str) -> bool {
-        self.themes.contains_key(name)
+        self.themes.contains_key(name.to_lowercase().as_str())
     }
 
     /// The main entry point for the actual giallo usage.
@@ -215,17 +223,13 @@ impl Registry {
     /// a provided renderer or to use your own afterwards.
     ///
     /// Make sure `link_grammars` is called before calling `highlight`, this will error otherwise.
-    pub fn highlight<'a>(
-        &'a self,
-        content: &str,
-        options: HighlightOptions<'a>,
-    ) -> GialloResult<HighlightedCode<'a>> {
+    pub fn highlight(&self, content: &str, options: &HighlightOptions) -> GialloResult<HighlightedCode<'_>> {
         if !self.linked {
             return Err(Error::UnlinkedGrammars);
         }
         let grammar_id = *self
             .grammar_id_by_name
-            .get(options.lang)
+            .get(&options.lang)
             .or_else(|| {
                 if options.fallback_to_plain {
                     self.grammar_id_by_name.get(PLAIN_GRAMMAR_NAME)
@@ -233,7 +237,7 @@ impl Registry {
                     None
                 }
             })
-            .ok_or_else(|| Error::GrammarNotFound(options.lang.to_string()))?;
+            .ok_or_else(|| Error::GrammarNotFound(options.lang.clone()))?;
 
         let normalized_content = normalize_string(content);
         let tokens = self.tokenize(grammar_id, &normalized_content)?;
@@ -247,8 +251,8 @@ impl Registry {
             ThemeVariant::Single(theme_name) => {
                 let theme = self
                     .themes
-                    .get(*theme_name)
-                    .ok_or_else(|| Error::ThemeNotFound((*theme_name).to_string()))?;
+                    .get(theme_name)
+                    .ok_or_else(|| Error::ThemeNotFound(theme_name.clone()))?;
 
                 let mut highlighter = Highlighter::new(theme);
                 let highlighted_tokens =
@@ -263,12 +267,12 @@ impl Registry {
             ThemeVariant::Dual { light, dark } => {
                 let light_theme = self
                     .themes
-                    .get(*light)
-                    .ok_or_else(|| Error::ThemeNotFound((*light).to_string()))?;
+                    .get(light)
+                    .ok_or_else(|| Error::ThemeNotFound(light.clone()))?;
                 let dark_theme = self
                     .themes
-                    .get(*dark)
-                    .ok_or_else(|| Error::ThemeNotFound((*dark).to_string()))?;
+                    .get(dark)
+                    .ok_or_else(|| Error::ThemeNotFound(dark.clone()))?;
 
                 let mut highlighter = Highlighter::new_dual(light_theme, dark_theme);
                 let highlighted_tokens =
@@ -622,7 +626,7 @@ mod tests {
         let highlighted = registry
             .highlight(
                 &sample_content,
-                HighlightOptions::new(PLAIN_GRAMMAR_NAME, ThemeVariant::Single("vitesse-black"))
+                &HighlightOptions::new(PLAIN_GRAMMAR_NAME, ThemeVariant::Single("vitesse-black"))
                     .merge_whitespace(false)
                     .merge_same_style_tokens(false),
             )
@@ -635,7 +639,7 @@ mod tests {
         let highlighted2 = registry
             .highlight(
                 &sample_content,
-                HighlightOptions::new("unknown", ThemeVariant::Single("vitesse-black"))
+                &HighlightOptions::new("unknown", ThemeVariant::Single("vitesse-black"))
                     .merge_whitespace(false)
                     .merge_same_style_tokens(false)
                     .fallback_to_plain(true),
@@ -657,7 +661,7 @@ mod tests {
             let highlighted = registry
                 .highlight(
                     &sample_content,
-                    HighlightOptions::new(&grammar, ThemeVariant::Single("vitesse-black"))
+                    &HighlightOptions::new(&grammar, ThemeVariant::Single("vitesse-black"))
                         .merge_whitespace(false)
                         .merge_same_style_tokens(false),
                 )
