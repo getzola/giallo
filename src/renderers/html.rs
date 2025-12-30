@@ -223,15 +223,15 @@ mod tests {
     #[test]
     fn test_highlight_and_hide_lines() {
         let registry = get_registry();
-        let code = "let a = 1;\nlet b = 2;\nlet c = 3;\nlet d = 4;\nlet e = 5;";
+        let code = "let a = 1;\n\nlet b = 2;\nlet c = 3;\nlet d = 4;\nlet e = 5;";
         let options = HighlightOptions::new("javascript", ThemeVariant::Single("vitesse-black"));
         let highlighted = registry.highlight(code, options).unwrap();
 
         let render_options = RenderOptions {
             show_line_numbers: true,
             line_number_start: 10,
-            highlight_lines: vec![2..=2, 4..=4],
-            hide_lines: vec![3..=3],
+            highlight_lines: vec![3..=3, 5..=5],
+            hide_lines: vec![4..=4],
         };
 
         let mut other_metadata = BTreeMap::new();
