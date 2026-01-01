@@ -150,7 +150,7 @@ impl Registry {
                 .insert(alias.clone(), grammar_id)
                 .is_some()
             {
-                return Err(Error::ReplacingGrammarPostLinking(alias.to_owned()));
+                return Err(Error::ConflictingFileType(alias.to_owned()));
             }
         }
         self.injections_by_grammar.push(HashSet::new());

@@ -47,6 +47,9 @@ pub enum Error {
     /// Tried to replace a grammar in the registry after calling `registry.link_grammars()`.
     /// External references to the original grammar will have
     ReplacingGrammarPostLinking(String),
+
+    /// Tried to add two grammars with the same file type.
+    ConflictingFileType(String),
 }
 
 impl fmt::Display for Error {
@@ -70,6 +73,9 @@ impl fmt::Display for Error {
             Error::ReplacingGrammarPostLinking(s) => {
                 write!(f, "Tried to replace grammar `{s}` after linking")
             }
+            Error::ConflictingFileType(s) => {
+                write!(f, "Conflicting file type `{s}`")
+            }
         }
     }
 }
@@ -86,6 +92,7 @@ impl std::error::Error for Error {
             Error::InvalidHexColor { .. }
             | Error::UnlinkedGrammars
             | Error::ReplacingGrammarPostLinking(_)
+            | Error::ConflictingFileType(_)
             | Error::GrammarNotFound(_)
             | Error::ThemeNotFound(_)
             | Error::TokenizeRegex(_) => None,
