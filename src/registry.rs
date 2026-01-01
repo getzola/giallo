@@ -132,12 +132,27 @@ impl Registry {
         }
         let grammar_id = GrammarId(self.grammars.len() as u16);
         let grammar = CompiledGrammar::from_raw_grammar(raw_grammar, grammar_id);
-        let grammar_name = grammar.name.to_lowercase();
         let grammar_scope_name = grammar.scope_name.clone();
+        let aliases: HashSet<_> = grammar
+            .file_types
+            .iter()
+            .chain(&[grammar.name.clone()])
+            .map(|s| s.to_lowercase())
+            .collect();
+
         self.grammars.push(grammar);
         self.grammar_id_by_scope_name
             .insert(grammar_scope_name, grammar_id);
-        self.grammar_id_by_name.insert(grammar_name, grammar_id);
+
+        for alias in aliases {
+            if self
+                .grammar_id_by_name
+                .insert(alias.clone(), grammar_id)
+                .is_some()
+            {
+                return Err(Error::ReplacingGrammarPostLinking(alias.to_owned()));
+            }
+        }
         self.injections_by_grammar.push(HashSet::new());
         Ok(())
     }
