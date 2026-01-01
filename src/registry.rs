@@ -134,10 +134,16 @@ impl Registry {
         let grammar = CompiledGrammar::from_raw_grammar(raw_grammar, grammar_id);
         let grammar_name = grammar.name.to_lowercase();
         let grammar_scope_name = grammar.scope_name.clone();
+        let file_types = grammar.file_types.clone();
+
         self.grammars.push(grammar);
         self.grammar_id_by_scope_name
             .insert(grammar_scope_name, grammar_id);
         self.grammar_id_by_name.insert(grammar_name, grammar_id);
+        for alias in file_types {
+            let alias = alias.to_lowercase();
+            self.grammar_id_by_name.entry(alias).or_insert(grammar_id);
+        }
         self.injections_by_grammar.push(HashSet::new());
         Ok(())
     }
