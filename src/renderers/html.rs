@@ -99,7 +99,7 @@ impl HtmlRenderer {
             let display_line_num = options.line_number_start + (idx as isize);
             let line_number_html = if options.show_line_numbers {
                 format!(
-                    r#"<span class="giallo-ln"{}>{display_line_num}</span>"#,
+                    r#"<span aria-hidden="true" class="giallo-ln"{}>{display_line_num}</span>"#,
                     line_number_style.as_deref().unwrap_or_default()
                 )
             } else {
@@ -132,7 +132,7 @@ impl HtmlRenderer {
 
             lines.push(line_html);
         }
-        let lines = lines.join("");
+        let lines = lines.join("\n");
 
         // Build data attributes from other_metadata
         let mut data_attrs = format!(r#"data-lang="{lang}""#);
