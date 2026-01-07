@@ -98,6 +98,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - blade
 - bsl -> 1c
 - c
+- c3
 - cadence -> cdc
 - cairo
 - clarity
@@ -147,6 +148,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - glimmer-js -> gjs
 - glimmer-ts -> gts
 - glsl
+- gn
 - gnuplot
 - go
 - graphql -> gql
@@ -200,6 +202,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - mermaid -> mmd
 - mipsasm -> mips
 - mojo
+- moonbit -> mbt, mbti
 - move
 - narrat -> nar
 - nextflow -> nf
