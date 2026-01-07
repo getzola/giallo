@@ -42,13 +42,13 @@ pub use themes::{Color, CompiledTheme, FontStyle, Style, ThemeVariant};
 
 /// The CSS needed for the line number gutter to display properly
 pub const GIALLO_CSS: &str = r#".giallo-l {
-  display: block;
+  display: inline-block;
   min-height: 1lh;
+  width: 100%;
 }
 .giallo-ln {
   display: inline-block;
   user-select: none;
-  white-space: pre;
   margin-right: 0.4em;
   padding: 0.4em;
   min-width: 3ch;
