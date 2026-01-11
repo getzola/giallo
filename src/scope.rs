@@ -197,19 +197,22 @@ impl ScopeRepository {
 }
 
 /// Global singleton repository with thread-safe access
-static SCOPE_REPO: std::sync::LazyLock<Mutex<ScopeRepository>> =
-    std::sync::LazyLock::new(|| Mutex::new(ScopeRepository::new()));
+static SCOPE_REPO: std::sync::OnceLock<Mutex<ScopeRepository>> = std::sync::OnceLock::new();
 
 pub(crate) fn lock_global_scope_repo() -> MutexGuard<'static, ScopeRepository> {
-    SCOPE_REPO.lock().expect("Failed to lock scope repository")
+    SCOPE_REPO
+        .get_or_init(|| Mutex::new(ScopeRepository::new()))
+        .lock()
+        .expect("Failed to lock scope repository")
 }
 
 /// Replace the global ScopeRepository with a new one
 /// This is used when loading a registry from disk to restore the complete state
+/// Note: Only the first call succeeds; subsequent calls are silently ignored
 #[cfg(feature = "dump")]
 pub(crate) fn replace_global_scope_repo(new_repo: ScopeRepository) {
-    let mut global_repo = lock_global_scope_repo();
-    *global_repo = new_repo;
+    // Ignore error if already set - first call wins
+    let _ = SCOPE_REPO.set(Mutex::new(new_repo));
 }
 
 #[cfg(test)]
