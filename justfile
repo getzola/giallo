@@ -12,3 +12,7 @@ generate-tests:
 
 update-submodules:
     git submodule update --init --recursive --remote
+
+generate-all: generate-tests generate-dump
+
+update-and-generate: update-submodules generate-all

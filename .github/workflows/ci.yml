@@ -81,8 +81,7 @@ jobs:
 
       - name: Run tests
         run: |
-          just generate-tests
-          just generate-dump
+          just generate-all
           cargo test --release
           cargo test --release --all-features
 
