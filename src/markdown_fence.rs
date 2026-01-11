@@ -96,8 +96,10 @@ pub fn parse_markdown_fence(fence: &str) -> ParsedFence {
             key => {
                 if let Some(value) = token_split.next() {
                     rest.insert(key.to_string(), value.trim().to_string());
-                } else {
+                } else if language.is_none() {
                     language = Some(key);
+                } else {
+                    // ignore?
                 }
             }
         }
@@ -117,6 +119,14 @@ mod tests {
     #[test]
     fn test_language_only() {
         let result = parse_markdown_fence("rust");
+        assert_eq!(result.lang, "rust");
+        assert_eq!(result.options, RenderOptions::default());
+        assert!(result.rest.is_empty());
+    }
+
+    #[test]
+    fn test_multiple_languages_only() {
+        let result = parse_markdown_fence("rust,wrap");
         assert_eq!(result.lang, "rust");
         assert_eq!(result.options, RenderOptions::default());
         assert!(result.rest.is_empty());
