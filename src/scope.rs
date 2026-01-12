@@ -211,7 +211,7 @@ pub(crate) fn lock_global_scope_repo() -> MutexGuard<'static, ScopeRepository> {
 /// Note: Only the first call succeeds; subsequent calls are silently ignored
 #[cfg(feature = "dump")]
 pub(crate) fn replace_global_scope_repo(new_repo: ScopeRepository) {
-    // Ignore error if already set - first call wins
+    // Ignore error if already set: first call wins
     let _ = SCOPE_REPO.set(Mutex::new(new_repo));
 }
 
