@@ -476,6 +476,8 @@ impl Registry {
 
     #[cfg(feature = "dump")]
     /// Read a binary dump from giallo and load registry + scope repository from it
+    /// This is a no-op when called multiple times: eg if you have multiple threads all trying
+    /// to call Registry::load_from_file, only the first one will actually load things.
     pub fn load_from_file(path: impl AsRef<Path>) -> GialloResult<Self> {
         let compressed_data = std::fs::read(path)?;
         Self::load_from_bytes(&compressed_data)
@@ -483,6 +485,8 @@ impl Registry {
 
     #[cfg(feature = "dump")]
     /// Load the builtin registry containing all grammars and themes from grammars-themes
+    /// This is a no-op when called multiple times: eg if you have multiple threads all trying
+    /// to call Registry::builtin, only the first one will actually load things.
     pub fn builtin() -> GialloResult<Self> {
         Self::load_from_bytes(BUILTIN_DATA)
     }
