@@ -73,6 +73,7 @@ impl HtmlRenderer {
             None
         };
 
+        let line_numbers_size = options.line_number_width(highlighted.tokens.len());
         let mut lines = Vec::with_capacity(highlighted.tokens.len() + 4);
         let mut tokens = highlighted.tokens.iter().enumerate().peekable();
         while let Some((idx, line_tokens)) = tokens.next() {
@@ -95,11 +96,16 @@ impl HtmlRenderer {
             }
             let line_content = line_content.join("");
 
-            // Line number (uses original source line number)
+            // Line number (uses original source line number, padded with spaces)
             let display_line_num = options.line_number_start + (idx as isize);
             let line_number_html = if options.show_line_numbers {
+                let line_num_s = display_line_num.to_string();
+                let padded =
+                    std::iter::repeat_n(' ', line_numbers_size - line_num_s.chars().count())
+                        .chain(line_num_s.chars())
+                        .collect::<String>();
                 format!(
-                    r#"<span aria-hidden="true" class="giallo-ln"{}>{display_line_num}</span>"#,
+                    r#"<span aria-hidden="true" class="giallo-ln"{}>{padded}</span>"#,
                     line_number_style.as_deref().unwrap_or_default()
                 )
             } else {

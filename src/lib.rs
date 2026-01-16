@@ -51,8 +51,6 @@ pub const GIALLO_CSS: &str = r#".giallo-l {
   user-select: none;
   margin-right: 0.4em;
   padding: 0.4em;
-  min-width: 3ch;
-  text-align: right;
   opacity: 0.8;
 }
 "#;
