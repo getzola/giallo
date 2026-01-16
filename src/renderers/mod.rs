@@ -27,3 +27,19 @@ impl Default for RenderOptions {
         }
     }
 }
+
+impl RenderOptions {
+    /// Calculate the width needed for line numbers
+    pub(crate) fn line_number_width(&self, line_count: usize) -> usize {
+        if !self.show_line_numbers {
+            return 0;
+        }
+        let first_line = self.line_number_start.to_string().chars().count();
+        let last_line = line_count
+            .saturating_add_signed(self.line_number_start)
+            .to_string()
+            .chars()
+            .count();
+        first_line.max(last_line)
+    }
+}
