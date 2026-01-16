@@ -265,6 +265,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - ssh-config
 - stata
 - stylus -> styl
+- surrealql -> surql
 - svelte
 - swift
 - system-verilog

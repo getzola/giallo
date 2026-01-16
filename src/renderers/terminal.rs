@@ -12,24 +12,7 @@ impl TerminalRenderer {
     /// Render to the terminal with ANSI escape codes
     pub fn render(&self, highlighted: &HighlightedCode, options: &RenderOptions) -> String {
         let mut output = String::new();
-
-        // We want to calculate how many characters to give the
-        // line numbers, so all line numbers fit
-        let line_numbers_size = if options.show_line_numbers {
-            // First line might be larger than the last line if it is negative, e.g. -100..90
-            let first_line = options.line_number_start.to_string().chars().count();
-            let last_line = highlighted
-                .tokens
-                .len()
-                .saturating_add_signed(options.line_number_start)
-                .to_string()
-                .chars()
-                .count();
-            first_line.max(last_line)
-        } else {
-            // Won't be used
-            0
-        };
+        let line_numbers_size = options.line_number_width(highlighted.tokens.len());
 
         // Color of line numbers
         let (line_number_foreground, highlight_background_color) = match highlighted.theme {
