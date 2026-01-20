@@ -4,7 +4,7 @@ use std::fs;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut registry = Registry::load_from_file("builtin.msgpack")?;
     registry.link_grammars();
-    let ts_content = fs::read_to_string("src/fixtures/samples/slow.ts")?;
+    let ts_content = fs::read_to_string("src/fixtures/samples/simple.ts")?;
 
     let options = HighlightOptions::new("typescript", ThemeVariant::Single("vitesse-black"));
 
