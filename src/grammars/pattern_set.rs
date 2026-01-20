@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 
-use onig::{RegSet, RegexOptions};
+use onig::{RegSet, RegexOptions, SearchOptions};
 
 use crate::grammars::GlobalRuleRef;
 
@@ -64,6 +64,7 @@ impl PatternSet {
         &self,
         text: &str,
         pos: usize,
+        options: SearchOptions,
     ) -> Result<Option<PatternSetMatch>, String> {
         if self.patterns.is_empty() {
             return Ok(None);
@@ -109,7 +110,7 @@ impl PatternSet {
             pos,        // Start searching from this position
             text.len(), // Search to end of text
             onig::RegSetLead::Position,
-            onig::SearchOptions::SEARCH_OPTION_NONE,
+            options,
         ) && let Some((match_start, match_end)) = captures.pos(0)
         {
             // Convert all capture positions (they're already absolute from captures_with_encoding)

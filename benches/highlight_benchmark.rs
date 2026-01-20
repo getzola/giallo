@@ -39,7 +39,6 @@ fn highlight_simple_benchmark(c: &mut Criterion) {
     });
 }
 
-
 fn highlight_multiple_simple_benchmark(c: &mut Criterion) {
     let mut registry = Registry::load_from_file("builtin.msgpack")
         .expect("Failed to load registry from builtin.msgpack");
@@ -66,5 +65,10 @@ fn highlight_multiple_simple_benchmark(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, highlight_jquery_benchmark, highlight_simple_benchmark, highlight_multiple_simple_benchmark);
+criterion_group!(
+    benches,
+    highlight_jquery_benchmark,
+    highlight_simple_benchmark,
+    highlight_multiple_simple_benchmark
+);
 criterion_main!(benches);
