@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use std::ops::Range;
+use std::sync::Arc;
 
 use onig::{Region, SearchOptions};
 
@@ -92,8 +93,6 @@ pub struct Tokenizer<'g> {
     base_grammar_id: GrammarId,
     /// All the grammars in the registry
     registry: &'g Registry,
-    /// Runtime pattern cache by rule ID
-    pattern_cache: HashMap<GlobalRuleRef, PatternSet>,
     /// Used only for end/while patterns
     /// Some end patterns will change depending on backrefs so we might have multiple
     /// versions of the same regex in there
@@ -106,7 +105,6 @@ impl<'g> Tokenizer<'g> {
         Self {
             base_grammar_id,
             registry,
-            pattern_cache: HashMap::new(),
             end_regex_cache: HashMap::new(),
         }
     }
@@ -382,10 +380,10 @@ impl<'g> Tokenizer<'g> {
     }
 
     fn get_or_create_pattern_set(
-        &mut self,
+        &self,
         stack: &StateStack,
         injection_rule_override: Option<GlobalRuleRef>,
-    ) -> Result<&PatternSet, String> {
+    ) -> Result<Arc<PatternSet>, String> {
         let rule_ref = injection_rule_override.unwrap_or(stack.top().rule_ref);
         #[cfg(feature = "debug")]
         {
@@ -397,22 +395,8 @@ impl<'g> Tokenizer<'g> {
             log::debug!("[get_or_create_pattern_set] Scanning patterns");
         }
 
-        if !self.pattern_cache.contains_key(&rule_ref) {
-            // Collect base patterns from grammar
-            let raw_patterns = self
-                .registry
-                .collect_patterns(self.base_grammar_id, rule_ref);
-
-            // Collect patterns as-is (end pattern excluded)
-            let patterns: Vec<_> = raw_patterns
-                .into_iter()
-                .map(|(rule, pat)| (rule, pat.to_owned()))
-                .collect();
-
-            let pattern_set = PatternSet::new(patterns)?;
-            self.pattern_cache.insert(rule_ref, pattern_set);
-        }
-        Ok(self.pattern_cache.get(&rule_ref).unwrap())
+        self.registry
+            .get_or_create_pattern_set(self.base_grammar_id, rule_ref)
     }
 
     /// Get compiled regex for end/while pattern.

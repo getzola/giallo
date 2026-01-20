@@ -1,12 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, GialloResult};
 use crate::grammars::{
     BASE_GLOBAL_RULE_REF, CompiledGrammar, GlobalRuleRef, GrammarId, InjectionPrecedence, Match,
-    NO_OP_GLOBAL_RULE_REF, ROOT_RULE_ID, RawGrammar, Rule,
+    NO_OP_GLOBAL_RULE_REF, PatternSet, ROOT_RULE_ID, RawGrammar, Rule,
 };
 use crate::highlight::{HighlightedText, Highlighter, MergingOptions};
 
@@ -104,7 +105,7 @@ pub(crate) fn normalize_string(s: &str) -> String {
 ///
 /// Holds all the grammars and themes and is responsible for highlighting a text. It is not
 /// responsible for actually rendering those highlighted texts.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Registry {
     // Vector of compiled grammars for ID-based access
     pub(crate) grammars: Vec<CompiledGrammar>,
@@ -121,6 +122,25 @@ pub struct Registry {
     injections_by_grammar: Vec<HashSet<GrammarId>>,
     // Once a registry has linked grammars, it's not possible to replace existing grammars.
     linked: bool,
+    // We cache the pattern set at the registry level it's compiled only once instead of per
+    // highlight. To do that we had to check the end regex in the tokenizer separately from the
+    // regset.
+    #[serde(skip)]
+    pattern_cache: papaya::HashMap<(GrammarId, GlobalRuleRef), Arc<PatternSet>>,
+}
+
+impl Clone for Registry {
+    fn clone(&self) -> Self {
+        Self {
+            grammars: self.grammars.clone(),
+            grammar_id_by_scope_name: self.grammar_id_by_scope_name.clone(),
+            grammar_id_by_name: self.grammar_id_by_name.clone(),
+            themes: self.themes.clone(),
+            injections_by_grammar: self.injections_by_grammar.clone(),
+            linked: self.linked,
+            pattern_cache: papaya::HashMap::new(),
+        }
+    }
 }
 
 impl Registry {
@@ -433,6 +453,38 @@ impl Registry {
         });
 
         result
+    }
+
+    #[doc(hidden)]
+    pub fn clear_pattern_cache(&self) {
+        self.pattern_cache.pin().clear();
+    }
+
+    pub(crate) fn get_or_create_pattern_set(
+        &self,
+        base_grammar_id: GrammarId,
+        rule_ref: GlobalRuleRef,
+    ) -> Result<Arc<PatternSet>, String> {
+        let cache_key = (base_grammar_id, rule_ref);
+        let guard = self.pattern_cache.guard();
+
+        if let Some(pattern_set) = self.pattern_cache.get(&cache_key, &guard) {
+            return Ok(Arc::clone(pattern_set));
+        }
+
+        let raw_patterns = self.collect_patterns(base_grammar_id, rule_ref);
+        let patterns: Vec<_> = raw_patterns
+            .into_iter()
+            .map(|(rule, pat)| (rule, pat.to_owned()))
+            .collect();
+        let pattern_set = Arc::new(PatternSet::new(patterns)?);
+
+        // Use get_or_insert for concurrent-safe lazy init
+        let inserted = self
+            .pattern_cache
+            .get_or_insert(cache_key, pattern_set, &guard);
+
+        Ok(Arc::clone(inserted))
     }
 
     #[cfg(feature = "dump")]

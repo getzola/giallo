@@ -16,6 +16,7 @@ fn highlight_jquery_benchmark(c: &mut Criterion) {
 
     c.bench_function("highlight jquery.js", |b| {
         b.iter(|| {
+            registry.clear_pattern_cache();
             let result = registry.highlight(&jquery_content, &options).unwrap();
             std::hint::black_box(result);
         })
@@ -33,6 +34,7 @@ fn highlight_simple_benchmark(c: &mut Criterion) {
 
     c.bench_function("highlight simple.ts", |b| {
         b.iter(|| {
+            registry.clear_pattern_cache();
             let result = registry.highlight(&ts_content, &options).unwrap();
             std::hint::black_box(result);
         })
@@ -48,9 +50,10 @@ fn highlight_multiple_simple_benchmark(c: &mut Criterion) {
 
     let options = HighlightOptions::new("typescript", ThemeVariant::Single("vitesse-black"));
 
-    c.bench_function("highlight simple.ts", |b| {
+    c.bench_function("highlight multiple simple.ts", |b| {
         b.iter(|| {
-            // should not be 5x slower than highlight_simple_benchmark
+            // should not be 5x slower than "highlight simple.ts"
+            registry.clear_pattern_cache();
             let result = registry.highlight(&ts_content, &options).unwrap();
             std::hint::black_box(result);
             let result = registry.highlight(&ts_content, &options).unwrap();

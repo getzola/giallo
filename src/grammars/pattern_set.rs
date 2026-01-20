@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Formatter};
+use std::sync::Mutex;
 
 use onig::{RegSet, RegexOptions, SearchOptions};
 
@@ -12,10 +13,12 @@ pub struct PatternSetMatch {
     pub capture_pos: Vec<Option<(usize, usize)>>,
 }
 
-/// An eagerly compiled pattern set for efficient batch regex matching using onig RegSet
+/// An eagerly compiled pattern set for efficient batch regex matching using onig RegSet.
+/// The RegSet is wrapped in a Mutex because onig_regset_search writes to internal region
+/// storage, making concurrent searches on the same RegSet unsafe.
 pub struct PatternSet {
     rule_refs: Vec<GlobalRuleRef>,
-    regset: Option<RegSet>,
+    regset: Option<Mutex<RegSet>>,
 }
 
 impl PatternSet {
@@ -41,7 +44,7 @@ impl PatternSet {
 
         Ok(Self {
             rule_refs,
-            regset: Some(regset),
+            regset: Some(Mutex::new(regset)),
         })
     }
 
@@ -54,6 +57,8 @@ impl PatternSet {
         let Some(regset) = &self.regset else {
             return Ok(None);
         };
+
+        let regset = regset.lock().unwrap();
 
         // We need to specify pos/text.len() because some regex might do lookbehind
         if let Some((pattern_index, captures)) = regset.captures_with_options(

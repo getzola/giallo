@@ -8,9 +8,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let options = HighlightOptions::new("typescript", ThemeVariant::Single("vitesse-black"));
 
-    let highlighted_tokens = registry.highlight(&ts_content, &options)?;
-
-    std::hint::black_box(highlighted_tokens);
+    // Loop to make highlighting dominate the profile
+    for _ in 0..10000 {
+        let highlighted_tokens = registry.highlight(&ts_content, &options)?;
+        std::hint::black_box(highlighted_tokens);
+    }
 
     Ok(())
 }
