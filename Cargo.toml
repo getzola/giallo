@@ -65,6 +65,10 @@ name = "profile_jquery"
 required-features = ["dump"]
 
 [[example]]
+name = "profile_simple_ts"
+required-features = ["dump"]
+
+[[example]]
 name = "output_html"
 required-features = ["dump"]
 

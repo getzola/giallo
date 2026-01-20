@@ -22,5 +22,49 @@ fn highlight_jquery_benchmark(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, highlight_jquery_benchmark);
+fn highlight_simple_benchmark(c: &mut Criterion) {
+    let mut registry = Registry::load_from_file("builtin.msgpack")
+        .expect("Failed to load registry from builtin.msgpack");
+    registry.link_grammars();
+
+    let ts_content = fs::read_to_string("src/fixtures/samples/simple.ts").unwrap();
+
+    let options = HighlightOptions::new("typescript", ThemeVariant::Single("vitesse-black"));
+
+    c.bench_function("highlight simple.ts", |b| {
+        b.iter(|| {
+            let result = registry.highlight(&ts_content, &options).unwrap();
+            std::hint::black_box(result);
+        })
+    });
+}
+
+
+fn highlight_multiple_simple_benchmark(c: &mut Criterion) {
+    let mut registry = Registry::load_from_file("builtin.msgpack")
+        .expect("Failed to load registry from builtin.msgpack");
+    registry.link_grammars();
+
+    let ts_content = fs::read_to_string("src/fixtures/samples/simple.ts").unwrap();
+
+    let options = HighlightOptions::new("typescript", ThemeVariant::Single("vitesse-black"));
+
+    c.bench_function("highlight simple.ts", |b| {
+        b.iter(|| {
+            // should not be 5x slower than highlight_simple_benchmark
+            let result = registry.highlight(&ts_content, &options).unwrap();
+            std::hint::black_box(result);
+            let result = registry.highlight(&ts_content, &options).unwrap();
+            std::hint::black_box(result);
+            let result = registry.highlight(&ts_content, &options).unwrap();
+            std::hint::black_box(result);
+            let result = registry.highlight(&ts_content, &options).unwrap();
+            std::hint::black_box(result);
+            let result = registry.highlight(&ts_content, &options).unwrap();
+            std::hint::black_box(result);
+        })
+    });
+}
+
+criterion_group!(benches, highlight_jquery_benchmark, highlight_simple_benchmark, highlight_multiple_simple_benchmark);
 criterion_main!(benches);
