@@ -213,6 +213,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - objective-c -> objc
 - objective-cpp
 - ocaml
+- odin
 - openscad -> scad
 - pascal
 - perl
