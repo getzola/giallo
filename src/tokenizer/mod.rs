@@ -168,6 +168,7 @@ impl<'g> Tokenizer<'g> {
         pos: usize,
         is_first_line: bool,
         anchor_position: Option<usize>,
+        region: &mut Region,
     ) -> Result<Option<PatternSetMatch>, String> {
         let anchor_context = AnchorActive::new(is_first_line, anchor_position, pos);
 
@@ -181,7 +182,7 @@ impl<'g> Tokenizer<'g> {
             self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule].apply_end_pattern_last();
 
         let end_match =
-            self.match_end_pattern(stack, line, pos, anchor_context.to_search_options())?;
+            self.match_end_pattern(stack, line, pos, anchor_context.to_search_options(), region)?;
 
         // Get injection matches
         let injection_match =
@@ -232,6 +233,7 @@ impl<'g> Tokenizer<'g> {
         pos: &mut usize,
         acc: &mut TokenAccumulator,
         is_first_line: bool,
+        region: &mut Region,
     ) -> Result<(StateStack, Option<usize>, bool), String> {
         // Initialize anchor position: reset to 0 if previous rule captured EOL, otherwise use stack value
         let mut anchor_position: Option<usize> = if stack.top().begin_rule_has_captured_eol {
@@ -302,14 +304,13 @@ impl<'g> Tokenizer<'g> {
 
             let search_text = line.get(*pos..).unwrap_or("");
 
-            let mut region = Region::new();
             if compiled_re
                 .search_with_options(
                     search_text,
                     0,
                     search_text.len(),
                     active_anchor.to_search_options(),
-                    Some(&mut region),
+                    Some(region),
                 )
                 .is_some()
                 && let Some((start, end)) = region.pos(0)
@@ -432,6 +433,7 @@ impl<'g> Tokenizer<'g> {
         line: &str,
         pos: usize,
         search_options: SearchOptions,
+        region: &mut Region,
     ) -> Result<Option<PatternSetMatch>, String> {
         let rule_ref = stack.top().rule_ref;
         let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
@@ -444,9 +446,8 @@ impl<'g> Tokenizer<'g> {
             _ => return Ok(None),
         };
 
-        let mut region = Region::new();
         if compiled_re
-            .search_with_options(line, pos, line.len(), search_options, Some(&mut region))
+            .search_with_options(line, pos, line.len(), search_options, Some(region))
             .is_some()
             && let Some((start, end)) = region.pos(0)
         {
@@ -598,6 +599,7 @@ impl<'g> Tokenizer<'g> {
         let mut anchor_position = None;
         let mut is_first_line = is_first_line;
         let mut stack = stack;
+        let mut region = Region::new();
 
         // 1. We check if the while pattern is still truthy
         if check_while_conditions {
@@ -607,6 +609,7 @@ impl<'g> Tokenizer<'g> {
                 &mut pos,
                 &mut accumulator,
                 is_first_line,
+                &mut region,
             )?;
             stack = while_res.0;
             anchor_position = while_res.1;
@@ -621,9 +624,14 @@ impl<'g> Tokenizer<'g> {
                 log::trace!("[tokenize_line] Scanning {pos}: |{:?}|", &line[pos..]);
             }
 
-            if let Some(m) =
-                self.match_rule_or_injections(&stack, line, pos, is_first_line, anchor_position)?
-            {
+            if let Some(m) = self.match_rule_or_injections(
+                &stack,
+                line,
+                pos,
+                is_first_line,
+                anchor_position,
+                &mut region,
+            )? {
                 #[cfg(feature = "debug")]
                 log::debug!(
                     "[tokenize_line] Matched rule: {:?} from pos {} to {} => {:?}",
