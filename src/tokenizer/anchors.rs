@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use onig::SearchOptions;
 use std::fmt;
 
 /// We use that as a way to convey both the rule and which anchors should be active
@@ -36,34 +36,14 @@ impl AnchorActive {
         }
     }
 
-    /// This follows vscode-textmate and replaces it with something that is very unlikely
-    /// to match
-    pub fn replace_anchors<'a>(&self, pat: &'a str) -> Cow<'a, str> {
+    pub fn to_search_options(self) -> SearchOptions {
         match self {
-            AnchorActive::AG => {
-                // No replacements needed
-                Cow::Borrowed(pat)
-            }
-            AnchorActive::A => {
-                if pat.contains("\\G") {
-                    Cow::Owned(pat.replace("\\G", "\u{FFFF}"))
-                } else {
-                    Cow::Borrowed(pat)
-                }
-            }
-            AnchorActive::G => {
-                if pat.contains("\\A") {
-                    Cow::Owned(pat.replace("\\A", "\u{FFFF}"))
-                } else {
-                    Cow::Borrowed(pat)
-                }
-            }
+            AnchorActive::AG => SearchOptions::SEARCH_OPTION_NONE,
+            AnchorActive::A => SearchOptions::SEARCH_OPTION_NOT_BEGIN_POSITION,
+            AnchorActive::G => SearchOptions::SEARCH_OPTION_NOT_BEGIN_STRING,
             AnchorActive::None => {
-                if pat.contains("\\A") || pat.contains("\\G") {
-                    Cow::Owned(pat.replace("\\A", "\u{FFFF}").replace("\\G", "\u{FFFF}"))
-                } else {
-                    Cow::Borrowed(pat)
-                }
+                SearchOptions::SEARCH_OPTION_NOT_BEGIN_STRING
+                    | SearchOptions::SEARCH_OPTION_NOT_BEGIN_POSITION
             }
         }
     }

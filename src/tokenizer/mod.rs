@@ -2,6 +2,9 @@
 
 use std::collections::HashMap;
 use std::ops::Range;
+use std::sync::Arc;
+
+use onig::{Region, SearchOptions};
 
 use serde::{Deserialize, Serialize};
 
@@ -90,8 +93,6 @@ pub struct Tokenizer<'g> {
     base_grammar_id: GrammarId,
     /// All the grammars in the registry
     registry: &'g Registry,
-    /// Runtime pattern cache by rule ID
-    pattern_cache: HashMap<(GlobalRuleRef, AnchorActive), PatternSet>,
     /// Used only for end/while patterns
     /// Some end patterns will change depending on backrefs so we might have multiple
     /// versions of the same regex in there
@@ -104,7 +105,6 @@ impl<'g> Tokenizer<'g> {
         Self {
             base_grammar_id,
             registry,
-            pattern_cache: HashMap::new(),
             end_regex_cache: HashMap::new(),
         }
     }
@@ -119,6 +119,7 @@ impl<'g> Tokenizer<'g> {
         is_first_line: bool,
         anchor_position: Option<usize>,
     ) -> Result<Option<(InjectionPrecedence, PatternSetMatch)>, String> {
+        let anchor_context = AnchorActive::new(is_first_line, anchor_position, pos);
         let injection_patterns = self
             .registry
             .collect_injection_patterns(self.base_grammar_id, &stack.top().content_scopes);
@@ -134,13 +135,12 @@ impl<'g> Tokenizer<'g> {
             // Use injection override instead of cloning stack
             let pattern_set = self.get_or_create_pattern_set(
                 stack,
-                pos,
-                is_first_line,
-                anchor_position,
                 Some(rule), // Override rule_ref for injection testing
-            );
+            )?;
 
-            if let Some(found) = pattern_set.find_at(line, pos)? {
+            if let Some(found) =
+                pattern_set.find_at(line, pos, anchor_context.to_search_options())?
+            {
                 if let Some((_, current_best_match)) = &best_match {
                     if found.start >= current_best_match.start {
                         continue;
@@ -168,33 +168,61 @@ impl<'g> Tokenizer<'g> {
         pos: usize,
         is_first_line: bool,
         anchor_position: Option<usize>,
+        region: &mut Region,
     ) -> Result<Option<PatternSetMatch>, String> {
-        // Get regular rule patterns
-        let pattern_set =
-            self.get_or_create_pattern_set(stack, pos, is_first_line, anchor_position, None);
-        let regular_match = pattern_set.find_at(line, pos)?;
+        let anchor_context = AnchorActive::new(is_first_line, anchor_position, pos);
+
+        // Get regular rule patterns.
+        // The end pattern is done separately from the regex so the regset doesn't need to be updated
+        // and can be shared across threads safely
+        let pattern_set = self.get_or_create_pattern_set(stack, None)?;
+        let regset_match = pattern_set.find_at(line, pos, anchor_context.to_search_options())?;
+        let rule_ref = stack.top().rule_ref;
+        let apply_end_pattern_last =
+            self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule].apply_end_pattern_last();
+
+        let end_match =
+            self.match_end_pattern(stack, line, pos, anchor_context.to_search_options(), region)?;
 
         // Get injection matches
         let injection_match =
             self.match_injections(stack, line, pos, is_first_line, anchor_position)?;
 
-        // Compare and return the winner
-        match (regular_match, injection_match) {
-            (None, None) => Ok(None),
-            (Some(regular), None) => Ok(Some(regular)),
-            (None, Some((_, injection))) => Ok(Some(injection)),
-            (Some(regular), Some((precedence, injection))) => {
-                let match_score = regular.start;
-                let injection_score = injection.start;
-                if injection_score < match_score
-                    || (injection_score == match_score && precedence == InjectionPrecedence::Left)
-                {
-                    Ok(Some(injection))
+        // First, decide between regular patterns and the end pattern
+        let combined_match = match (regset_match, end_match) {
+            (None, None) => None,
+            (Some(r), None) => Some(r),
+            (None, Some(e)) => Some(e),
+            (Some(r), Some(e)) => {
+                if r.start < e.start {
+                    Some(r)
+                } else if e.start < r.start {
+                    Some(e)
+                } else if apply_end_pattern_last {
+                    Some(r)
                 } else {
-                    Ok(Some(regular))
+                    Some(e)
                 }
             }
-        }
+        };
+
+        // Then apply injection precedence rules
+        let winner = match (combined_match, injection_match) {
+            (None, None) => None,
+            (Some(c), None) => Some(c),
+            (None, Some((_, inj))) => Some(inj),
+            (Some(c), Some((precedence, inj))) => {
+                if inj.start < c.start
+                    || (inj.start == c.start && precedence == InjectionPrecedence::Left)
+                {
+                    Some(inj)
+                } else {
+                    Some(c)
+                }
+            }
+        };
+
+        Ok(winner)
     }
 
     /// Check if there is a while condition active and if it's still true
@@ -205,6 +233,7 @@ impl<'g> Tokenizer<'g> {
         pos: &mut usize,
         acc: &mut TokenAccumulator,
         is_first_line: bool,
+        region: &mut Region,
     ) -> Result<(StateStack, Option<usize>, bool), String> {
         // Initialize anchor position: reset to 0 if previous rule captured EOL, otherwise use stack value
         let mut anchor_position: Option<usize> = if stack.top().begin_rule_has_captured_eol {
@@ -245,41 +274,46 @@ impl<'g> Tokenizer<'g> {
 
         for &frame_idx in while_frame_indices.iter() {
             let frame = &stack.frames[frame_idx];
-            let initial_pat = if let Some(end_pat) = &frame.end_pattern {
-                end_pat.as_str()
-            } else if let Rule::BeginWhile(b) =
+            let Rule::BeginWhile(b) =
                 &self.registry.grammars[frame.rule_ref.grammar].rules[frame.rule_ref.rule]
-            {
-                let re = &self.registry.grammars[frame.rule_ref.grammar].regexes[b.while_];
-                re.pattern()
-            } else {
+            else {
                 unreachable!()
             };
-            let while_pat = active_anchor.replace_anchors(initial_pat);
-            #[cfg(feature = "debug")]
-            log::debug!(
-                "[check_while_conditions] Testing while pattern: original={:?}, active_anchor={:?}, pos={}, after anchor replacement: {while_pat:?}",
-                initial_pat,
-                active_anchor,
-                *pos
-            );
 
-            let re = if let Some(re) = self.end_regex_cache.get(&*while_pat) {
-                re
-            } else {
-                let owned_pat = while_pat.to_string();
-                self.end_regex_cache
-                    .insert(owned_pat.clone(), Regex::new(owned_pat.clone()));
-                self.end_regex_cache.get(&owned_pat).unwrap()
-            };
+            #[cfg(feature = "debug")]
+            {
+                let pat = frame
+                    .end_pattern
+                    .as_ref()
+                    .map(|p| p.as_str().to_owned())
+                    .unwrap_or_else(|| {
+                        self.registry.grammars[frame.rule_ref.grammar].regexes[b.while_]
+                            .pattern()
+                            .to_owned()
+                    });
+                log::debug!(
+                    "[check_while_conditions] Testing while pattern: {:?}, active_anchor={:?}, pos={}",
+                    pat,
+                    active_anchor,
+                    *pos
+                );
+            }
+            let resolved = frame.end_pattern.as_deref();
+            let compiled_re =
+                self.get_end_or_while_regex(resolved, frame.rule_ref.grammar, b.while_)?;
 
             let search_text = line.get(*pos..).unwrap_or("");
-            let compiled_re = re
-                .compiled()
-                .ok_or_else(|| format!("While pattern {while_pat} was invalid"))?;
 
-            if let Some(cap) = compiled_re.captures(search_text)
-                && let Some((start, end)) = cap.pos(0)
+            if compiled_re
+                .search_with_options(
+                    search_text,
+                    0,
+                    search_text.len(),
+                    active_anchor.to_search_options(),
+                    Some(region),
+                )
+                .is_some()
+                && let Some((start, end)) = region.pos(0)
                 && start == 0
             // Must match at current position
             {
@@ -295,8 +329,8 @@ impl<'g> Tokenizer<'g> {
                     .get(frame.rule_ref.rule.as_index())
                     && !begin_while_rule.while_captures.is_empty()
                 {
-                    let captures_pos: Vec<Option<(usize, usize)>> = (0..cap.len())
-                        .map(|i| cap.pos(i).map(|(s, e)| (*pos + s, *pos + e)))
+                    let captures_pos: Vec<Option<(usize, usize)>> = (0..region.len())
+                        .map(|i| region.pos(i).map(|(s, e)| (*pos + s, *pos + e)))
                         .collect();
 
                     // Create temporary StateStack only for resolve_captures
@@ -347,100 +381,90 @@ impl<'g> Tokenizer<'g> {
     }
 
     fn get_or_create_pattern_set(
-        &mut self,
+        &self,
         stack: &StateStack,
-        pos: usize,
-        is_first_line: bool,
-        anchor_position: Option<usize>,
         injection_rule_override: Option<GlobalRuleRef>,
-    ) -> &PatternSet {
+    ) -> Result<Arc<PatternSet>, String> {
         let rule_ref = injection_rule_override.unwrap_or(stack.top().rule_ref);
-        let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
-        let anchor_context = AnchorActive::new(is_first_line, anchor_position, pos);
-
         #[cfg(feature = "debug")]
         {
             log::debug!(
                 "[get_or_create_pattern_set] Rule: {rule_ref:?} (grammar: {})",
                 &self.registry.grammars[rule_ref.grammar].name
             );
-            log::debug!(
-                "[get_or_create_pattern_set] Scanning for: pos={pos}, anchor_position={anchor_position:?}"
-            );
-        }
-        // Get end pattern from stack or rule definition when it has backref filled
-        let mut end_pattern = stack.top().end_pattern.as_deref();
-        // otherwise we get it from the rule directly
-        if end_pattern.is_none() {
-            match rule {
-                Rule::BeginEnd(b) => {
-                    let re = &self.registry.grammars[rule_ref.grammar].regexes[b.end];
-                    end_pattern = Some(re.pattern());
-                }
-                Rule::BeginWhile(b) => {
-                    let re = &self.registry.grammars[rule_ref.grammar].regexes[b.while_];
-                    end_pattern = Some(re.pattern());
-                }
-                _ => (),
-            }
+            log::debug!("[get_or_create_pattern_set] Scanning patterns");
         }
 
-        let key = (rule_ref, anchor_context);
-        if let Some(p) = self.pattern_cache.get_mut(&key) {
-            if let Rule::BeginEnd(b) = rule
-                && let Some(end_pat) = end_pattern
-            {
-                let pat = anchor_context.replace_anchors(end_pat);
-                if b.apply_end_pattern_last {
-                    p.update_last(pat.as_ref())
-                } else {
-                    p.update_front(pat.as_ref())
-                };
-            }
+        self.registry
+            .get_or_create_pattern_set(self.base_grammar_id, rule_ref)
+    }
+
+    /// Get compiled regex for end/while pattern.
+    /// If `resolved_pattern` is Some, the pattern has backrefs and we use the cache.
+    /// If None, use the pre-compiled regex from grammar directly.
+    fn get_end_or_while_regex(
+        &mut self,
+        resolved_pattern: Option<&str>,
+        grammar_id: GrammarId,
+        regex_id: RegexId,
+    ) -> Result<&std::sync::Arc<onig::Regex>, String> {
+        if let Some(pattern) = resolved_pattern {
+            let regex = self
+                .end_regex_cache
+                .entry(pattern.to_owned())
+                .or_insert_with(|| Regex::new(pattern.to_owned()));
+            regex
+                .compiled()
+                .ok_or_else(|| format!("Pattern {pattern} was invalid"))
         } else {
-            // Collect base patterns from grammar
-            let raw_patterns = self
-                .registry
-                .collect_patterns(self.base_grammar_id, rule_ref);
+            self.registry.grammars[grammar_id].regexes[regex_id]
+                .compiled()
+                .ok_or_else(|| {
+                    let pat = self.registry.grammars[grammar_id].regexes[regex_id].pattern();
+                    format!("Pattern {pat} was invalid")
+                })
+        }
+    }
 
-            // Apply anchor replacements to all patterns
-            let mut patterns: Vec<_> = raw_patterns
-                .into_iter()
-                .map(|(rule, pat)| (rule, anchor_context.replace_anchors(pat).into_owned()))
-                .collect();
+    fn match_end_pattern(
+        &mut self,
+        stack: &StateStack,
+        line: &str,
+        pos: usize,
+        search_options: SearchOptions,
+        region: &mut Region,
+    ) -> Result<Option<PatternSetMatch>, String> {
+        let rule_ref = stack.top().rule_ref;
+        let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
 
-            // Insert end pattern at correct position if this is a BeginEnd rule
-            if let Some(pat) = end_pattern
-                && let Rule::BeginEnd(b) = rule
-            {
-                let end_pat_with_anchors = anchor_context.replace_anchors(pat);
-                let end_rule_ref = GlobalRuleRef {
+        let compiled_re = match rule {
+            Rule::BeginEnd(b) => {
+                let resolved = stack.top().end_pattern.as_deref();
+                self.get_end_or_while_regex(resolved, rule_ref.grammar, b.end)?
+            }
+            _ => return Ok(None),
+        };
+
+        if compiled_re
+            .search_with_options(line, pos, line.len(), search_options, Some(region))
+            .is_some()
+            && let Some((start, end)) = region.pos(0)
+        {
+            let capture_pos: Vec<Option<(usize, usize)>> =
+                (0..region.len()).map(|i| region.pos(i)).collect();
+
+            return Ok(Some(PatternSetMatch {
+                rule_ref: GlobalRuleRef {
                     grammar: rule_ref.grammar,
                     rule: END_RULE_ID,
-                };
-
-                if b.apply_end_pattern_last {
-                    patterns.push((end_rule_ref, end_pat_with_anchors.into_owned()));
-                } else {
-                    patterns.insert(0, (end_rule_ref, end_pat_with_anchors.into_owned()));
-                }
-            }
-
-            let p = PatternSet::new(patterns);
-            self.pattern_cache.insert(key, p);
+                },
+                start,
+                end,
+                capture_pos,
+            }));
         }
 
-        let p = &self.pattern_cache[&key];
-
-        #[cfg(feature = "debug")]
-        {
-            log::debug!(
-                "[get_or_create_pattern_set] Active patterns for rule {:?}.\n{p:?}",
-                rule.original_name().unwrap_or("No name")
-            );
-        }
-
-        p
+        Ok(None)
     }
 
     fn resolve_captures(
@@ -574,6 +598,7 @@ impl<'g> Tokenizer<'g> {
         let mut anchor_position = None;
         let mut is_first_line = is_first_line;
         let mut stack = stack;
+        let mut region = Region::new();
 
         // 1. We check if the while pattern is still truthy
         if check_while_conditions {
@@ -583,6 +608,7 @@ impl<'g> Tokenizer<'g> {
                 &mut pos,
                 &mut accumulator,
                 is_first_line,
+                &mut region,
             )?;
             stack = while_res.0;
             anchor_position = while_res.1;
@@ -597,9 +623,14 @@ impl<'g> Tokenizer<'g> {
                 log::trace!("[tokenize_line] Scanning {pos}: |{:?}|", &line[pos..]);
             }
 
-            if let Some(m) =
-                self.match_rule_or_injections(&stack, line, pos, is_first_line, anchor_position)?
-            {
+            if let Some(m) = self.match_rule_or_injections(
+                &stack,
+                line,
+                pos,
+                is_first_line,
+                anchor_position,
+                &mut region,
+            )? {
                 #[cfg(feature = "debug")]
                 log::debug!(
                     "[tokenize_line] Matched rule: {:?} from pos {} to {} => {:?}",

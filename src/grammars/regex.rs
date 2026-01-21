@@ -1,6 +1,7 @@
 use std::fmt;
 use std::sync::{Arc, OnceLock};
 
+use onig::{RegexOptions, Syntax};
 use serde::{Deserialize, Serialize};
 
 /// Escapes regular expression characters in a given string
@@ -124,7 +125,15 @@ impl Regex {
 
     pub fn compiled(&self) -> Option<&Arc<onig::Regex>> {
         self.compiled
-            .get_or_init(|| onig::Regex::new(&self.pattern).ok().map(Arc::new))
+            .get_or_init(|| {
+                onig::Regex::with_options(
+                    &self.pattern,
+                    RegexOptions::REGEX_OPTION_CAPTURE_GROUP,
+                    Syntax::default(),
+                )
+                .ok()
+                .map(Arc::new)
+            })
             .as_ref()
     }
 
