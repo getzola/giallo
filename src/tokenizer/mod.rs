@@ -298,7 +298,7 @@ impl<'g> Tokenizer<'g> {
                     *pos
                 );
             }
-            let resolved = frame.end_pattern.as_ref().map(|p| p.as_str());
+            let resolved = frame.end_pattern.as_deref();
             let compiled_re =
                 self.get_end_or_while_regex(resolved, frame.rule_ref.grammar, b.while_)?;
 
@@ -388,7 +388,6 @@ impl<'g> Tokenizer<'g> {
         let rule_ref = injection_rule_override.unwrap_or(stack.top().rule_ref);
         #[cfg(feature = "debug")]
         {
-            let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
             log::debug!(
                 "[get_or_create_pattern_set] Rule: {rule_ref:?} (grammar: {})",
                 &self.registry.grammars[rule_ref.grammar].name
@@ -440,7 +439,7 @@ impl<'g> Tokenizer<'g> {
 
         let compiled_re = match rule {
             Rule::BeginEnd(b) => {
-                let resolved = stack.top().end_pattern.as_ref().map(|p| p.as_str());
+                let resolved = stack.top().end_pattern.as_deref();
                 self.get_end_or_while_regex(resolved, rule_ref.grammar, b.end)?
             }
             _ => return Ok(None),
