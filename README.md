@@ -5,6 +5,7 @@ A Rust syntax highlighting library using TextMate grammars and themes, producing
 This uses the curated grammars and themes from <https://github.com/shikijs/textmate-grammars-themes> for an optional built-in
 starting kit and testing, but you can start from an empty canvas if you want.
 
+For documentation on how TextMate grammars work, you can refer to <https://github.com/RedCMD/TmLanguage-Syntax-Highlighter/tree/main/documentation>.
 ## Installation
 
 ```toml
