@@ -161,7 +161,7 @@ impl HtmlRenderer {
         // CSS class mode: output class instead of inline styles on <pre>
         if let Some(prefix) = css_prefix {
             return format!(
-                r#"<pre class="giallo {prefix}code"><code {data_attrs}>{lines}</code></pre>"#
+                r#"<pre class="giallo {prefix}code" {data_attrs}><code {data_attrs}>{lines}</code></pre>"#
             );
         }
 
@@ -171,7 +171,7 @@ impl HtmlRenderer {
                 let fg = theme.default_style.foreground.as_css_color_property();
                 let bg = theme.default_style.background.as_css_bg_color_property();
                 format!(
-                    r#"<pre class="giallo" style="{fg} {bg}"><code {data_attrs}>{lines}</code></pre>"#
+                    r#"<pre class="giallo" style="{fg} {bg}" {data_attrs}><code {data_attrs}>{lines}</code></pre>"#
                 )
             }
             ThemeVariant::Dual { light, dark } => {
@@ -184,7 +184,7 @@ impl HtmlRenderer {
                     &dark.default_style.background,
                 );
                 format!(
-                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}"><code {data_attrs}>{lines}</code></pre>"#
+                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}" {data_attrs}><code {data_attrs}>{lines}</code></pre>"#
                 )
             }
         }
