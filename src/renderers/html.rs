@@ -1,5 +1,5 @@
 use crate::registry::HighlightedCode;
-use crate::renderers::RenderOptions;
+use crate::renderers::{DataAttrPosition, RenderOptions};
 use crate::themes::{Color, ThemeVariant};
 use std::collections::BTreeMap;
 use std::fmt;
@@ -157,11 +157,23 @@ impl HtmlRenderer {
                 .collect();
             data_attrs.push_str(&format!(r#" data-{slugified_key}="{value}""#));
         }
+        let pre_data_attrs = match options.data_attr_position {
+            DataAttrPosition::Pre => &data_attrs,
+            DataAttrPosition::Code => "",
+            DataAttrPosition::Both => &data_attrs,
+            DataAttrPosition::None => ""
+        };
+        let code_data_attrs = match options.data_attr_position {
+            DataAttrPosition::Pre => "",
+            DataAttrPosition::Code => &data_attrs,
+            DataAttrPosition::Both => &data_attrs,
+            DataAttrPosition::None => "",
+        };
 
         // CSS class mode: output class instead of inline styles on <pre>
         if let Some(prefix) = css_prefix {
             return format!(
-                r#"<pre class="giallo {prefix}code"><code {data_attrs}>{lines}</code></pre>"#
+                r#"<pre class="giallo {prefix}code" {pre_data_attrs}><code {code_data_attrs}>{lines}</code></pre>"#
             );
         }
 
@@ -171,7 +183,7 @@ impl HtmlRenderer {
                 let fg = theme.default_style.foreground.as_css_color_property();
                 let bg = theme.default_style.background.as_css_bg_color_property();
                 format!(
-                    r#"<pre class="giallo" style="{fg} {bg}"><code {data_attrs}>{lines}</code></pre>"#
+                    r#"<pre class="giallo" style="{fg} {bg}" {pre_data_attrs}><code {code_data_attrs}>{lines}</code></pre>"#
                 )
             }
             ThemeVariant::Dual { light, dark } => {
@@ -184,7 +196,7 @@ impl HtmlRenderer {
                     &dark.default_style.background,
                 );
                 format!(
-                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}"><code {data_attrs}>{lines}</code></pre>"#
+                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}" {pre_data_attrs}><code {code_data_attrs}>{lines}</code></pre>"#
                 )
             }
         }
@@ -230,6 +242,7 @@ impl fmt::Display for HtmlEscaped<'_> {
 mod tests {
     use super::*;
     use crate::registry::HighlightOptions;
+    use crate::renderers::DataAttrPosition;
     use crate::test_utils::get_registry;
 
     #[test]
@@ -244,6 +257,7 @@ mod tests {
             line_number_start: 10,
             highlight_lines: vec![3..=3, 5..=5],
             hide_lines: vec![4..=4],
+            data_attr_position: DataAttrPosition::Both,
         };
 
         let mut other_metadata = BTreeMap::new();
