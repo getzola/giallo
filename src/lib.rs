@@ -37,7 +37,9 @@ pub use error::Error;
 pub use highlight::HighlightedText;
 pub use markdown_fence::{ParsedFence, parse_markdown_fence};
 pub use registry::{HighlightOptions, HighlightedCode, PLAIN_GRAMMAR_NAME, Registry};
-pub use renderers::{RenderOptions, html::HtmlRenderer, terminal::TerminalRenderer};
+pub use renderers::{
+    RenderOptions, html::DataAttrPosition, html::HtmlRenderer, terminal::TerminalRenderer,
+};
 pub use themes::{Color, CompiledTheme, FontStyle, Style, ThemeVariant};
 
 /// The CSS needed for the line number gutter to display properly

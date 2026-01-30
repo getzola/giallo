@@ -7,12 +7,17 @@ use crate::registry::HighlightedCode;
 use crate::renderers::RenderOptions;
 use crate::themes::{Color, ThemeVariant};
 
+/// Where to put the additional attributes
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum DataAttrPosition {
+    /// On the <pre> only
     Pre,
     #[default]
+    /// On the <code> only
     Code,
+    /// On both <pre> and <code>
     Both,
+    /// Nowhere
     None,
 }
 
@@ -274,9 +279,25 @@ mod tests {
         other_metadata.insert("name with space1".to_string(), "other".to_string());
 
         let html = HtmlRenderer {
-            other_metadata,
+            other_metadata: other_metadata.clone(),
+            css_class_prefix: None,
+            ..Default::default()
+        }
+        .render(&highlighted, &render_options);
+        insta::assert_snapshot!(html);
+
+        let html = HtmlRenderer {
+            other_metadata: other_metadata.clone(),
             css_class_prefix: None,
             data_attr_position: DataAttrPosition::Both,
+        }
+        .render(&highlighted, &render_options);
+        insta::assert_snapshot!(html);
+
+        let html = HtmlRenderer {
+            other_metadata,
+            css_class_prefix: None,
+            data_attr_position: DataAttrPosition::None,
         }
         .render(&highlighted, &render_options);
         insta::assert_snapshot!(html);
