@@ -138,8 +138,8 @@ The list below is in the form: `{lang name} -> aliases`.
 - fortran-fixed-form -> f, for, f77
 - fortran-free-form -> f90, f95, f03, f08, f18
 - fsharp -> f#, fs
-- gdresource
-- gdscript
+- gdresource -> tscn, tres
+- gdscript -> gd
 - gdshader
 - genie
 - gherkin
@@ -245,6 +245,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - regexp -> regex
 - rel
 - riscv
+- ron
 - rosmsg
 - rst
 - ruby -> rb
@@ -316,6 +317,8 @@ The list below is in the form: `{lang name} -> aliases`.
 - andromeeda
 - aurora-x
 - ayu-dark
+- ayu-light
+- ayu-mirage
 - catppuccin-frappe
 - catppuccin-latte
 - catppuccin-macchiato
@@ -338,6 +341,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - gruvbox-light-hard
 - gruvbox-light-medium
 - gruvbox-light-soft
+- horizon
 - houston
 - kanagawa-dragon
 - kanagawa-lotus
@@ -353,6 +357,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - min-light
 - monokai
 - night-owl
+- night-owl-light
 - nord
 - one-dark-pro
 - one-light
