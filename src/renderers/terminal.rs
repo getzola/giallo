@@ -99,7 +99,6 @@ mod tests {
     use super::*;
     use crate::ThemeVariant;
     use crate::registry::HighlightOptions;
-    use crate::renderers::DataAttrPosition;
     use crate::test_utils::get_registry;
 
     #[test]
@@ -114,7 +113,6 @@ mod tests {
             line_number_start: 10,
             highlight_lines: vec![2..=2, 4..=4],
             hide_lines: vec![3..=3],
-            data_attr_position: DataAttrPosition::Both,
         };
 
         let ansi = TerminalRenderer::default().render(&highlighted, &render_options);

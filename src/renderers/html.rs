@@ -1,8 +1,18 @@
 use crate::registry::HighlightedCode;
-use crate::renderers::{DataAttrPosition, RenderOptions};
+use crate::renderers::RenderOptions;
 use crate::themes::{Color, ThemeVariant};
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt;
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum DataAttrPosition {
+    Pre,
+    #[default]
+    Code,
+    Both,
+    None,
+}
 
 #[derive(Debug, PartialEq, Clone, Default)]
 /// A renderer that will output proper HTML code
@@ -13,6 +23,8 @@ pub struct HtmlRenderer {
     /// The value is the class prefix (e.g., "g-" produces classes like "g-keyword").
     /// Generate corresponding CSS stylesheets using `Registry::generate_css`.
     pub css_class_prefix: Option<String>,
+    /// Where to put the data attributes on the code blocks
+    pub data_attr_position: DataAttrPosition,
 }
 
 impl HtmlRenderer {
@@ -157,17 +169,13 @@ impl HtmlRenderer {
                 .collect();
             data_attrs.push_str(&format!(r#" data-{slugified_key}="{value}""#));
         }
-        let pre_data_attrs = match options.data_attr_position {
-            DataAttrPosition::Pre => &data_attrs,
-            DataAttrPosition::Code => "",
-            DataAttrPosition::Both => &data_attrs,
-            DataAttrPosition::None => ""
+        let pre_data_attrs = match self.data_attr_position {
+            DataAttrPosition::Pre | DataAttrPosition::Both => &data_attrs,
+            _ => "",
         };
-        let code_data_attrs = match options.data_attr_position {
-            DataAttrPosition::Pre => "",
-            DataAttrPosition::Code => &data_attrs,
-            DataAttrPosition::Both => &data_attrs,
-            DataAttrPosition::None => "",
+        let code_data_attrs = match self.data_attr_position {
+            DataAttrPosition::Code | DataAttrPosition::Both => &data_attrs,
+            _ => "",
         };
 
         // CSS class mode: output class instead of inline styles on <pre>
@@ -242,7 +250,6 @@ impl fmt::Display for HtmlEscaped<'_> {
 mod tests {
     use super::*;
     use crate::registry::HighlightOptions;
-    use crate::renderers::DataAttrPosition;
     use crate::test_utils::get_registry;
 
     #[test]
@@ -257,7 +264,6 @@ mod tests {
             line_number_start: 10,
             highlight_lines: vec![3..=3, 5..=5],
             hide_lines: vec![4..=4],
-            data_attr_position: DataAttrPosition::Both,
         };
 
         let mut other_metadata = BTreeMap::new();
@@ -268,6 +274,7 @@ mod tests {
         let html = HtmlRenderer {
             other_metadata,
             css_class_prefix: None,
+            data_attr_position: DataAttrPosition::Both,
         }
         .render(&highlighted, &render_options);
         insta::assert_snapshot!(html);

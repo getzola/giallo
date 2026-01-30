@@ -15,16 +15,6 @@ pub struct RenderOptions {
     pub highlight_lines: Vec<RangeInclusive<usize>>,
     /// Which lines to not render. Lines start from 1, not 0.
     pub hide_lines: Vec<RangeInclusive<usize>>,
-    /// Where to put the data attributes on the code blocks
-    pub data_attr_position: DataAttrPosition
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum DataAttrPosition {
-    Pre,
-    Code,
-    Both,
-    None
 }
 
 impl Default for RenderOptions {
@@ -34,7 +24,6 @@ impl Default for RenderOptions {
             line_number_start: 1,
             highlight_lines: Vec::new(),
             hide_lines: Vec::new(),
-            data_attr_position: DataAttrPosition::Both,
         }
     }
 }
