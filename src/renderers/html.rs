@@ -1,9 +1,11 @@
+use std::collections::BTreeMap;
+use std::fmt;
+
+use serde::{Deserialize, Serialize};
+
 use crate::registry::HighlightedCode;
 use crate::renderers::RenderOptions;
 use crate::themes::{Color, ThemeVariant};
-use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
-use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum DataAttrPosition {

@@ -1,6 +1,6 @@
 [package]
 name = "giallo"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2024"
 license = "EUPL-1.2"
 description = "A code highlighter giving the same output as VSCode"
