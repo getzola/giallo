@@ -42,7 +42,28 @@ jobs:
       - name: Run clippy
         run: |
           touch builtin.msgpack
+          # https://github.com/rust-onig/rust-onig/issues/153
           cargo clippy --all-features --all-targets -- -D warnings
+
+  wasm:
+    name: WASM Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-emscripten
+
+      - name: Build for WASM
+        run: |
+          touch builtin.msgpack
+          cargo build --target wasm32-unknown-emscripten --all-features
 
   tests:
     name: Run tests
