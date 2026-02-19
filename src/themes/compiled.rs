@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, GialloResult};
 use crate::themes::Color;
+use crate::themes::css::RuleClassIds;
 use crate::themes::font_style::FontStyle;
 use crate::themes::raw::{RawTheme, TokenColorSettings};
 use crate::themes::selector::{ThemeSelector, parse_selector};
@@ -156,6 +157,8 @@ pub struct CompiledTheme {
     pub line_number_foreground: Option<Color>,
     /// Theme rules sorted by specificity (most specific first)
     pub(crate) rules: Vec<CompiledThemeRule>,
+    /// Precomputed class IDs for each rule
+    pub(crate) class_ids: Vec<RuleClassIds>,
 }
 
 impl CompiledTheme {
@@ -237,10 +240,11 @@ impl CompiledTheme {
 
         rules_with_specificity.sort_by(|a, b| a.1.cmp(&b.1));
         // and then we discard specificity, we don't need it anymore
-        let rules = rules_with_specificity
+        let rules: Vec<CompiledThemeRule> = rules_with_specificity
             .into_iter()
             .map(|(rule, _)| rule)
             .collect();
+        let class_ids = rules.iter().map(|rule| RuleClassIds::from(rule)).collect();
 
         Ok(CompiledTheme {
             name: raw_theme.name,
@@ -249,6 +253,7 @@ impl CompiledTheme {
             highlight_background_color,
             line_number_foreground,
             rules,
+            class_ids,
         })
     }
 }

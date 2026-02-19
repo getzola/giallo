@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-
+use std::fmt::Write;
 use std::ops::Range;
 
 use serde::{Deserialize, Serialize};
@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 use crate::renderers::html::HtmlEscaped;
 use crate::scope::Scope;
 use crate::themes::compiled::ThemeType;
-use crate::themes::{Color, CompiledTheme, Style, ThemeVariant, scope_to_css_selector};
+use crate::themes::css::ClassId;
+use crate::themes::{Color, CompiledTheme, Style, ThemeVariant};
 use crate::tokenizer::Token;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -18,9 +19,9 @@ pub struct HighlightedText {
     /// The assigned style. It can be a single theme or dual theme if light/dark
     /// support was requested.
     pub style: ThemeVariant<Style>,
-    /// The scope stack that contributed to the style for this text, for all styles
-    /// Only used if the user requested HTML classes
-    pub(crate) scopes: Vec<Scope>,
+    /// Stable CSS class IDs that contributed to the final token style.
+    /// Only used when `HtmlRenderer::css_class_prefix` is set.
+    pub(crate) class_ids: Vec<ClassId>,
 }
 
 impl HighlightedText {
@@ -34,7 +35,7 @@ impl HighlightedText {
     ) {
         let s = self.text.as_str();
 
-        if self.scopes.is_empty() {
+        if self.class_ids.is_empty() {
             f.push_str(s);
             return;
         }
@@ -98,18 +99,18 @@ impl HighlightedText {
 
         // CSS class mode
         if let Some(prefix) = css_class_prefix {
-            if self.scopes.is_empty() {
+            if self.class_ids.is_empty() {
                 return format!("<span>{escaped}</span>");
             }
-            let css_classes: Vec<String> = self
-                .scopes
-                .iter()
-                .map(|scope| scope_to_css_selector(*scope, prefix, true))
-                .collect();
-            return format!(
-                r#"<span class="{}">{escaped}</span>"#,
-                css_classes.join(" ").trim(),
-            );
+            let mut css_classes = String::new();
+            for (idx, class_id) in self.class_ids.iter().enumerate() {
+                if idx > 0 {
+                    css_classes.push(' ');
+                }
+                css_classes.push_str(prefix);
+                write!(css_classes, "{class_id}").unwrap();
+            }
+            return format!(r#"<span class="{css_classes}">{escaped}</span>"#);
         }
 
         // Inline style mode
@@ -203,8 +204,8 @@ pub(crate) struct Highlighter<'r> {
     themes: Vec<&'r CompiledTheme>, // 1 theme for Single, 2 for Dual
     #[allow(clippy::type_complexity)]
     // Separate cache per theme (max 2)
-    // token stack -> (style, contributing theme scope)
-    cache: [HashMap<Vec<Scope>, (Style, Vec<Scope>)>; 2],
+    // token stack -> (style, contributing CSS class IDs)
+    cache: [HashMap<Vec<Scope>, (Style, Vec<ClassId>)>; 2],
 }
 
 impl<'r> Highlighter<'r> {
@@ -226,23 +227,23 @@ impl<'r> Highlighter<'r> {
 
     /// Match a scope stack against theme rules, building styles hierarchically
     /// like vscode-textmate does.
-    /// Returns (style_variant, contributing_scopes) where contributing_scopes is the
-    /// union of scopes from all themes that contributed to styling for each theme. Only used for CSS class output.
-    fn match_scopes(&mut self, scopes: &[Scope]) -> (ThemeVariant<Style>, Vec<Scope>) {
+    /// Returns (style_variant, class_ids) where class_ids is the
+    /// union of property winner classes from all themes. Only used for CSS class output.
+    fn match_scopes(&mut self, scopes: &[Scope]) -> (ThemeVariant<Style>, Vec<ClassId>) {
         match self.themes.len() {
             1 => {
-                let (style, contributing) = self.match_scopes_for_theme(scopes, 0);
-                (ThemeVariant::Single(style), contributing)
+                let (style, class_ids) = self.match_scopes_for_theme(scopes, 0);
+                (ThemeVariant::Single(style), class_ids)
             }
             2 => {
-                let (light_style, light_scopes) = self.match_scopes_for_theme(scopes, 0);
-                let (dark_style, dark_scopes) = self.match_scopes_for_theme(scopes, 1);
+                let (light_style, light_class_ids) = self.match_scopes_for_theme(scopes, 0);
+                let (dark_style, dark_class_ids) = self.match_scopes_for_theme(scopes, 1);
 
-                // Union of contributing scopes from both themes
-                let mut contributing = light_scopes;
-                for scope in dark_scopes {
-                    if !contributing.contains(&scope) {
-                        contributing.push(scope);
+                // Union of contributing classes from both themes
+                let mut class_ids = light_class_ids;
+                for class_id in dark_class_ids {
+                    if !class_ids.contains(&class_id) {
+                        class_ids.push(class_id);
                     }
                 }
 
@@ -251,7 +252,7 @@ impl<'r> Highlighter<'r> {
                         light: light_style,
                         dark: dark_style,
                     },
-                    contributing,
+                    class_ids,
                 )
             }
             _ => unreachable!("Highlighter supports only 1 or 2 themes"),
@@ -263,13 +264,13 @@ impl<'r> Highlighter<'r> {
         &mut self,
         scopes: &[Scope],
         theme_index: usize,
-    ) -> (Style, Vec<Scope>) {
+    ) -> (Style, Vec<ClassId>) {
         // Check cache first
         if let Some(cached) = self.cache[theme_index].get(scopes) {
             return cached.clone();
         }
 
-        // Cache miss - compute style and contributing scopes
+        // Cache miss - compute style and contributing class IDs
         let result = self.match_scopes_uncached_for_theme(scopes, theme_index);
         self.cache[theme_index].insert(scopes.to_vec(), result.clone());
 
@@ -281,46 +282,51 @@ impl<'r> Highlighter<'r> {
         &self,
         scopes: &[Scope],
         theme_index: usize,
-    ) -> (Style, Vec<Scope>) {
+    ) -> (Style, Vec<ClassId>) {
         let theme = self.themes[theme_index];
         let mut current_style = theme.default_style;
 
-        // Track which scopes contributed to foreground/background styling
-        let mut fg_scope: Option<Scope> = None;
-        let mut bg_scope: Option<Scope> = None;
+        // Track winners per style property.
+        let mut fg_rule_idx: Option<usize> = None;
+        let mut bg_rule_idx: Option<usize> = None;
+        let mut font_rule_idx: Option<usize> = None;
 
         // Build up scope path incrementally, simulating vscode-textmate's approach
         // Each scope level can override the accumulated style
         for i in 1..=scopes.len() {
             let current_scope_path = &scopes[0..i];
 
-            for rule in &theme.rules {
+            for (rule_idx, rule) in theme.rules.iter().enumerate() {
                 if rule.selector.matches(current_scope_path) {
                     current_style = rule.style_modifier.apply_to(&current_style);
-                    // Track the last scope that contributed each property
+                    // Track the last winner for each property.
                     if rule.style_modifier.foreground.is_some() {
-                        fg_scope = Some(rule.selector.target_scope);
+                        fg_rule_idx = Some(rule_idx);
                     }
                     if rule.style_modifier.background.is_some() {
-                        bg_scope = Some(rule.selector.target_scope);
+                        bg_rule_idx = Some(rule_idx);
+                    }
+                    if rule.style_modifier.font_style.is_some() {
+                        font_rule_idx = Some(rule_idx);
                     }
                 }
             }
             // If no match found, current_style remains unchanged (inheritance!)
         }
 
-        // Collect fg/bg contributing scopes
-        let mut contributing_scopes = Vec::new();
-        if let Some(scope) = fg_scope {
-            contributing_scopes.push(scope);
+        // Collect winner classes for fg/bg/font.
+        let mut class_ids = Vec::new();
+        if let Some(rule_idx) = fg_rule_idx {
+            class_ids.push(theme.class_ids[rule_idx].fg);
         }
-        if let Some(scope) = bg_scope
-            && !contributing_scopes.contains(&scope)
-        {
-            contributing_scopes.push(scope);
+        if let Some(rule_idx) = bg_rule_idx {
+            class_ids.push(theme.class_ids[rule_idx].bg);
+        }
+        if let Some(rule_idx) = font_rule_idx {
+            class_ids.push(theme.class_ids[rule_idx].ft);
         }
 
-        (current_style, contributing_scopes)
+        (current_style, class_ids)
     }
 
     /// Apply highlighting to tokenized lines, preserving line structure.
@@ -340,24 +346,24 @@ impl<'r> Highlighter<'r> {
                 continue;
             }
 
-            // Keep scopes alongside span and style: (span, style, contributing_scopes)
-            // contributing_scopes are the theme rule target scopes that matched, not the tokens' scope stack
-            let mut line_result: Vec<(Range<usize>, ThemeVariant<Style>, Vec<Scope>)> = line_tokens
-                .into_iter()
-                .map(|x| {
-                    let (style, contributing_scopes) = self.match_scopes(&x.scopes);
-                    (x.span, style, contributing_scopes)
-                })
-                .collect();
+            // Keep class IDs alongside span and style: (span, style, class_ids)
+            let mut line_result: Vec<(Range<usize>, ThemeVariant<Style>, Vec<ClassId>)> =
+                line_tokens
+                    .into_iter()
+                    .map(|x| {
+                        let (style, class_ids) = self.match_scopes(&x.scopes);
+                        (x.span, style, class_ids)
+                    })
+                    .collect();
 
             // first merge all ws by prepending to the next non-ws token
             if options.merge_whitespaces {
                 let num_tokens = line_result.len();
-                let mut merged: Vec<(Range<usize>, ThemeVariant<Style>, Vec<Scope>)> =
+                let mut merged: Vec<(Range<usize>, ThemeVariant<Style>, Vec<ClassId>)> =
                     Vec::with_capacity(num_tokens);
                 let mut carry_on_range: Option<Range<usize>> = None;
 
-                for (idx, (span, theme_style, scopes)) in line_result.into_iter().enumerate() {
+                for (idx, (span, theme_style, class_ids)) in line_result.into_iter().enumerate() {
                     let could_merge = !theme_style.has_decoration();
                     let token_content = &line[span.clone()];
                     let is_whitespace_with_next = could_merge
@@ -375,7 +381,7 @@ impl<'r> Highlighter<'r> {
                         if let Some(carried_range) = &carry_on_range {
                             if could_merge {
                                 // We can prepend all the WS to that token
-                                merged.push((carried_range.start..span.end, theme_style, scopes))
+                                merged.push((carried_range.start..span.end, theme_style, class_ids))
                             } else {
                                 // We need to push 2 tokens here, one for the carried WS and one
                                 // for the current token
@@ -388,11 +394,11 @@ impl<'r> Highlighter<'r> {
                                     }
                                 };
                                 merged.push((carried_range.clone(), ws_style, Vec::new()));
-                                merged.push((span, theme_style, scopes));
+                                merged.push((span, theme_style, class_ids));
                             }
                             carry_on_range = None;
                         } else {
-                            merged.push((span, theme_style, scopes));
+                            merged.push((span, theme_style, class_ids));
                         }
                     }
                 }
@@ -403,24 +409,24 @@ impl<'r> Highlighter<'r> {
             // then merge same style tokens after we did the WS
             if options.merge_same_style_tokens && self.themes.len() == 1 {
                 let num_tokens = line_result.len();
-                let mut merged: Vec<(Range<usize>, ThemeVariant<Style>, Vec<Scope>)> =
+                let mut merged: Vec<(Range<usize>, ThemeVariant<Style>, Vec<ClassId>)> =
                     Vec::with_capacity(num_tokens);
 
-                for (span, theme_style, scopes) in line_result {
-                    if let Some((prev_span, prev_theme_style, prev_scopes)) = merged.last_mut() {
+                for (span, theme_style, class_ids) in line_result {
+                    if let Some((prev_span, prev_theme_style, prev_class_ids)) = merged.last_mut() {
                         if &theme_style == prev_theme_style {
                             prev_span.end = span.end;
-                            // Merge scopes, avoiding duplicates
-                            for scope in scopes {
-                                if !prev_scopes.contains(&scope) {
-                                    prev_scopes.push(scope);
+                            // Merge class IDs, avoiding duplicates.
+                            for class_id in class_ids {
+                                if !prev_class_ids.contains(&class_id) {
+                                    prev_class_ids.push(class_id);
                                 }
                             }
                         } else {
-                            merged.push((span, theme_style, scopes));
+                            merged.push((span, theme_style, class_ids));
                         }
                     } else {
-                        merged.push((span, theme_style, scopes));
+                        merged.push((span, theme_style, class_ids));
                     }
                 }
 
@@ -431,10 +437,10 @@ impl<'r> Highlighter<'r> {
             result.push(
                 line_result
                     .into_iter()
-                    .map(|(span, style, scopes)| HighlightedText {
+                    .map(|(span, style, class_ids)| HighlightedText {
                         style,
                         text: line[span].to_string(),
-                        scopes,
+                        class_ids,
                     })
                     .collect(),
             );
@@ -449,6 +455,7 @@ mod tests {
     use super::*;
     use crate::scope::Scope;
     use crate::themes::compiled::{CompiledThemeRule, StyleModifier, ThemeType};
+    use crate::themes::css::RuleClassIds;
     use crate::themes::font_style::FontStyle;
     use crate::themes::raw::{Colors, TokenColorRule, TokenColorSettings};
     use crate::themes::selector::parse_selector;
@@ -474,6 +481,26 @@ mod tests {
     }
 
     fn test_theme() -> CompiledTheme {
+        let rules = vec![
+            CompiledThemeRule {
+                selector: parse_selector("comment").unwrap(),
+                style_modifier: StyleModifier {
+                    foreground: Some(color("#6A9955")),
+                    background: None,
+                    font_style: Some(FontStyle::ITALIC),
+                },
+            },
+            CompiledThemeRule {
+                selector: parse_selector("keyword").unwrap(),
+                style_modifier: StyleModifier {
+                    foreground: Some(color("#569CD6")),
+                    background: None,
+                    font_style: Some(FontStyle::BOLD),
+                },
+            },
+        ];
+        let class_ids = rules.iter().map(|x| RuleClassIds::from(x)).collect();
+
         CompiledTheme {
             name: "Test".to_string(),
             theme_type: ThemeType::Dark,
@@ -484,24 +511,8 @@ mod tests {
             },
             line_number_foreground: None,
             highlight_background_color: None,
-            rules: vec![
-                CompiledThemeRule {
-                    selector: parse_selector("comment").unwrap(),
-                    style_modifier: StyleModifier {
-                        foreground: Some(color("#6A9955")),
-                        background: None,
-                        font_style: Some(FontStyle::ITALIC),
-                    },
-                },
-                CompiledThemeRule {
-                    selector: parse_selector("keyword").unwrap(),
-                    style_modifier: StyleModifier {
-                        foreground: Some(color("#569CD6")),
-                        background: None,
-                        font_style: Some(FontStyle::BOLD),
-                    },
-                },
-            ],
+            rules,
+            class_ids,
         }
     }
 
@@ -518,7 +529,7 @@ mod tests {
         };
         assert_eq!(comment_style.foreground, color("#6A9955"));
         assert_eq!(comment_style.font_style, FontStyle::ITALIC);
-        assert!(!comment_scopes.is_empty()); // Should have contributing scopes
+        assert!(!comment_scopes.is_empty()); // Should have contributing classes
 
         let (ThemeVariant::Single(keyword_style), keyword_scopes) =
             highlighter.match_scopes(&[scope("keyword")])
@@ -527,15 +538,15 @@ mod tests {
         };
         assert_eq!(keyword_style.foreground, color("#569CD6"));
         assert_eq!(keyword_style.font_style, FontStyle::BOLD);
-        assert!(!keyword_scopes.is_empty()); // Should have contributing scopes
+        assert!(!keyword_scopes.is_empty()); // Should have contributing classes
 
-        // Test unmatched scope returns default with empty scopes
+        // Test unmatched scope returns default with empty classes
         let (unknown_style, unknown_scopes) = highlighter.match_scopes(&[scope("unknown")]);
         assert_eq!(
             unknown_style,
             ThemeVariant::Single(highlighter.themes[0].default_style)
         );
-        assert!(unknown_scopes.is_empty()); // No contributing scopes for unknown
+        assert!(unknown_scopes.is_empty()); // No contributing classes for unknown
     }
 
     #[test]
@@ -673,6 +684,65 @@ mod tests {
     }
 
     #[test]
+    fn test_class_ids_track_per_property_winners() {
+        let parent_selector = parse_selector("source parent").unwrap();
+        let child_selector = parse_selector("child").unwrap();
+        let rules = vec![
+            // Parent contributes font style but loses foreground.
+            CompiledThemeRule {
+                selector: parent_selector,
+                style_modifier: StyleModifier {
+                    foreground: Some(color("#00FF00")),
+                    background: None,
+                    font_style: Some(FontStyle::ITALIC),
+                },
+            },
+            // Child wins foreground.
+            CompiledThemeRule {
+                selector: child_selector,
+                style_modifier: StyleModifier {
+                    foreground: Some(color("#0000FF")),
+                    background: None,
+                    font_style: None,
+                },
+            },
+        ];
+        let class_ids = rules.iter().map(|x| RuleClassIds::from(x)).collect();
+
+        let theme = CompiledTheme {
+            name: "Class IDs".to_string(),
+            theme_type: ThemeType::Dark,
+            default_style: Style {
+                foreground: color("#D4D4D4"),
+                background: color("#1E1E1E"),
+                font_style: FontStyle::default(),
+            },
+            line_number_foreground: None,
+            highlight_background_color: None,
+            rules,
+            class_ids,
+        };
+
+        let mut highlighter = Highlighter::new(&theme);
+        let (ThemeVariant::Single(style), class_ids) =
+            highlighter.match_scopes(&[scope("source"), scope("parent"), scope("child")])
+        else {
+            unreachable!()
+        };
+
+        assert_eq!(style.foreground, color("#0000FF"));
+        assert_eq!(style.font_style, FontStyle::ITALIC);
+
+        let child_fg = theme.class_ids[1].fg;
+        let parent_ft = theme.class_ids[0].ft;
+        let parent_fg = theme.class_ids[0].fg;
+
+        assert!(class_ids.contains(&child_fg));
+        assert!(class_ids.contains(&parent_ft));
+        assert!(!class_ids.contains(&parent_fg));
+    }
+
+    #[test]
     fn test_real_world_theme_inheritance() {
         // Load the Vitesse Black theme - a real production theme
         let theme_path =
@@ -766,7 +836,7 @@ mod tests {
         let ht = HighlightedText {
             text: "hello".to_string(),
             style: ThemeVariant::Single(test_theme.default_style),
-            scopes: Vec::new(),
+            class_ids: Vec::new(),
         };
         let res = ht.as_html(&ThemeVariant::Single(&test_theme), None);
         insta::assert_snapshot!(res, @"<span>hello</span>");
@@ -778,7 +848,7 @@ mod tests {
         let ht = HighlightedText {
             text: "<script></script>".to_string(),
             style: ThemeVariant::Single(test_theme.default_style),
-            scopes: Vec::new(),
+            class_ids: Vec::new(),
         };
         let res = ht.as_html(&ThemeVariant::Single(&test_theme), None);
         insta::assert_snapshot!(res, @"<span>&lt;script&gt;&lt;/script&gt;</span>");
@@ -795,7 +865,7 @@ mod tests {
         let ht = HighlightedText {
             text: "hello".to_string(),
             style: ThemeVariant::Single(custom_style),
-            scopes: Vec::new(),
+            class_ids: Vec::new(),
         };
         let res = ht.as_html(&ThemeVariant::Single(&test_theme), None);
         insta::assert_snapshot!(res, @r#"<span style="color: #FFFF00;">hello</span>"#);
@@ -812,7 +882,7 @@ mod tests {
         let ht = HighlightedText {
             text: "hello".to_string(),
             style: ThemeVariant::Single(custom_style),
-            scopes: Vec::new(),
+            class_ids: Vec::new(),
         };
         let res = ht.as_html(&ThemeVariant::Single(&test_theme), None);
         insta::assert_snapshot!(res, @r#"<span style="background-color: #FFFF00;">hello</span>"#);
@@ -829,7 +899,7 @@ mod tests {
         let ht = HighlightedText {
             text: "hello".to_string(),
             style: ThemeVariant::Single(custom_style),
-            scopes: Vec::new(),
+            class_ids: Vec::new(),
         };
         let res = ht.as_html(&ThemeVariant::Single(&test_theme), None);
         insta::assert_snapshot!(res, @r#"<span style="font-style: italic;">hello</span>"#);
@@ -846,7 +916,7 @@ mod tests {
         let ht = HighlightedText {
             text: "hello".to_string(),
             style: ThemeVariant::Single(custom_style),
-            scopes: Vec::new(),
+            class_ids: Vec::new(),
         };
         let res = ht.as_html(&ThemeVariant::Single(&test_theme), None);
         insta::assert_snapshot!(res, @r#"<span style="color: #FFFF00;background-color: #FFFF00;font-style: italic;">hello</span>"#);
@@ -862,7 +932,7 @@ mod tests {
                 light: light.default_style,
                 dark: dark.default_style,
             },
-            scopes: Vec::new(),
+            class_ids: Vec::new(),
         };
         let res = ht.as_html(
             &ThemeVariant::Dual {
@@ -890,7 +960,7 @@ mod tests {
                     ..dark.default_style
                 },
             },
-            scopes: Vec::new(),
+            class_ids: Vec::new(),
         };
         let res = ht.as_html(
             &ThemeVariant::Dual {
@@ -918,7 +988,7 @@ mod tests {
                     ..dark.default_style
                 },
             },
-            scopes: Vec::new(),
+            class_ids: Vec::new(),
         };
         let res = ht.as_html(
             &ThemeVariant::Dual {
@@ -948,7 +1018,7 @@ mod tests {
                     font_style: FontStyle::BOLD,
                 },
             },
-            scopes: Vec::new(),
+            class_ids: Vec::new(),
         };
         let res = ht.as_html(
             &ThemeVariant::Dual {
@@ -966,9 +1036,21 @@ mod tests {
         let ht = HighlightedText {
             text: "hello".to_string(),
             style: ThemeVariant::Single(test_theme.default_style),
-            scopes: vec![scope("keyword"), scope("keyword.control")],
+            class_ids: vec![
+                ClassId {
+                    property: crate::themes::css::Property::Fg,
+                    hash: 0xdeadbeef,
+                },
+                ClassId {
+                    property: crate::themes::css::Property::Ft,
+                    hash: 0xcafebabe,
+                },
+            ],
         };
         let res = ht.as_html(&ThemeVariant::Single(&test_theme), Some("g-"));
-        insta::assert_snapshot!(res, @r#"<span class="g-keyword g-keyword g-control">hello</span>"#);
+        insta::assert_snapshot!(
+            res,
+            @r#"<span class="g-fg-00000000deadbeef g-ft-00000000cafebabe">hello</span>"#
+        );
     }
 }

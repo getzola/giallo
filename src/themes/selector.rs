@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
+use std::hash::{Hash, Hasher};
 
 use crate::scope::Scope;
 
 /// Represents a parent scope requirement in a theme selector.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Parent {
     /// Parent scope that can appear anywhere up the scope stack
     /// `Anywhere(source.js)` from "source.js meta.function" - can have scopes between
@@ -20,6 +21,33 @@ pub struct ThemeSelector {
     pub target_scope: Scope,
     /// Required parent scopes from right to left of the selector
     pub parent_scopes: Vec<Parent>,
+}
+
+// We impl a custom Hash so it doesn't depend on the scope number
+// and break our tests everytime we rebuild the dump
+// This is only called once during theme compilation so not a hot path
+impl Hash for ThemeSelector {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let mut out = self.target_scope.build_string();
+
+        for parent in &self.parent_scopes {
+            out.push('|');
+            match parent {
+                Parent::Anywhere(scope) => {
+                    out.push('a');
+                    out.push('|');
+                    out.push_str(&scope.build_string());
+                }
+                Parent::Direct(scope) => {
+                    out.push('d');
+                    out.push('|');
+                    out.push_str(&scope.build_string());
+                }
+            }
+        }
+
+        state.write(out.as_bytes());
+    }
 }
 
 impl ThemeSelector {
