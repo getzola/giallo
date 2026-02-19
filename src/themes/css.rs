@@ -248,7 +248,7 @@ mod tests {
                 font_style: Some(FontStyle::default()),
             },
         }];
-        let class_ids = rules.iter().map(|x| RuleClassIds::from(x)).collect();
+        let class_ids = rules.iter().map(RuleClassIds::from).collect();
 
         let theme = CompiledTheme {
             name: "Reset Test".to_string(),

@@ -499,7 +499,7 @@ mod tests {
                 },
             },
         ];
-        let class_ids = rules.iter().map(|x| RuleClassIds::from(x)).collect();
+        let class_ids = rules.iter().map(RuleClassIds::from).collect();
 
         CompiledTheme {
             name: "Test".to_string(),
@@ -707,7 +707,7 @@ mod tests {
                 },
             },
         ];
-        let class_ids = rules.iter().map(|x| RuleClassIds::from(x)).collect();
+        let class_ids = rules.iter().map(RuleClassIds::from).collect();
 
         let theme = CompiledTheme {
             name: "Class IDs".to_string(),

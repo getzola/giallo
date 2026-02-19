@@ -244,7 +244,7 @@ impl CompiledTheme {
             .into_iter()
             .map(|(rule, _)| rule)
             .collect();
-        let class_ids = rules.iter().map(|rule| RuleClassIds::from(rule)).collect();
+        let class_ids = rules.iter().map(RuleClassIds::from).collect();
 
         Ok(CompiledTheme {
             name: raw_theme.name,
