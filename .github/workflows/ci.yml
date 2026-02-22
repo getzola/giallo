@@ -41,7 +41,7 @@ jobs:
 
       - name: Run clippy
         run: |
-          touch builtin.msgpack
+          touch builtin.zst
           cargo clippy --all-features --all-targets -- -D warnings
 
   tests:
