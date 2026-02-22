@@ -1210,5 +1210,6 @@ mod tests {
             "Languages with failures: {} / {num_total}",
             all_failures.len(),
         );
+        assert!(false);
     }
 }
