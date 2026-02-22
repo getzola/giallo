@@ -16,7 +16,7 @@ giallo = { version = "0.2.0", features = ["dump"] }
 The `dump` feature is required to use `Registry::builtin()` or create/load your own dump. The dump is not tracked
 in git since it might change frequently, and is generated in the CI release script.
 
-The dump is currently 1.72MB compressed MessagePack file.
+The dump is currently 1.14 MiB compressed bitcode file.
 
 Giallo currently uses a fork of [rust-onig](https://github.com/rust-onig/rust-onig). Once <https://github.com/rust-onig/rust-onig/pull/210>
 or something similar is released on crates.io, I will switch back to the rust-onig crate.
@@ -395,5 +395,5 @@ Giallo has been developed to replace syntect usage in Zola.
 ### tree-sitter
 
 This repository initially started as a tree-sitter highlighter but the grammars were at the time very big (eg easily
-adding 100MB+ to a binary for ~50 languages, compared to <2MB for 4x more languages with Giallo) and queries were slow to load (see https://github.com/getzola/zola/issues/1787#issuecomment-1458569776)
+adding 100MB+ to a binary for ~50 languages, compared to ~1MiB for 4x more languages with Giallo) and queries were slow to load (see https://github.com/getzola/zola/issues/1787#issuecomment-1458569776)
 Both are kind of dealbreakers for something meant to be added to Zola.

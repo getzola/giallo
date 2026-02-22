@@ -1,11 +1,12 @@
 /*.iml
 /.idea
+/.vim
 target/
 Cargo.lock
 out.html
 out
 out-textmate
-builtin.msgpack
+builtin.zst
 grammar_metadata.json
 flamegraph.svg
 perf.data*

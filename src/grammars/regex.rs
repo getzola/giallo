@@ -81,8 +81,10 @@ fn transform_z_anchor(pattern: &str) -> String {
 }
 
 /// A regex wrapper that serializes as a string but compiles lazily at runtime
+#[derive(Serialize, Deserialize)]
 pub struct Regex {
     pattern: String,
+    #[serde(skip)]
     compiled: OnceLock<Option<Arc<onig::Regex>>>,
 }
 
@@ -140,25 +142,6 @@ impl Regex {
     /// Validate that this regex pattern compiles successfully
     pub fn validate(&self) -> Result<(), onig::Error> {
         onig::Regex::new(&self.pattern).map(|_| ())
-    }
-}
-
-impl Serialize for Regex {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str(&self.pattern)
-    }
-}
-
-impl<'de> Deserialize<'de> for Regex {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let pattern = String::deserialize(deserializer)?;
-        Ok(Regex::new(pattern))
     }
 }
 

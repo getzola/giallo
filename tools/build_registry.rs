@@ -2,6 +2,7 @@ use giallo::{PLAIN_GRAMMAR_NAME, Registry};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
+use std::io::Write;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct GrammarMetadata {
@@ -136,42 +137,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("- Failed to load: {} themes", theme_errors);
     println!("- Registered aliases: {} total", aliases_registered);
 
-    // Serialize Registry to compressed MessagePack format
-    println!("\nSerializing Registry with MessagePack + flate2 compression...");
+    // Serialize Registry to compressed bitcode format
+    println!("\nSerializing Registry with bitcode + zstd compression...");
 
-    // Calculate uncompressed MessagePack size for comparison
-    let msgpack_data = rmp_serde::to_vec(&registry)?;
-    let uncompressed_size = msgpack_data.len();
-    let uncompressed_mb = uncompressed_size as f64 / (1024.0 * 1024.0);
+    let buf = registry.dump()?;
+    let compressed_size = buf.len();
 
-    // Save compressed version using Registry's dump_to_file method
-    registry.dump_to_file("builtin.msgpack")?;
-
-    // Check compressed file size
-    let compressed_metadata = fs::metadata("builtin.msgpack")?;
-    let compressed_size = compressed_metadata.len();
     let compressed_mb = compressed_size as f64 / (1024.0 * 1024.0);
 
-    // Calculate compression statistics
-    let compression_ratio = uncompressed_size as f64 / compressed_size as f64;
-    let size_reduction =
-        ((uncompressed_size as f64 - compressed_size as f64) / uncompressed_size as f64) * 100.0;
-
     println!("\n=== COMPRESSION RESULTS ===");
-    println!(
-        "Uncompressed MessagePack: {:.2} MB ({} bytes)",
-        uncompressed_mb, uncompressed_size
-    );
-    println!(
-        "Compressed file:          {:.2} MB ({} bytes)",
-        compressed_mb, compressed_size
-    );
-    println!(
-        "Compression ratio:        {:.2}x smaller",
-        compression_ratio
-    );
-    println!("Size reduction:           {:.1}% smaller", size_reduction);
-    println!("✓ Registry saved to builtin.msgpack");
+    println!("Compressed file:          {compressed_mb:.2} MiB ({compressed_size} bytes)");
+
+    let mut file = std::fs::File::create("builtin.zst")?;
+    file.write_all(&buf)?;
+    println!("✓ Registry saved to builtin.zst");
 
     println!("\nBuild complete!");
 

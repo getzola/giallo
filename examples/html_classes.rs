@@ -2,7 +2,7 @@ use giallo::{HighlightOptions, HtmlRenderer, Registry, RenderOptions, ThemeVaria
 use std::fs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut registry = Registry::load_from_file("builtin.msgpack")?;
+    let mut registry = Registry::load_from_file("builtin.zst")?;
     registry.link_grammars();
 
     // Create output directory

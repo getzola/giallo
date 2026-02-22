@@ -7,7 +7,7 @@
 //! use giallo::{HighlightOptions, HtmlRenderer, Options, Registry, ThemeVariant};
 //!
 //! // Using the `dump` feature and loading the prebuilt assets
-//! let registry = Registry::load_from_file("builtin.msgpack")?;
+//! let registry = Registry::load_from_file("builtin.zst")?;
 //! let code = "let x = 42;";
 //!
 //! let options = HighlightOptions::new("javascript", ThemeVariant::Single("catppuccin-frappe"));

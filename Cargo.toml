@@ -7,14 +7,14 @@ description = "A code highlighter giving the same output as VSCode"
 repository = "https://github.com/getzola/giallo"
 
 include = [
-    "src/**/*.rs",
-    "benches/**/*",
-    "examples/**/*",
-    "tools/**/*",
-    "Cargo.toml",
-    "/LICENSE",
-    "/README.md",
-    "builtin.msgpack",
+  "src/**/*.rs",
+  "benches/**/*",
+  "examples/**/*",
+  "tools/**/*",
+  "Cargo.toml",
+  "/LICENSE",
+  "/README.md",
+  "builtin.zst",
 ]
 
 
@@ -25,15 +25,15 @@ serde = { version = "1", features = ["derive"] }
 papaya = "0.2"
 
 # Optional dependencies for serialization
-rmp-serde = { version = "1.1", optional = true }
-flate2 = { version = "1.0", optional = true }
+bitcode = { version = "0.6.9", optional = true, features = ["serde"] }
+zstd = { version = "0.13.3", optional = true }
 
 log = { version = "0.4", optional = true }
 
 [features]
 tools = ["dump"]
 debug = ["dep:log"]
-dump = ["dep:rmp-serde", "dep:flate2"]
+dump = ["dep:bitcode", "dep:zstd"]
 
 [dev-dependencies]
 criterion = "0.8"
@@ -89,5 +89,3 @@ required-features = ["dump"]
 name = "build-registry"
 path = "tools/build_registry.rs"
 required-features = ["tools"]
-
-

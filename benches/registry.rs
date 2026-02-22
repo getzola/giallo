@@ -2,10 +2,11 @@ use criterion::{Criterion, criterion_group, criterion_main};
 use giallo::Registry;
 
 fn registry_benchmark(c: &mut Criterion) {
-    c.bench_function("registry load from file", |b| {
+    let dump = include_bytes!("../builtin.zst");
+
+    c.bench_function("registry deserialization", |b| {
         b.iter(|| {
-            let registry =
-                Registry::load_from_file("builtin.msgpack").expect("Failed to load registry");
+            let registry = Registry::load(dump).expect("Failed to load registry");
             std::hint::black_box(registry);
         })
     });

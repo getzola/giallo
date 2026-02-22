@@ -53,7 +53,7 @@ fn render_html(highlighted: &HighlightedCode) -> String {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut registry = Registry::load_from_file("builtin.msgpack")?;
+    let mut registry = Registry::load_from_file("builtin.zst")?;
     registry.link_grammars();
     let content = std::fs::read_to_string("grammars-themes/samples/rust.sample")?;
 

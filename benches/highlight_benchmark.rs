@@ -4,8 +4,8 @@ use std::fs;
 
 fn highlight_jquery_benchmark(c: &mut Criterion) {
     // Load registry once for all benchmarks
-    let mut registry = Registry::load_from_file("builtin.msgpack")
-        .expect("Failed to load registry from builtin.msgpack");
+    let mut registry =
+        Registry::load_from_file("builtin.zst").expect("Failed to load registry from builtin.zst");
     registry.link_grammars();
 
     // Read jQuery file content once
@@ -24,8 +24,8 @@ fn highlight_jquery_benchmark(c: &mut Criterion) {
 }
 
 fn highlight_simple_benchmark(c: &mut Criterion) {
-    let mut registry = Registry::load_from_file("builtin.msgpack")
-        .expect("Failed to load registry from builtin.msgpack");
+    let mut registry =
+        Registry::load_from_file("builtin.zst").expect("Failed to load registry from builtin.zst");
     registry.link_grammars();
 
     let ts_content = fs::read_to_string("src/fixtures/samples/simple.ts").unwrap();
@@ -42,8 +42,8 @@ fn highlight_simple_benchmark(c: &mut Criterion) {
 }
 
 fn highlight_multiple_simple_benchmark(c: &mut Criterion) {
-    let mut registry = Registry::load_from_file("builtin.msgpack")
-        .expect("Failed to load registry from builtin.msgpack");
+    let mut registry =
+        Registry::load_from_file("builtin.zst").expect("Failed to load registry from builtin.zst");
     registry.link_grammars();
 
     let ts_content = fs::read_to_string("src/fixtures/samples/simple.ts").unwrap();

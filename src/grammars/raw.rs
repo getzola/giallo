@@ -3,7 +3,7 @@ use std::fs::File;
 use std::ops::Deref;
 use std::path::Path;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::error::GialloResult;
 
@@ -51,7 +51,7 @@ impl From<&str> for Reference {
 /// Custom deserializer for the include field that parses string references into Reference enum
 fn deserialize_reference<'de, D>(deserializer: D) -> Result<Option<Reference>, D::Error>
 where
-    D: serde::Deserializer<'de>,
+    D: Deserializer<'de>,
 {
     let opt_string = Option::<String>::deserialize(deserializer)?;
     Ok(opt_string.map(|s| Reference::from(s.as_str())))
@@ -70,7 +70,7 @@ enum BoolOrNumber {
 /// This fixes compatibility with grammars that use numbers for boolean fields
 fn bool_or_number<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where
-    D: serde::Deserializer<'de>,
+    D: Deserializer<'de>,
 {
     match BoolOrNumber::deserialize(deserializer)? {
         BoolOrNumber::Bool(b) => Ok(b),
@@ -113,7 +113,7 @@ enum CapturesFormat {
 impl<'de> Deserialize<'de> for Captures {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: serde::Deserializer<'de>,
+        D: Deserializer<'de>,
     {
         let mut out = BTreeMap::new();
         // Try to deserialize as our supported formats, but handle the case where it might be empty/null
@@ -159,7 +159,7 @@ fn deserialize_repository_map<'de, D>(
     deserializer: D,
 ) -> Result<BTreeMap<String, RawRule>, D::Error>
 where
-    D: serde::Deserializer<'de>,
+    D: Deserializer<'de>,
 {
     let raw_map = BTreeMap::<String, RawRuleValue>::deserialize(deserializer)?;
     let mut result = BTreeMap::new();

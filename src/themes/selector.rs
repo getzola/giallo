@@ -1,5 +1,6 @@
-use crate::scope::Scope;
 use serde::{Deserialize, Serialize};
+
+use crate::scope::Scope;
 
 /// Represents a parent scope requirement in a theme selector.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

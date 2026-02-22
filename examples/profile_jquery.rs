@@ -2,7 +2,7 @@ use giallo::{HighlightOptions, Registry, ThemeVariant};
 use std::fs;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut registry = Registry::load_from_file("builtin.msgpack")?;
+    let mut registry = Registry::load_from_file("builtin.zst")?;
     registry.link_grammars();
     let jquery_content = fs::read_to_string("src/fixtures/samples/jquery.js")?;
 

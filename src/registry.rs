@@ -20,12 +20,30 @@ use crate::tokenizer::{Token, Tokenizer};
 #[cfg(feature = "dump")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 struct Dump {
-    registry: Registry,
-    scope_repo: ScopeRepository,
+    grammars: Vec<CompiledGrammar>,
+    themes: Vec<CompiledTheme>,
+    atoms: Vec<String>,
 }
 
 #[cfg(feature = "dump")]
-const BUILTIN_DATA: &[u8] = include_bytes!("../builtin.msgpack");
+impl Dump {
+    pub fn restore(self) -> (Registry, ScopeRepository) {
+        let registry = Registry::restore(self.grammars, self.themes);
+        let scope_repo = ScopeRepository::from_atoms(self.atoms);
+        (registry, scope_repo)
+    }
+
+    pub fn build(registry: &Registry, scope_repo: &ScopeRepository) -> Self {
+        Dump {
+            grammars: registry.grammars.clone(),
+            themes: registry.themes.values().cloned().collect(),
+            atoms: scope_repo.atoms.clone(),
+        }
+    }
+}
+
+#[cfg(feature = "dump")]
+const BUILTIN_DATA: &[u8] = include_bytes!("../builtin.zst");
 
 /// The default grammar name, where nothing is highlighted
 pub const PLAIN_GRAMMAR_NAME: &str = "plain";
@@ -105,7 +123,7 @@ pub(crate) fn normalize_string(s: &str) -> String {
 ///
 /// Holds all the grammars and themes and is responsible for highlighting a text. It is not
 /// responsible for actually rendering those highlighted texts.
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Default)]
 pub struct Registry {
     // Vector of compiled grammars for ID-based access
     pub(crate) grammars: Vec<CompiledGrammar>,
@@ -125,7 +143,6 @@ pub struct Registry {
     // We cache the pattern set at the registry level it's compiled only once instead of per
     // highlight. To do that we had to check the end regex in the tokenizer separately from the
     // regset.
-    #[serde(skip)]
     pattern_cache: papaya::HashMap<(GrammarId, GlobalRuleRef), Arc<PatternSet>>,
 }
 
@@ -144,6 +161,40 @@ impl Clone for Registry {
 }
 
 impl Registry {
+    #[cfg(feature = "dump")]
+    /// Restore a registry from a list of grammars and themes.
+    /// This is used in loading dumps.
+    fn restore(grammars: Vec<CompiledGrammar>, all_themes: Vec<CompiledTheme>) -> Self {
+        let mut grammar_id_by_scope_name = HashMap::with_capacity(grammars.len());
+        let mut grammar_id_by_name = HashMap::with_capacity(grammars.len());
+        let mut injections_by_grammar = Vec::with_capacity(grammars.len());
+        let pattern_cache = papaya::HashMap::new();
+        let mut themes = HashMap::with_capacity(all_themes.len());
+
+        for grammar in &grammars {
+            grammar_id_by_scope_name.insert(grammar.scope_name.to_lowercase(), grammar.id);
+            grammar_id_by_name.insert(grammar.name.to_lowercase(), grammar.id);
+            injections_by_grammar.push(HashSet::with_capacity(grammar.injections.len()));
+        }
+
+        for theme in all_themes {
+            themes.insert(theme.name.to_lowercase(), theme);
+        }
+
+        let mut this = Self {
+            grammars,
+            grammar_id_by_scope_name,
+            grammar_id_by_name,
+            themes,
+            injections_by_grammar,
+            linked: false,
+            pattern_cache,
+        };
+        this.link_grammars();
+
+        this
+    }
+
     fn add_grammar_from_raw(&mut self, raw_grammar: RawGrammar) -> GialloResult<()> {
         if self.linked && self.grammar_id_by_name.contains_key(&raw_grammar.name) {
             return Err(Error::ReplacingGrammarPostLinking(
@@ -488,42 +539,38 @@ impl Registry {
     }
 
     #[cfg(feature = "dump")]
-    /// Dump the registry + scope repository to a binary file that can be loaded later
-    pub fn dump_to_file(&self, path: impl AsRef<Path>) -> GialloResult<()> {
+    /// Dump the registry + scope repository to a binary file that can be loaded later.
+    pub fn dump(&self) -> GialloResult<Vec<u8>> {
         use crate::scope::lock_global_scope_repo;
-        use flate2::{Compression, write::GzEncoder};
-        use std::io::Write;
+        if self.linked {
+            return Err(Error::DumpAfterLinking);
+        }
 
-        // Create a Dump containing both Registry and current ScopeRepository
-        let scope_repo = lock_global_scope_repo().clone();
-        let dump = Dump {
-            registry: self.clone(),
-            scope_repo,
+        let dump = {
+            let scope_repo = lock_global_scope_repo();
+            Dump::build(self, &scope_repo)
         };
 
-        let msgpack_data = rmp_serde::to_vec(&dump)?;
-        let file = std::fs::File::create(path)?;
-        let mut encoder = GzEncoder::new(file, Compression::default());
-        encoder.write_all(&msgpack_data)?;
-        encoder.finish()?;
+        let bitcode_data = bitcode::serialize(&dump)?;
+        let compressed = zstd::encode_all(bitcode_data.as_slice(), 5)?;
 
-        Ok(())
+        Ok(compressed)
     }
 
     #[cfg(feature = "dump")]
-    fn load_from_bytes(compressed_data: &[u8]) -> GialloResult<Self> {
+    /// Loads a byte slice from a dump.
+    pub fn load(buf: &[u8]) -> GialloResult<Self> {
         use crate::scope::replace_global_scope_repo;
-        use flate2::read::GzDecoder;
         use std::io::Read;
 
-        let mut decoder = GzDecoder::new(compressed_data);
-        let mut msgpack_data = Vec::new();
-        decoder.read_to_end(&mut msgpack_data)?;
+        let mut decoder = zstd::Decoder::new(buf)?;
+        let mut data = Vec::new();
+        decoder.read_to_end(&mut data)?;
+        let dump: Dump = bitcode::deserialize(&data)?;
+        let (registry, scope_repo) = dump.restore();
+        replace_global_scope_repo(scope_repo);
 
-        let dump: Dump = rmp_serde::from_slice(&msgpack_data)?;
-        replace_global_scope_repo(dump.scope_repo);
-
-        Ok(dump.registry)
+        Ok(registry)
     }
 
     #[cfg(feature = "dump")]
@@ -532,7 +579,7 @@ impl Registry {
     /// to call Registry::load_from_file, only the first one will actually load things.
     pub fn load_from_file(path: impl AsRef<Path>) -> GialloResult<Self> {
         let compressed_data = std::fs::read(path)?;
-        Self::load_from_bytes(&compressed_data)
+        Self::load(&compressed_data)
     }
 
     #[cfg(feature = "dump")]
@@ -540,7 +587,7 @@ impl Registry {
     /// This is a no-op when called multiple times: eg if you have multiple threads all trying
     /// to call Registry::builtin, only the first one will actually load things.
     pub fn builtin() -> GialloResult<Self> {
-        Self::load_from_bytes(BUILTIN_DATA)
+        Self::load(BUILTIN_DATA)
     }
 }
 

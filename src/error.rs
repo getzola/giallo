@@ -14,13 +14,9 @@ pub enum Error {
     /// JSON parsing failed when loading a grammar or a theme.
     Json(serde_json::Error),
 
-    /// MessagePack encoding failed.
+    /// bitcode failure.
     #[cfg(feature = "dump")]
-    MsgPackEncode(rmp_serde::encode::Error),
-
-    /// MessagePack decoding failed.
-    #[cfg(feature = "dump")]
-    MsgPackDecode(rmp_serde::decode::Error),
+    Bitcode(bitcode::Error),
 
     /// An invalid hex color was encountered.
     /// Can only happen when loading a theme.
@@ -47,6 +43,10 @@ pub enum Error {
     /// Tried to replace a grammar in the registry after calling `registry.link_grammars()`.
     /// External references to the original grammar will have
     ReplacingGrammarPostLinking(String),
+
+    /// The user tried to create a dump after linking.
+    /// Dump has to be done pre-linking.
+    DumpAfterLinking,
 }
 
 impl fmt::Display for Error {
@@ -55,9 +55,7 @@ impl fmt::Display for Error {
             Error::Io(err) => write!(f, "I/O error: {}", err),
             Error::Json(err) => write!(f, "JSON parsing error: {}", err),
             #[cfg(feature = "dump")]
-            Error::MsgPackEncode(err) => write!(f, "MessagePack encoding error: {}", err),
-            #[cfg(feature = "dump")]
-            Error::MsgPackDecode(err) => write!(f, "MessagePack decoding error: {}", err),
+            Error::Bitcode(err) => write!(f, "bitcode encoding/decoding error: {}", err),
             Error::InvalidHexColor { value, reason } => {
                 write!(f, "invalid hex color '{}': {}", value, reason)
             }
@@ -70,6 +68,9 @@ impl fmt::Display for Error {
             Error::ReplacingGrammarPostLinking(s) => {
                 write!(f, "Tried to replace grammar `{s}` after linking")
             }
+            Error::DumpAfterLinking => {
+                write!(f, "Cannot dump a registry that has been linked")
+            }
         }
     }
 }
@@ -80,11 +81,10 @@ impl std::error::Error for Error {
             Error::Io(err) => Some(err),
             Error::Json(err) => Some(err),
             #[cfg(feature = "dump")]
-            Error::MsgPackEncode(err) => Some(err),
-            #[cfg(feature = "dump")]
-            Error::MsgPackDecode(err) => Some(err),
+            Error::Bitcode(err) => Some(err),
             Error::InvalidHexColor { .. }
             | Error::UnlinkedGrammars
+            | Error::DumpAfterLinking
             | Error::ReplacingGrammarPostLinking(_)
             | Error::GrammarNotFound(_)
             | Error::ThemeNotFound(_)
@@ -106,15 +106,8 @@ impl From<serde_json::Error> for Error {
 }
 
 #[cfg(feature = "dump")]
-impl From<rmp_serde::encode::Error> for Error {
-    fn from(err: rmp_serde::encode::Error) -> Self {
-        Error::MsgPackEncode(err)
-    }
-}
-
-#[cfg(feature = "dump")]
-impl From<rmp_serde::decode::Error> for Error {
-    fn from(err: rmp_serde::decode::Error) -> Self {
-        Error::MsgPackDecode(err)
+impl From<bitcode::Error> for Error {
+    fn from(value: bitcode::Error) -> Self {
+        Error::Bitcode(value)
     }
 }
