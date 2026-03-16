@@ -119,12 +119,15 @@ impl StyleModifier {
 /// Theme type for determining fallback colors
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ThemeType {
+    /// A light theme
     Light,
     #[default]
+    /// A dark theme
     Dark,
 }
 
 impl ThemeType {
+    /// Parse a theme type from a string (e.g. `"light"` or `"dark"`).
     pub fn from_theme_str(s: &str) -> ThemeType {
         if s.eq_ignore_ascii_case("light") {
             ThemeType::Light
@@ -147,7 +150,7 @@ pub struct CompiledTheme {
     /// The name of the theme
     pub name: String,
     /// Theme type ("light" or "dark")
-    pub(crate) theme_type: ThemeType,
+    pub theme_type: ThemeType,
     /// Default style for tokens with no specific rules
     pub default_style: Style,
     /// Value of `editor.lineHighlightBackground`

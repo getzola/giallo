@@ -40,6 +40,7 @@ pub use registry::{HighlightOptions, HighlightedCode, PLAIN_GRAMMAR_NAME, Regist
 pub use renderers::{
     RenderOptions, html::DataAttrPosition, html::HtmlRenderer, terminal::TerminalRenderer,
 };
+pub use themes::compiled::ThemeType;
 pub use themes::{Color, CompiledTheme, FontStyle, Style, ThemeVariant};
 
 /// The CSS needed for the line number gutter to display properly
