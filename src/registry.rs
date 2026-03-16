@@ -292,6 +292,20 @@ impl Registry {
         self.themes.contains_key(name.to_lowercase().as_str())
     }
 
+    /// Returns a sorted list of all grammar names and aliases registered.
+    pub fn grammar_names(&self) -> Vec<&str> {
+        let mut names: Vec<&str> = self.grammar_id_by_name.keys().map(|s| s.as_str()).collect();
+        names.sort_unstable();
+        names
+    }
+
+    /// Returns a sorted list of all theme names registered.
+    pub fn theme_names(&self) -> Vec<&str> {
+        let mut names: Vec<&str> = self.themes.keys().map(|s| s.as_str()).collect();
+        names.sort_unstable();
+        names
+    }
+
     /// The main entry point for the actual giallo usage.
     ///
     /// This returns the raw output of the tokenizer + theme matching. It's up to you to use

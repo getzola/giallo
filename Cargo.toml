@@ -29,9 +29,11 @@ bitcode = { version = "0.6.9", optional = true, features = ["serde"] }
 zstd = { version = "0.13.3", optional = true }
 
 log = { version = "0.4", optional = true }
+clap = { version = "4", features = ["derive"], optional = true }
 
 [features]
 tools = ["dump"]
+cli = ["dump", "dep:clap"]
 debug = ["dep:log"]
 dump = ["dep:bitcode", "dep:zstd"]
 
@@ -89,3 +91,8 @@ required-features = ["dump"]
 name = "build-registry"
 path = "tools/build_registry.rs"
 required-features = ["tools"]
+
+[[bin]]
+name = "giallo-cli"
+path = "tools/cli.rs"
+required-features = ["cli"]
