@@ -82,6 +82,13 @@ struct Cli {
     /// List all available theme names and exit
     #[arg(long)]
     list_themes: bool,
+
+    /// Use CSS classes instead of inline styles for HTML output.
+    /// Optionally takes a class prefix (defaults to "g-").
+    /// Generated CSS is embedded in html-page and all-themes formats,
+    /// or printed to stderr for the html format.
+    #[arg(long, num_args = 0..=1, default_missing_value = "g-")]
+    css_classes: Option<String>,
 }
 
 fn parse_ranges(input: &str) -> Vec<RangeInclusive<usize>> {
@@ -141,7 +148,24 @@ fn detect_language(file_path: &str, registry: &Registry) -> Option<String> {
     None
 }
 
-fn wrap_html_page(fragment: &str, theme_css: &str) -> String {
+fn make_renderer(css_prefix: Option<&str>) -> HtmlRenderer {
+    HtmlRenderer {
+        css_class_prefix: css_prefix.map(|s| s.to_string()),
+        ..Default::default()
+    }
+}
+
+fn generate_theme_css(
+    registry: &Registry,
+    theme_name: &str,
+    prefix: &str,
+) -> Result<String, String> {
+    registry
+        .generate_css(theme_name, prefix)
+        .map_err(|e| format!("failed to generate CSS for theme '{theme_name}': {e}"))
+}
+
+fn wrap_html_page(fragment: &str, extra_css: &str) -> String {
     format!(
         r#"<!DOCTYPE html>
 <html>
@@ -153,7 +177,7 @@ fn wrap_html_page(fragment: &str, theme_css: &str) -> String {
         font-size: 16px;
     }}
     {GIALLO_CSS}
-    {theme_css}
+    {extra_css}
     </style>
 </head>
 <body>
@@ -168,11 +192,14 @@ fn render_all_themes(
     content: &str,
     language: &str,
     render_options: &RenderOptions,
+    css_prefix: Option<&str>,
 ) -> String {
     let theme_names = registry.theme_names();
     let total = theme_names.len();
 
     let mut sections = Vec::with_capacity(total);
+    let mut all_css = String::new();
+    let renderer = make_renderer(css_prefix);
 
     for (i, theme_name) in theme_names.iter().enumerate() {
         eprint!(
@@ -202,7 +229,37 @@ fn render_all_themes(
         let fg = theme.default_style.foreground.as_hex();
         let bg = theme.default_style.background.as_hex();
 
-        let fragment = HtmlRenderer::default().render(&highlighted, render_options);
+        // When using CSS classes in all-themes mode, we scope each theme's CSS
+        // inside a wrapper with a data attribute so they don't collide.
+        let fragment = if let Some(prefix) = css_prefix {
+            match generate_theme_css(registry, theme_name, prefix) {
+                Ok(css) => {
+                    // Scope the CSS rules under [data-theme="<name>"] so each
+                    // section gets its own isolated styles.
+                    let scoped_css = css
+                        .lines()
+                        .map(|line| {
+                            if line.starts_with('.') || line.starts_with("pre.") {
+                                format!("[data-giallo-theme=\"{theme_name}\"] {line}")
+                            } else {
+                                line.to_string()
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    all_css.push_str(&scoped_css);
+                    all_css.push('\n');
+                }
+                Err(e) => {
+                    eprintln!("\nwarning: {e}");
+                }
+            }
+
+            let inner = renderer.render(&highlighted, render_options);
+            format!(r#"<div data-giallo-theme="{theme_name}">{inner}</div>"#)
+        } else {
+            renderer.render(&highlighted, render_options)
+        };
 
         // Pick a contrasting text color for the heading based on whether the theme is light or dark
         let heading_fg = if theme_type_label == "light" {
@@ -262,6 +319,7 @@ fn render_all_themes(
         border-radius: 0 0 8px 8px;
     }}
     {GIALLO_CSS}
+    {all_css}
     </style>
 </head>
 <body>
@@ -313,6 +371,12 @@ fn main() {
     if !is_all_themes && cli.theme.is_none() {
         eprintln!("error: --theme is required for this output format");
         process::exit(1);
+    }
+
+    // Warn if --css-classes is used with terminal format
+    let css_prefix = cli.css_classes.as_deref();
+    if css_prefix.is_some() && matches!(cli.format, OutputFormat::Terminal) {
+        eprintln!("warning: --css-classes has no effect with terminal output format");
     }
 
     // Read input
@@ -369,7 +433,7 @@ fn main() {
 
     // Handle all-themes format separately since it doesn't use a single theme
     if is_all_themes {
-        let output = render_all_themes(&registry, &content, &language, &render_options);
+        let output = render_all_themes(&registry, &content, &language, &render_options, css_prefix);
 
         if let Some(output_path) = &cli.output {
             if let Err(e) = fs::write(output_path, &output) {
@@ -405,13 +469,51 @@ fn main() {
         }
     };
 
+    let renderer = make_renderer(css_prefix);
+
+    // Generate CSS for class-based mode
+    let theme_css = if let Some(prefix) = css_prefix {
+        let mut css = String::new();
+        match generate_theme_css(&registry, theme, prefix) {
+            Ok(c) => css.push_str(&c),
+            Err(e) => {
+                eprintln!("error: {e}");
+                process::exit(1);
+            }
+        }
+        if let Some(dark) = &cli.dark_theme {
+            match generate_theme_css(&registry, dark, prefix) {
+                Ok(c) => {
+                    css.push('\n');
+                    css.push_str(&c);
+                }
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    process::exit(1);
+                }
+            }
+        }
+        Some(css)
+    } else {
+        None
+    };
+
     // Render
     let output = match cli.format {
         OutputFormat::Terminal => TerminalRenderer::default().render(&highlighted, &render_options),
-        OutputFormat::Html => HtmlRenderer::default().render(&highlighted, &render_options),
+        OutputFormat::Html => {
+            let fragment = renderer.render(&highlighted, &render_options);
+            // For bare HTML fragments with CSS classes, print the CSS to stderr
+            // so the user can capture the fragment from stdout and the CSS separately
+            if let Some(css) = &theme_css {
+                eprintln!("/* Generated CSS for theme(s) — pipe stderr to capture */");
+                eprintln!("{css}");
+            }
+            fragment
+        }
         OutputFormat::HtmlPage => {
-            let fragment = HtmlRenderer::default().render(&highlighted, &render_options);
-            wrap_html_page(&fragment, "")
+            let fragment = renderer.render(&highlighted, &render_options);
+            wrap_html_page(&fragment, theme_css.as_deref().unwrap_or(""))
         }
         OutputFormat::AllThemes => unreachable!(),
     };
