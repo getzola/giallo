@@ -32,11 +32,11 @@ enum OutputFormat {
 )]
 struct Cli {
     /// Path to the source file to highlight. Use `-` for stdin.
-    #[arg(required_unless_present_any = ["list_languages", "list_themes"])]
+    #[arg(required_unless_present_any = ["list_languages", "list_themes", "dump_css"])]
     file: Option<String>,
 
-    /// Theme name (e.g. catppuccin-frappe). Not required when using --format=all-themes.
-    #[arg(short, long, required_unless_present_any = ["list_languages", "list_themes", "format"])]
+    /// Theme name (e.g. catppuccin-frappe). Not required when using --format=all-themes or --dump-css.
+    #[arg(short, long, required_unless_present_any = ["list_languages", "list_themes", "format", "dump_css"])]
     theme: Option<String>,
 
     /// Language/grammar name (e.g. rust, js, python). Auto-detected from file extension if omitted.
@@ -89,6 +89,18 @@ struct Cli {
     /// or printed to stderr for the html format.
     #[arg(long, num_args = 0..=1, default_missing_value = "g-")]
     css_classes: Option<String>,
+
+    /// Dump CSS for a theme and exit. Pass a theme name to dump that theme,
+    /// or use without a value (or "all") to dump every theme.
+    /// Uses the prefix from --css-classes (default "g-").
+    /// Output goes to stdout, or to --output (single file), or to --css-dir (one file per theme).
+    #[arg(long, num_args = 0..=1, default_missing_value = "all")]
+    dump_css: Option<String>,
+
+    /// Directory to write per-theme CSS files into (used with --dump-css).
+    /// Each theme is written as <theme-name>.css in this directory.
+    #[arg(long)]
+    css_dir: Option<String>,
 }
 
 fn parse_ranges(input: &str) -> Vec<RangeInclusive<usize>> {
@@ -330,6 +342,113 @@ fn render_all_themes(
     )
 }
 
+/// Handle the --dump-css command: generate CSS for one or all themes and write it out.
+fn handle_dump_css(
+    registry: &Registry,
+    dump_value: &str,
+    prefix: &str,
+    output: Option<&str>,
+    css_dir: Option<&str>,
+) {
+    let dump_all = dump_value.eq_ignore_ascii_case("all");
+
+    let themes_to_dump: Vec<String> = if dump_all {
+        registry
+            .theme_names()
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect()
+    } else {
+        // Validate that the requested theme exists
+        if !registry.contains_theme(dump_value) {
+            eprintln!("error: theme '{}' not found", dump_value);
+            eprintln!("hint: use --list-themes to see available themes");
+            process::exit(1);
+        }
+        vec![dump_value.to_lowercase()]
+    };
+
+    // Mode 1: --css-dir writes one file per theme
+    if let Some(dir) = css_dir {
+        if let Err(e) = fs::create_dir_all(dir) {
+            eprintln!("error: failed to create directory '{dir}': {e}");
+            process::exit(1);
+        }
+
+        let total = themes_to_dump.len();
+        for (i, theme_name) in themes_to_dump.iter().enumerate() {
+            if total > 1 {
+                eprint!(
+                    "\r  Generating CSS {}/{total}: {theme_name}...            ",
+                    i + 1
+                );
+            }
+
+            let css = match generate_theme_css(registry, theme_name, prefix) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("\nwarning: {e}");
+                    continue;
+                }
+            };
+
+            let file_path = Path::new(dir).join(format!("{theme_name}.css"));
+            if let Err(e) = fs::write(&file_path, &css) {
+                eprintln!("\nerror: failed to write '{}': {e}", file_path.display());
+                process::exit(1);
+            }
+        }
+
+        if total > 1 {
+            eprintln!("\r  Generated {total} CSS files in '{dir}'.                          ");
+        } else {
+            eprintln!("Wrote {dir}/{}.css", themes_to_dump[0]);
+        }
+        return;
+    }
+
+    // Mode 2: --output writes all CSS concatenated into a single file
+    // Mode 3: no --output, print to stdout
+    let mut all_css = String::new();
+    let total = themes_to_dump.len();
+
+    for (i, theme_name) in themes_to_dump.iter().enumerate() {
+        if total > 1 && output.is_some() {
+            eprint!(
+                "\r  Generating CSS {}/{total}: {theme_name}...            ",
+                i + 1
+            );
+        }
+
+        let css = match generate_theme_css(registry, theme_name, prefix) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("\nwarning: {e}");
+                continue;
+            }
+        };
+
+        // Add a comment header when concatenating multiple themes
+        if total > 1 {
+            all_css.push_str(&format!("/* === Theme: {theme_name} === */\n"));
+        }
+        all_css.push_str(&css);
+        all_css.push('\n');
+    }
+
+    if let Some(output_path) = output {
+        if let Err(e) = fs::write(output_path, &all_css) {
+            eprintln!("error: failed to write to '{output_path}': {e}");
+            process::exit(1);
+        }
+        if total > 1 {
+            eprintln!("\r  Wrote {total} themes to '{output_path}'.                          ");
+        }
+    } else {
+        print!("{all_css}");
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
 
@@ -360,6 +479,19 @@ fn main() {
         for name in registry.theme_names() {
             println!("{name}");
         }
+        return;
+    }
+
+    // Handle --dump-css
+    if let Some(ref dump_value) = cli.dump_css {
+        let prefix = cli.css_classes.as_deref().unwrap_or("g-");
+        handle_dump_css(
+            &registry,
+            dump_value,
+            prefix,
+            cli.output.as_deref(),
+            cli.css_dir.as_deref(),
+        );
         return;
     }
 
