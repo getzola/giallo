@@ -96,6 +96,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - berry -> be
 - bibtex
 - bicep
+- bird2 -> bird
 - blade
 - bsl -> 1c
 - c
@@ -182,6 +183,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - jssm -> fsl
 - jsx
 - julia -> jl
+- just
 - kdl
 - kotlin -> kt, kts
 - kusto -> kql
@@ -207,6 +209,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - move
 - narrat -> nar
 - nextflow -> nf
+- nextflow-groovy
 - nginx
 - nim
 - nix
@@ -342,6 +345,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - gruvbox-light-medium
 - gruvbox-light-soft
 - horizon
+- horizon-bright
 - houston
 - kanagawa-dragon
 - kanagawa-lotus
