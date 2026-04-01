@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::registry::HighlightedCode;
 use crate::renderers::RenderOptions;
+use crate::themes::css::{DARK_SUFFIX, LIGHT_SUFFIX};
 use crate::themes::{Color, ThemeVariant};
 
 /// Where to put the additional attributes
@@ -41,11 +42,24 @@ impl HtmlRenderer {
         let lang = highlighted.language;
         let css_prefix = self.css_class_prefix.as_deref();
 
+        // Precompute structural CSS classes (code, hl).
+        // For dual themes, we insert both light and dark classes
+        let (code_class, hl_class) = match css_prefix {
+            Some(p) => match &highlighted.theme {
+                ThemeVariant::Single(_) => (Some(format!("{p}code")), format!("{p}hl")),
+                ThemeVariant::Dual { .. } => (
+                    Some(format!("{p}{LIGHT_SUFFIX}code {p}{DARK_SUFFIX}code")),
+                    format!("{p}{LIGHT_SUFFIX}hl {p}{DARK_SUFFIX}hl"),
+                ),
+            },
+            None => (None, String::new()),
+        };
+
         // Pre-compute highlight background CSS/class if available
         let highlight_attr = if !options.highlight_lines.is_empty() {
-            if let Some(prefix) = css_prefix {
+            if css_prefix.is_some() {
                 // CSS class mode: use hl class
-                Some(format!(r#" class="{prefix}hl""#))
+                Some(format!(r#" class="{hl_class}""#))
             } else {
                 // Inline style mode
                 match &highlighted.theme {
@@ -140,8 +154,8 @@ impl HtmlRenderer {
                 (true, Some(hl_class_or_style)) => {
                     format!(
                         r#"<span class="giallo-l{hl_class_or_style}"{hl_style}>{line_number_html}{line_content}</span>"#,
-                        hl_class_or_style = if let Some(p) = css_prefix {
-                            format!(" {p}hl")
+                        hl_class_or_style = if css_prefix.is_some() {
+                            format!(" {hl_class}")
                         } else {
                             String::new()
                         },
@@ -186,9 +200,9 @@ impl HtmlRenderer {
         };
 
         // CSS class mode: output class instead of inline styles on <pre>
-        if let Some(prefix) = css_prefix {
+        if let Some(code_class) = &code_class {
             return format!(
-                r#"<pre class="giallo {prefix}code" {pre_data_attrs}><code {code_data_attrs}>{lines}</code></pre>"#
+                r#"<pre class="giallo {code_class}" {pre_data_attrs}><code {code_data_attrs}>{lines}</code></pre>"#
             );
         }
 
