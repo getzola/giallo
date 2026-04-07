@@ -22,6 +22,27 @@ pub enum DataAttrPosition {
     None,
 }
 
+/// Extra HTML content to include in the `<pre>` block.
+///
+/// See the [`HtmlRenderer`] documentation for more information.
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct ExtraHtmlContent {
+    /// Additional HTML to insert **before** the `<code>` element.
+    ///
+    /// If set, this string will be processed as a one-off [Tera] template and included in the
+    /// final output of [`HtmlRenderer::render()`].
+    ///
+    /// [Tera]: https://keats.github.io/tera/docs/
+    pub before: Option<String>,
+    /// Additional HTML to insert **after** the `<code>` element.
+    ///
+    /// If set, this string will be processed as a one-off [Tera] template and included in the
+    /// final output of [`HtmlRenderer::render()`].
+    ///
+    /// [Tera]: https://keats.github.io/tera/docs/
+    pub after: Option<String>,
+}
+
 #[derive(Debug, PartialEq, Clone, Default)]
 /// A renderer that will output proper HTML code
 pub struct HtmlRenderer {
@@ -33,6 +54,8 @@ pub struct HtmlRenderer {
     pub css_class_prefix: Option<String>,
     /// Where to put the data attributes on the code blocks
     pub data_attr_position: DataAttrPosition,
+    /// Any extra HTML content to add before or after the `<code>` element
+    pub extra_html_content: ExtraHtmlContent,
 }
 
 impl HtmlRenderer {
@@ -304,6 +327,7 @@ mod tests {
             other_metadata: other_metadata.clone(),
             css_class_prefix: None,
             data_attr_position: DataAttrPosition::Both,
+            ..Default::default()
         }
         .render(&highlighted, &render_options);
         insta::assert_snapshot!(html);
@@ -312,6 +336,7 @@ mod tests {
             other_metadata,
             css_class_prefix: None,
             data_attr_position: DataAttrPosition::None,
+            ..Default::default()
         }
         .render(&highlighted, &render_options);
         insta::assert_snapshot!(html);
