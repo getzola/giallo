@@ -43,6 +43,12 @@ pub struct ExtraHtmlContent {
     pub after: Option<String>,
 }
 
+impl ExtraHtmlContent {
+    const fn is_present(&self) -> bool {
+        self.before.is_some() || self.after.is_some()
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Default)]
 /// A renderer that will output proper HTML code
 pub struct HtmlRenderer {
@@ -222,10 +228,35 @@ impl HtmlRenderer {
             _ => "",
         };
 
+        // Additional HTML to inject into `<pre>` block
+        let (before_code_html, after_code_html) = if self.extra_html_content.is_present() {
+            let mut ctx = tera::Context::new();
+            ctx.insert("lang", &lang);
+            ctx.insert("metadata", &self.other_metadata);
+
+            let before_code_html = self
+                .extra_html_content
+                .before
+                .as_ref()
+                .map(|template| tera::Tera::one_off(template, &ctx, true).unwrap())
+                .unwrap_or_default();
+
+            let after_code_html = self
+                .extra_html_content
+                .after
+                .as_ref()
+                .map(|template| tera::Tera::one_off(template, &ctx, true).unwrap())
+                .unwrap_or_default();
+
+            (before_code_html, after_code_html)
+        } else {
+            Default::default()
+        };
+
         // CSS class mode: output class instead of inline styles on <pre>
         if let Some(code_class) = &code_class {
             return format!(
-                r#"<pre class="giallo {code_class}" {pre_data_attrs}><code {code_data_attrs}>{lines}</code></pre>"#
+                r#"<pre class="giallo {code_class}" {pre_data_attrs}>{before_code_html}<code {code_data_attrs}>{lines}</code>{after_code_html}</pre>"#
             );
         }
 
@@ -235,7 +266,7 @@ impl HtmlRenderer {
                 let fg = theme.default_style.foreground.as_css_color_property();
                 let bg = theme.default_style.background.as_css_bg_color_property();
                 format!(
-                    r#"<pre class="giallo" style="{fg} {bg}" {pre_data_attrs}><code {code_data_attrs}>{lines}</code></pre>"#
+                    r#"<pre class="giallo" style="{fg} {bg}" {pre_data_attrs}>{before_code_html}<code {code_data_attrs}>{lines}</code>{after_code_html}</pre>"#
                 )
             }
             ThemeVariant::Dual { light, dark } => {
@@ -248,7 +279,7 @@ impl HtmlRenderer {
                     &dark.default_style.background,
                 );
                 format!(
-                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}" {pre_data_attrs}><code {code_data_attrs}>{lines}</code></pre>"#
+                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}" {pre_data_attrs}>{before_code_html}<code {code_data_attrs}>{lines}</code>{after_code_html}</pre>"#
                 )
             }
         }
@@ -333,9 +364,35 @@ mod tests {
         insta::assert_snapshot!(html);
 
         let html = HtmlRenderer {
-            other_metadata,
+            other_metadata: other_metadata.clone(),
             css_class_prefix: None,
             data_attr_position: DataAttrPosition::None,
+            ..Default::default()
+        }
+        .render(&highlighted, &render_options);
+        insta::assert_snapshot!(html);
+
+        let html = HtmlRenderer {
+            other_metadata: other_metadata.clone(),
+            css_class_prefix: None,
+            extra_html_content: ExtraHtmlContent {
+                before: Some("<div><span>{{ lang }}</span></div>".to_owned()),
+                after: None,
+            },
+            ..Default::default()
+        }
+        .render(&highlighted, &render_options);
+        insta::assert_snapshot!(html);
+
+        let html = HtmlRenderer {
+            other_metadata,
+            css_class_prefix: None,
+            extra_html_content: ExtraHtmlContent {
+                before: Some(
+                    "<div><span>{{ lang }}</span>{% if metadata.copy == \"true\" %}<button>Copy</button>{% endif %}</div>".to_owned(),
+                ),
+                after: Some("<div>{{ metadata.name }}</div>".to_owned()),
+            },
             ..Default::default()
         }
         .render(&highlighted, &render_options);
