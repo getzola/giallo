@@ -48,12 +48,12 @@ pub struct ExtraHtmlContent {
 pub struct HtmlRenderer {
     /// Any metadata we want to add as `<code>` data-* attribute
     pub other_metadata: BTreeMap<String, String>,
+    /// Where to put the data attributes on the code blocks
+    pub data_attr_position: DataAttrPosition,
     /// If set, output CSS classes instead of inline styles.
     /// The value is the class prefix (e.g., "g-" produces classes like "g-keyword").
     /// Generate corresponding CSS stylesheets using `Registry::generate_css`.
     pub css_class_prefix: Option<String>,
-    /// Where to put the data attributes on the code blocks
-    pub data_attr_position: DataAttrPosition,
     /// Any extra HTML content to add before or after the `<code>` element
     pub extra_html_content: ExtraHtmlContent,
 }
