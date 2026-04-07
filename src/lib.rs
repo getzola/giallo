@@ -17,7 +17,7 @@
 //!     show_line_numbers: true,
 //!     ..Default::default()
 //! };
-//! let html = HtmlRenderer::default().render(&highlighted, &render_options);
+//! let html = HtmlRenderer::default().render(&highlighted, &render_options)?;
 //! ```
 
 #![deny(missing_docs)]

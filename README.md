@@ -40,7 +40,7 @@ let options = HighlightOptions::new("javascript", ThemeVariant::Single("catppucc
 let highlighted = registry.highlight(code, options)?;
 
 // Render to HTML
-let html = HtmlRenderer::default().render(&highlighted, &RenderOptions::default());
+let html = HtmlRenderer::default().render(&highlighted, &RenderOptions::default())?;
 println!("{html}");
 ```
 

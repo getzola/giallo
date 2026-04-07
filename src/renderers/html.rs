@@ -3,6 +3,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+use crate::error::Error;
 use crate::registry::HighlightedCode;
 use crate::renderers::RenderOptions;
 use crate::themes::css::{DARK_SUFFIX, LIGHT_SUFFIX};
@@ -67,7 +68,11 @@ pub struct HtmlRenderer {
 impl HtmlRenderer {
     /// Renders the given highlighted code to an HTML string.
     /// This will also handle automatic light/dark theming and escaping characters.
-    pub fn render(&self, highlighted: &HighlightedCode, options: &RenderOptions) -> String {
+    pub fn render(
+        &self,
+        highlighted: &HighlightedCode,
+        options: &RenderOptions,
+    ) -> Result<String, Error> {
         let lang = highlighted.language;
         let css_prefix = self.css_class_prefix.as_deref();
 
@@ -238,14 +243,16 @@ impl HtmlRenderer {
                 .extra_html_content
                 .before
                 .as_ref()
-                .map(|template| tera::Tera::one_off(template, &ctx, true).unwrap())
+                .map(|template| tera::Tera::one_off(template, &ctx, true))
+                .transpose()?
                 .unwrap_or_default();
 
             let after_code_html = self
                 .extra_html_content
                 .after
                 .as_ref()
-                .map(|template| tera::Tera::one_off(template, &ctx, true).unwrap())
+                .map(|template| tera::Tera::one_off(template, &ctx, true))
+                .transpose()?
                 .unwrap_or_default();
 
             (before_code_html, after_code_html)
@@ -254,10 +261,10 @@ impl HtmlRenderer {
         };
 
         // CSS class mode: output class instead of inline styles on <pre>
-        if let Some(code_class) = &code_class {
-            return format!(
+        if let Some(prefix) = css_prefix {
+            return Ok(format!(
                 r#"<pre class="giallo {code_class}" {pre_data_attrs}>{before_code_html}<code {code_data_attrs}>{lines}</code>{after_code_html}</pre>"#
-            );
+            ));
         }
 
         // Inline style mode
@@ -265,9 +272,9 @@ impl HtmlRenderer {
             ThemeVariant::Single(theme) => {
                 let fg = theme.default_style.foreground.as_css_color_property();
                 let bg = theme.default_style.background.as_css_bg_color_property();
-                format!(
+                Ok(format!(
                     r#"<pre class="giallo" style="{fg} {bg}" {pre_data_attrs}>{before_code_html}<code {code_data_attrs}>{lines}</code>{after_code_html}</pre>"#
-                )
+                ))
             }
             ThemeVariant::Dual { light, dark } => {
                 let fg = Color::as_css_light_dark_color_property(
@@ -278,9 +285,9 @@ impl HtmlRenderer {
                     &light.default_style.background,
                     &dark.default_style.background,
                 );
-                format!(
+                Ok(format!(
                     r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}" {pre_data_attrs}>{before_code_html}<code {code_data_attrs}>{lines}</code>{after_code_html}</pre>"#
-                )
+                ))
             }
         }
     }
@@ -351,7 +358,8 @@ mod tests {
             css_class_prefix: None,
             ..Default::default()
         }
-        .render(&highlighted, &render_options);
+        .render(&highlighted, &render_options)
+        .unwrap();
         insta::assert_snapshot!(html);
 
         let html = HtmlRenderer {
@@ -360,7 +368,8 @@ mod tests {
             data_attr_position: DataAttrPosition::Both,
             ..Default::default()
         }
-        .render(&highlighted, &render_options);
+        .render(&highlighted, &render_options)
+        .unwrap();
         insta::assert_snapshot!(html);
 
         let html = HtmlRenderer {
@@ -369,7 +378,8 @@ mod tests {
             data_attr_position: DataAttrPosition::None,
             ..Default::default()
         }
-        .render(&highlighted, &render_options);
+        .render(&highlighted, &render_options)
+        .unwrap();
         insta::assert_snapshot!(html);
 
         let html = HtmlRenderer {
@@ -381,7 +391,8 @@ mod tests {
             },
             ..Default::default()
         }
-        .render(&highlighted, &render_options);
+        .render(&highlighted, &render_options)
+        .unwrap();
         insta::assert_snapshot!(html);
 
         let html = HtmlRenderer {
@@ -395,7 +406,8 @@ mod tests {
             },
             ..Default::default()
         }
-        .render(&highlighted, &render_options);
+        .render(&highlighted, &render_options)
+        .unwrap();
         insta::assert_snapshot!(html);
     }
 }
