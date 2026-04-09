@@ -14,6 +14,7 @@ use crate::highlight::{HighlightedText, Highlighter, MergingOptions};
 use crate::scope::Scope;
 #[cfg(feature = "dump")]
 use crate::scope::ScopeRepository;
+use crate::themes::css::{DARK_SUFFIX, LIGHT_SUFFIX};
 use crate::themes::{CompiledTheme, RawTheme, ThemeVariant};
 use crate::tokenizer::{Token, Tokenizer};
 
@@ -266,6 +267,34 @@ impl Registry {
             .get(theme_name.to_lowercase().as_str())
             .ok_or_else(|| Error::ThemeNotFound(theme_name.to_string()))?;
         Ok(crate::themes::css::generate_css(theme, prefix))
+    }
+
+    /// Generates 2 CSS stylesheets content for light/dark themes.
+    /// All classes will have the given prefix as well as a `l-` and `d-` to differentiate
+    /// between the two themes.
+    ///
+    /// Use this with `HtmlRenderer::css_class_prefix` to enable CSS-based theming,
+    /// which allows JavaScript-based theme switching.
+    pub fn generate_dual_css(
+        &self,
+        light_theme: &str,
+        dark_theme: &str,
+        prefix: &str,
+    ) -> GialloResult<(String, String)> {
+        let lt = self
+            .themes
+            .get(light_theme.to_lowercase().as_str())
+            .ok_or_else(|| Error::ThemeNotFound(light_theme.to_string()))?;
+        let dt = self
+            .themes
+            .get(dark_theme.to_lowercase().as_str())
+            .ok_or_else(|| Error::ThemeNotFound(dark_theme.to_string()))?;
+        let lp = format!("{prefix}{LIGHT_SUFFIX}");
+        let dp = format!("{prefix}{DARK_SUFFIX}");
+        Ok((
+            crate::themes::css::generate_css(lt, &lp),
+            crate::themes::css::generate_css(dt, &dp),
+        ))
     }
 
     pub(crate) fn tokenize(

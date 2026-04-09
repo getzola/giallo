@@ -560,10 +560,9 @@ impl CompiledGrammar {
                     repository_stack,
                 })
             } else {
-                // For rules with begin but no explicit end or empty end, use "\u{FFFF}" as default end pattern
-                // This matches vscode-textmate behavior which uses '\uFFFF' for missing/empty end patterns
+                // For rules with begin but no explicit end, use "\u{FFFF}" as default end pattern
                 let end_pat = match raw_rule.end.as_deref() {
-                    None | Some("") => "\u{FFFF}",
+                    None => "\u{FFFF}",
                     Some(pattern) => pattern,
                 };
                 let (end, end_has_backrefs) = self.compile_regex(end_pat.to_string());

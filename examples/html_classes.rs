@@ -22,15 +22,20 @@ console.log(`Fibonacci(10) = ${result}`);
     let dark_theme = "catppuccin-frappe";
     let prefix = "g-";
 
-    // Generate CSS for both themes
-    let light_css = registry.generate_css(light_theme, prefix)?;
-    let dark_css = registry.generate_css(dark_theme, prefix)?;
+    // Generate CSS for both themes (light gets g-l-*, dark gets g-d-*)
+    let (light_css, dark_css) = registry.generate_dual_css(light_theme, dark_theme, prefix)?;
 
     fs::write("html-classes/light.css", &light_css)?;
     fs::write("html-classes/dark.css", &dark_css)?;
 
-    // Highlight code (we can use either theme since CSS classes are theme-independent)
-    let options = HighlightOptions::new("javascript", ThemeVariant::Single(light_theme));
+    // Highlight code with both themes: tokens get classes from both
+    let options = HighlightOptions::new(
+        "javascript",
+        ThemeVariant::Dual {
+            light: light_theme,
+            dark: dark_theme,
+        },
+    );
     let highlighted = registry.highlight(code, &options)?;
 
     // Render with CSS classes instead of inline styles

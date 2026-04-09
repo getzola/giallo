@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { Registry, parseRawGrammar } = require(path.join(__dirname, '../../vscode-textmate/out/main'));
+const { Registry, parseRawGrammar } = require(path.join(__dirname, '../../vscode-textmate/out/src/main'));
 
 // Shared constants
 const GRAMMAR_DIR = 'grammars-themes/packages/tm-grammars/grammars/';

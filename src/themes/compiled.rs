@@ -1,10 +1,62 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use crate::error::{Error, GialloResult};
 use crate::themes::Color;
 use crate::themes::font_style::FontStyle;
 use crate::themes::raw::{RawTheme, TokenColorSettings};
 use crate::themes::selector::{ThemeSelector, parse_selector};
+
+/// Maps unique colors from a theme to sequential numeric IDs.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub(crate) struct StyleMap {
+    pub(crate) fg: HashMap<Color, u32>,
+    pub(crate) bg: HashMap<Color, u32>,
+}
+
+impl StyleMap {
+    pub(crate) fn new(rules: &[CompiledThemeRule], default_style: Style) -> Self {
+        let mut fg_set: Vec<Color> = Vec::new();
+        let mut bg_set: Vec<Color> = Vec::new();
+        for rule in rules {
+            if let Some(fg) = rule.style_modifier.foreground
+                && fg != default_style.foreground
+                && !fg_set.contains(&fg)
+            {
+                fg_set.push(fg);
+            }
+            if let Some(bg) = rule.style_modifier.background
+                && bg != default_style.background
+                && !bg_set.contains(&bg)
+            {
+                bg_set.push(bg);
+            }
+        }
+
+        fg_set.sort_by_key(|a| a.as_hex());
+        bg_set.sort_by_key(|a| a.as_hex());
+
+        let mut fg = HashMap::new();
+        for (idx, color) in fg_set.into_iter().enumerate() {
+            fg.insert(color, (idx as u32) + 1);
+        }
+
+        let mut bg = HashMap::new();
+        for (idx, color) in bg_set.into_iter().enumerate() {
+            bg.insert(color, (idx as u32) + 1);
+        }
+
+        StyleMap { fg, bg }
+    }
+
+    pub(crate) fn fg_id(&self, color: Color) -> Option<u32> {
+        self.fg.get(&color).copied()
+    }
+
+    pub(crate) fn bg_id(&self, color: Color) -> Option<u32> {
+        self.bg.get(&color).copied()
+    }
+}
 
 /// Simplified specificity calculation for theme rule sorting.
 /// We use it to sort from less specific to more specific in a theme since
@@ -109,11 +161,6 @@ impl StyleModifier {
             font_style: self.font_style.unwrap_or(base.font_style),
         }
     }
-
-    /// Returns true if this modifier has any properties set
-    pub fn has_properties(&self) -> bool {
-        self.foreground.is_some() || self.background.is_some() || self.font_style.is_some()
-    }
 }
 
 /// Theme type for determining fallback colors
@@ -156,6 +203,8 @@ pub struct CompiledTheme {
     pub line_number_foreground: Option<Color>,
     /// Theme rules sorted by specificity (most specific first)
     pub(crate) rules: Vec<CompiledThemeRule>,
+    /// Color -> class name for CSS output
+    pub(crate) style_map: StyleMap,
 }
 
 impl CompiledTheme {
@@ -237,10 +286,12 @@ impl CompiledTheme {
 
         rules_with_specificity.sort_by(|a, b| a.1.cmp(&b.1));
         // and then we discard specificity, we don't need it anymore
-        let rules = rules_with_specificity
+        let rules: Vec<CompiledThemeRule> = rules_with_specificity
             .into_iter()
             .map(|(rule, _)| rule)
             .collect();
+
+        let style_map = StyleMap::new(&rules, default_style);
 
         Ok(CompiledTheme {
             name: raw_theme.name,
@@ -249,6 +300,7 @@ impl CompiledTheme {
             highlight_background_color,
             line_number_foreground,
             rules,
+            style_map,
         })
     }
 }

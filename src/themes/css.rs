@@ -1,13 +1,15 @@
 use std::fmt::Write;
 
-use crate::scope::{EMPTY_ATOM_NUMBER, MAX_ATOMS_IN_SCOPE, Scope, lock_global_scope_repo};
 use crate::themes::compiled::CompiledTheme;
+
+pub(crate) const LIGHT_SUFFIX: &str = "l-";
+pub(crate) const DARK_SUFFIX: &str = "d-";
 
 /// Generates the CSS content for a textmate theme
 ///
 /// This is used with the HTML renderer, typically to switch highlighting scheme in light/dark
 /// mode which is something that cannot be done inline.
-pub fn generate_css(theme: &CompiledTheme, prefix: &str) -> String {
+pub(crate) fn generate_css(theme: &CompiledTheme, prefix: &str) -> String {
     let mut css = String::new();
 
     // Add header comment
@@ -48,128 +50,50 @@ pub fn generate_css(theme: &CompiledTheme, prefix: &str) -> String {
         writeln!(css).unwrap();
     }
 
-    // Generate CSS for each theme rule
-    for rule in &theme.rules {
-        if rule.style_modifier.has_properties() {
-            generate_rule_css(&mut css, rule, prefix);
-        }
+    // And then the unique colours fg and bg
+    let mut fg_entries: Vec<_> = theme.style_map.fg.iter().collect();
+    fg_entries.sort_by_key(|(_, id)| *id);
+    for (color, id) in fg_entries {
+        writeln!(css, ".{prefix}{id} {{ {} }}", color.as_css_color_property()).unwrap();
+    }
+
+    let mut bg_entries: Vec<_> = theme.style_map.bg.iter().collect();
+    bg_entries.sort_by_key(|(_, id)| *id);
+    for (color, id) in bg_entries {
+        writeln!(
+            css,
+            ".{prefix}bg{id} {{ {} }}",
+            color.as_css_bg_color_property()
+        )
+        .unwrap();
+    }
+
+    writeln!(css, ".{prefix}b {{ font-weight: bold; }}").unwrap();
+    writeln!(css, ".{prefix}i {{ font-style: italic; }}").unwrap();
+    writeln!(css, ".{prefix}u {{ text-decoration: underline; }}").unwrap();
+    writeln!(css, ".{prefix}s {{ text-decoration: line-through; }}").unwrap();
+    writeln!(
+        css,
+        ".{prefix}us {{ text-decoration: underline line-through; }}"
+    )
+    .unwrap();
+
+    if !theme.default_style.font_style.is_empty() {
+        writeln!(
+            css,
+            ".{prefix}fr {{ font-style: normal; font-weight: normal; text-decoration: none; }}"
+        )
+        .unwrap();
     }
 
     css
 }
 
-/// Generate CSS rule for a single theme rule
-fn generate_rule_css(
-    css: &mut String,
-    rule: &crate::themes::compiled::CompiledThemeRule,
-    prefix: &str,
-) {
-    let css_selector = scope_to_css_selector(rule.selector.target_scope, prefix, false);
-
-    write!(css, "{css_selector} {{").unwrap();
-
-    if let Some(fg) = rule.style_modifier.foreground {
-        write!(css, " {}", fg.as_css_color_property()).unwrap();
-    }
-    if let Some(bg) = rule.style_modifier.background {
-        write!(css, " {}", bg.as_css_bg_color_property()).unwrap();
-    }
-    if let Some(font_style) = rule.style_modifier.font_style {
-        write!(css, " {}", font_style.css_attributes().join("")).unwrap();
-    }
-    writeln!(css, " }}").unwrap();
-}
-
-/// Convert a scope to CSS selector or class string with prefixed classes
-/// e.g. "keyword.operator" -> ".g-keyword.g-operator" if as_class=false
-/// and "g-keyword g-operator" if as_class=true
-pub fn scope_to_css_selector(scope: Scope, prefix: &str, as_class: bool) -> String {
-    let mut selector = String::new();
-    let repo = lock_global_scope_repo();
-
-    for i in 0..MAX_ATOMS_IN_SCOPE {
-        let atom_number = scope.atom_at(i);
-
-        match atom_number {
-            0 => break, // No more atoms
-            n if n == EMPTY_ATOM_NUMBER => {
-                // Skip empty atoms - they shouldn't appear in CSS selectors
-                continue;
-            }
-            n => {
-                let atom_str = repo.atom_number_to_str(n);
-                if as_class {
-                    if !selector.is_empty() {
-                        selector.push(' ');
-                    }
-                } else {
-                    selector.push('.');
-                }
-                selector.push_str(prefix);
-                selector.push_str(&escape_css_identifier(atom_str));
-            }
-        }
-    }
-
-    selector
-}
-
-/// Escape special characters in CSS identifiers, namely the class names
-fn escape_css_identifier(identifier: &str) -> String {
-    identifier
-        .chars()
-        .fold(String::with_capacity(identifier.len()), |mut output, c| {
-            if c.is_ascii_alphabetic()
-                || c == '-'
-                || c == '_'
-                || (!output.is_empty() && c.is_ascii_digit())
-            {
-                output.push(c);
-            } else {
-                // Escape special characters as hex
-                write!(output, "\\{:x} ", c as u32).unwrap();
-            }
-            output
-        })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scope::Scope;
     use crate::themes::RawTheme;
     use insta::assert_snapshot;
-
-    #[test]
-    fn test_escape_css_identifier() {
-        assert_eq!(escape_css_identifier("keyword"), "keyword");
-        assert_eq!(escape_css_identifier("meta-function"), "meta-function");
-        assert_eq!(escape_css_identifier("git_gutter"), "git_gutter");
-        // Special characters should be escaped
-        assert_eq!(escape_css_identifier("c++"), "c\\2b \\2b ");
-    }
-
-    #[test]
-    fn test_scope_to_css_selector() {
-        let scope = Scope::new("keyword.operator")[0];
-        let selector = scope_to_css_selector(scope, "g-", false);
-        assert_eq!(selector, ".g-keyword.g-operator");
-
-        let simple_scope = Scope::new("comment")[0];
-        let simple_selector = scope_to_css_selector(simple_scope, "g-", false);
-        assert_eq!(simple_selector, ".g-comment");
-    }
-
-    #[test]
-    fn test_scope_to_css_class() {
-        let scope = Scope::new("keyword.operator")[0];
-        let class = scope_to_css_selector(scope, "g-", true);
-        assert_eq!(class, "g-keyword g-operator");
-
-        let simple_scope = Scope::new("comment")[0];
-        let simple_class = scope_to_css_selector(simple_scope, "g-", true);
-        assert_eq!(simple_class, "g-comment");
-    }
 
     #[test]
     fn can_generate_css_for_theme() {
@@ -179,6 +103,7 @@ mod tests {
         .unwrap()
         .compile()
         .unwrap();
+        assert!(theme.style_map.fg.len() < theme.rules.len());
         assert_snapshot!(generate_css(&theme, "g-"));
     }
 }

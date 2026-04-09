@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const {createRegistry, getSamples} = require("./lib/textmate-common");
-const { EncodedTokenAttributes } = require(path.join(__dirname, '../vscode-textmate/out/encodedTokenAttributes'));
+const { EncodedTokenAttributes } = require(path.join(__dirname, '../vscode-textmate/out/src/encodedTokenAttributes'));
 
 
 const OUTPUT_DIR = 'src/fixtures/snapshots';
