@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let highlighted = registry.highlight(code, &options)?;
 
     // Render to HTML
-    let html = HtmlRenderer::default().render(&highlighted, &RenderOptions::default())?;
+    let html = HtmlRenderer::default().render(&highlighted, &RenderOptions::default());
     println!("{html}");
 
     Ok(())

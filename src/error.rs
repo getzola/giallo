@@ -14,9 +14,6 @@ pub enum Error {
     /// JSON parsing failed when loading a grammar or a theme.
     Json(serde_json::Error),
 
-    /// Tera template processing failed while generating HTML.
-    Tera(tera::Error),
-
     /// bitcode failure.
     #[cfg(feature = "dump")]
     Bitcode(bitcode::Error),
@@ -57,7 +54,6 @@ impl fmt::Display for Error {
         match self {
             Error::Io(err) => write!(f, "I/O error: {}", err),
             Error::Json(err) => write!(f, "JSON parsing error: {}", err),
-            Error::Tera(err) => write!(f, "Tera templating error: {}", err),
             #[cfg(feature = "dump")]
             Error::Bitcode(err) => write!(f, "bitcode encoding/decoding error: {}", err),
             Error::InvalidHexColor { value, reason } => {
@@ -84,7 +80,6 @@ impl std::error::Error for Error {
         match self {
             Error::Io(err) => Some(err),
             Error::Json(err) => Some(err),
-            Error::Tera(err) => Some(err),
             #[cfg(feature = "dump")]
             Error::Bitcode(err) => Some(err),
             Error::InvalidHexColor { .. }
@@ -107,12 +102,6 @@ impl From<io::Error> for Error {
 impl From<serde_json::Error> for Error {
     fn from(err: serde_json::Error) -> Self {
         Error::Json(err)
-    }
-}
-
-impl From<tera::Error> for Error {
-    fn from(err: tera::Error) -> Self {
-        Error::Tera(err)
     }
 }
 

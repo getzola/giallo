@@ -48,7 +48,7 @@ console.log(`Fibonacci(10) = ${result}`);
         highlight_lines: vec![3..=3],
         ..Default::default()
     };
-    let html_code = renderer.render(&highlighted, &render_options)?;
+    let html_code = renderer.render(&highlighted, &render_options);
 
     // Generate full HTML page with theme switcher
     let html = format!(

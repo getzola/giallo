@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         show_line_numbers: true,
         ..Default::default()
     };
-    let rendered = HtmlRenderer::default().render(&highlighted, &render_options)?;
+    let rendered = HtmlRenderer::default().render(&highlighted, &render_options);
 
     println!(
         r#"<!DOCTYPE html>
