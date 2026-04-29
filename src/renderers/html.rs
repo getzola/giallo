@@ -343,7 +343,7 @@ mod tests {
             other_metadata: other_metadata.clone(),
             css_class_prefix: None,
             extra_html_content: ExtraHtmlContent {
-                before: Some("<div><span>rust</span></div>".to_owned()),
+                before: Some("<div><span>javascript</span></div>".to_owned()),
                 after: None,
             },
             ..Default::default()
@@ -355,8 +355,8 @@ mod tests {
             other_metadata,
             css_class_prefix: None,
             extra_html_content: ExtraHtmlContent {
-                before: Some("<div><span>rust</span<button>Copy</button></div>".to_owned()),
-                after: Some("<div>main.rs</div>".to_owned()),
+                before: Some("<div><span>javascript</span><button>Copy</button></div>".to_owned()),
+                after: Some("<div>index.js</div>".to_owned()),
             },
             ..Default::default()
         }
