@@ -22,17 +22,30 @@ pub enum DataAttrPosition {
     None,
 }
 
+/// Extra HTML content to include in the `<pre>` block.
+///
+/// See the [`HtmlRenderer`] documentation for more information.
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct ExtraHtmlContent {
+    /// Additional HTML to insert **before** the `<code>` element.
+    pub before: Option<String>,
+    /// Additional HTML to insert **after** the `<code>` element.
+    pub after: Option<String>,
+}
+
 #[derive(Debug, PartialEq, Clone, Default)]
 /// A renderer that will output proper HTML code
 pub struct HtmlRenderer {
     /// Any metadata we want to add as `<code>` data-* attribute
     pub other_metadata: BTreeMap<String, String>,
+    /// Where to put the data attributes on the code blocks
+    pub data_attr_position: DataAttrPosition,
     /// If set, output CSS classes instead of inline styles.
     /// The value is the class prefix (e.g., "g-" produces classes like "g-keyword").
     /// Generate corresponding CSS stylesheets using `Registry::generate_css`.
     pub css_class_prefix: Option<String>,
-    /// Where to put the data attributes on the code blocks
-    pub data_attr_position: DataAttrPosition,
+    /// Any extra HTML content to add before or after the `<code>` element
+    pub extra_html_content: ExtraHtmlContent,
 }
 
 impl HtmlRenderer {
@@ -199,10 +212,18 @@ impl HtmlRenderer {
             _ => "",
         };
 
+        // Additional HTML to inject into `<pre>` block
+        let before_code_html = self
+            .extra_html_content
+            .before
+            .as_deref()
+            .unwrap_or_default();
+        let after_code_html = self.extra_html_content.after.as_deref().unwrap_or_default();
+
         // CSS class mode: output class instead of inline styles on <pre>
         if let Some(code_class) = &code_class {
             return format!(
-                r#"<pre class="giallo {code_class}" {pre_data_attrs}><code {code_data_attrs}>{lines}</code></pre>"#
+                r#"<pre class="giallo {code_class}" {pre_data_attrs}>{before_code_html}<code {code_data_attrs}>{lines}</code>{after_code_html}</pre>"#
             );
         }
 
@@ -212,7 +233,7 @@ impl HtmlRenderer {
                 let fg = theme.default_style.foreground.as_css_color_property();
                 let bg = theme.default_style.background.as_css_bg_color_property();
                 format!(
-                    r#"<pre class="giallo" style="{fg} {bg}" {pre_data_attrs}><code {code_data_attrs}>{lines}</code></pre>"#
+                    r#"<pre class="giallo" style="{fg} {bg}" {pre_data_attrs}>{before_code_html}<code {code_data_attrs}>{lines}</code>{after_code_html}</pre>"#
                 )
             }
             ThemeVariant::Dual { light, dark } => {
@@ -225,7 +246,7 @@ impl HtmlRenderer {
                     &dark.default_style.background,
                 );
                 format!(
-                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}" {pre_data_attrs}><code {code_data_attrs}>{lines}</code></pre>"#
+                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}" {pre_data_attrs}>{before_code_html}<code {code_data_attrs}>{lines}</code>{after_code_html}</pre>"#
                 )
             }
         }
@@ -304,6 +325,28 @@ mod tests {
             other_metadata: other_metadata.clone(),
             css_class_prefix: None,
             data_attr_position: DataAttrPosition::Both,
+            ..Default::default()
+        }
+        .render(&highlighted, &render_options);
+        insta::assert_snapshot!(html);
+
+        let html = HtmlRenderer {
+            other_metadata: other_metadata.clone(),
+            css_class_prefix: None,
+            data_attr_position: DataAttrPosition::None,
+            ..Default::default()
+        }
+        .render(&highlighted, &render_options);
+        insta::assert_snapshot!(html);
+
+        let html = HtmlRenderer {
+            other_metadata: other_metadata.clone(),
+            css_class_prefix: None,
+            extra_html_content: ExtraHtmlContent {
+                before: Some("<div><span>javascript</span></div>".to_owned()),
+                after: None,
+            },
+            ..Default::default()
         }
         .render(&highlighted, &render_options);
         insta::assert_snapshot!(html);
@@ -311,7 +354,11 @@ mod tests {
         let html = HtmlRenderer {
             other_metadata,
             css_class_prefix: None,
-            data_attr_position: DataAttrPosition::None,
+            extra_html_content: ExtraHtmlContent {
+                before: Some("<div><span>javascript</span><button>Copy</button></div>".to_owned()),
+                after: Some("<div>index.js</div>".to_owned()),
+            },
+            ..Default::default()
         }
         .render(&highlighted, &render_options);
         insta::assert_snapshot!(html);
