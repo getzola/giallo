@@ -349,7 +349,7 @@ mod tests {
             other_metadata: other_metadata.clone(),
             css_class_prefix: None,
             extra_html_content: ExtraHtmlContent {
-                before: Some("<div><span>javascript</span></div>".to_owned()),
+                before: Some("<span>javascript</span>".to_owned()),
                 after: None,
             },
             ..Default::default()
@@ -361,8 +361,8 @@ mod tests {
             other_metadata,
             css_class_prefix: None,
             extra_html_content: ExtraHtmlContent {
-                before: Some("<div><span>javascript</span><button>Copy</button></div>".to_owned()),
-                after: Some("<div>index.js</div>".to_owned()),
+                before: Some("<span><span>javascript</span><button>Copy</button></span>".to_owned()),
+                after: Some("<span>index.js</span>".to_owned()),
             },
             ..Default::default()
         }
