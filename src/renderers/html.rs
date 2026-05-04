@@ -24,12 +24,18 @@ pub enum DataAttrPosition {
 
 /// Extra HTML content to include in the `<pre>` block.
 ///
-/// See the [`HtmlRenderer`] documentation for more information.
+/// This may be used to add extra UI elements to highlighted code blocks, e.g. a "Copy" button.
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct ExtraHtmlContent {
     /// Additional HTML to insert **before** the `<code>` element.
+    ///
+    /// This string will _not_ be escaped automatically by [`HtmlRenderer`]. The caller is
+    /// responsible for ensuring the correctness of the final HTML output.
     pub before: Option<String>,
     /// Additional HTML to insert **after** the `<code>` element.
+    ///
+    /// This string will _not_ be escaped automatically by [`HtmlRenderer`]. The caller is
+    /// responsible for ensuring the correctness of the final HTML output.
     pub after: Option<String>,
 }
 
