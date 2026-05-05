@@ -25,7 +25,7 @@ pub enum DataAttrPosition {
 /// Extra HTML content to include in the `<pre>` block.
 ///
 /// This may be used to add extra UI elements to highlighted code blocks, e.g. a "Copy" button.
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Clone, Default, Serialize, Deserialize)]
 pub struct ExtraHtmlContent {
     /// Additional HTML to insert **before** the `<code>` element.
     ///
@@ -39,7 +39,7 @@ pub struct ExtraHtmlContent {
     pub after: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Clone, Default, Serialize, Deserialize)]
 /// A renderer that will output proper HTML code
 pub struct HtmlRenderer {
     /// Any metadata we want to add as `<code>` data-* attribute
@@ -361,7 +361,9 @@ mod tests {
             other_metadata,
             css_class_prefix: None,
             extra_html_content: ExtraHtmlContent {
-                before: Some("<span><span>javascript</span><button>Copy</button></span>".to_owned()),
+                before: Some(
+                    "<span><span>javascript</span><button>Copy</button></span>".to_owned(),
+                ),
                 after: Some("<span>index.js</span>".to_owned()),
             },
             ..Default::default()
