@@ -399,7 +399,7 @@ impl Registry {
     }
 
     /// Will find all references to external grammars and use the correct target for them.
-    /// Call that if you're not using the provided dump otherwise things will not work well.
+    /// This needs to be called before trying to highlight anything.
     pub fn link_grammars(&mut self) {
         let grammar_names = &self.grammar_id_by_scope_name;
         let grammars_ptr = &self.grammars as *const Vec<CompiledGrammar>;
