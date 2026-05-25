@@ -780,69 +780,6 @@ impl CompiledGrammar {
         self.remove_empty_rules();
     }
 
-    /// Resolves external references after all grammar compilations are complete
-    /// This is called by the registry, not by the grammar itself.
-    pub(crate) fn resolve_external_references(
-        &mut self,
-        grammar_mapping: &HashMap<String, GrammarId>,
-        grammars: &[CompiledGrammar],
-    ) {
-        // This is called after local are resolved so there should be only external refs here
-        let references = std::mem::take(&mut self.references);
-
-        for rep in references {
-            let rule = &mut self.rules[rep.rule_id];
-
-            let (grammar_name, repo_name) = match &rep.reference {
-                Reference::OtherComplete(f) => (f, None),
-                Reference::OtherSpecific(f, s) => (f, Some(s)),
-                _ => unreachable!(),
-            };
-
-            if let Some(g_id) = grammar_mapping.get(grammar_name)
-                && let Some(grammar) = grammars.get(g_id.as_index())
-            {
-                if let Some(repo_name) = repo_name {
-                    let mut found = false;
-                    for repo in &grammar.repositories {
-                        if let Some(r_id) = repo.get(repo_name) {
-                            found = true;
-                            rule.replace_pattern(
-                                rep.index,
-                                GlobalRuleRef {
-                                    grammar: *g_id,
-                                    rule: *r_id,
-                                },
-                            );
-                            break;
-                        }
-                    }
-                    if !found {
-                        #[cfg(feature = "debug")]
-                        log::warn!(
-                            "External grammar '{grammar_name}' found in registry but repository {repo_name} not found in it."
-                        );
-                        rule.replace_pattern(rep.index, NO_OP_GLOBAL_RULE_REF);
-                    }
-                } else {
-                    rule.replace_pattern(
-                        rep.index,
-                        GlobalRuleRef {
-                            grammar: *g_id,
-                            rule: RuleId(0),
-                        },
-                    );
-                }
-            } else {
-                #[cfg(feature = "debug")]
-                log::warn!("External grammar '{grammar_name}' not found in registry.");
-                rule.replace_pattern(rep.index, NO_OP_GLOBAL_RULE_REF);
-            }
-        }
-
-        self.remove_empty_rules();
-    }
-
     /// We match the logic from vscode-textmate
     pub(crate) fn remove_empty_rules(&mut self) {
         loop {
@@ -944,6 +881,61 @@ impl CompiledGrammar {
     pub(crate) fn get_original_rule_name(&self, rule_id: RuleId) -> Option<&str> {
         self.rules[rule_id.as_index()].original_name()
     }
+}
+
+/// Resolves `grammars[index]` external references after all grammar compilations
+/// are complete.
+/// This is called by the registry, not by the grammar itself.
+pub(crate) fn resolve_external_references(
+    index: usize,
+    grammars: &mut [CompiledGrammar],
+    grammar_mapping: &HashMap<String, GrammarId>,
+) {
+    // This is called after local are resolved so there should be only external refs here
+    let references = std::mem::take(&mut grammars[index].references);
+
+    for rep in references {
+        let (grammar_name, repo_name) = match &rep.reference {
+            Reference::OtherComplete(f) => (f, None),
+            Reference::OtherSpecific(f, s) => (f, Some(s)),
+            _ => unreachable!(),
+        };
+
+        let mut resolved = NO_OP_GLOBAL_RULE_REF;
+        if let Some(g_id) = grammar_mapping.get(grammar_name).copied()
+            && let Some(grammar) = grammars.get(g_id.as_index())
+        {
+            if let Some(repo_name) = repo_name {
+                for repo in &grammar.repositories {
+                    if let Some(r_id) = repo.get(repo_name) {
+                        resolved = GlobalRuleRef {
+                            grammar: g_id,
+                            rule: *r_id,
+                        };
+                        break;
+                    }
+                }
+                #[cfg(feature = "debug")]
+                if resolved == NO_OP_GLOBAL_RULE_REF {
+                    log::warn!(
+                        "External grammar '{grammar_name}' found in registry but repository {repo_name} not found in it."
+                    );
+                }
+            } else {
+                resolved = GlobalRuleRef {
+                    grammar: g_id,
+                    rule: ROOT_RULE_ID,
+                };
+            }
+        } else {
+            #[cfg(feature = "debug")]
+            log::warn!("External grammar '{grammar_name}' not found in registry.");
+        }
+
+        grammars[index].rules[rep.rule_id].replace_pattern(rep.index, resolved);
+    }
+
+    grammars[index].remove_empty_rules();
 }
 
 // Index trait implementations for type-safe array access
