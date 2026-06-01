@@ -79,6 +79,8 @@ The list below is in the form: `{lang name} -> aliases`.
 - abap
 - actionscript-3
 - ada
+- ahk -> ahk1
+- ahk2
 - angular-html
 - angular-ts
 - apache
@@ -103,6 +105,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - c3
 - cadence -> cdc
 - cairo
+- chapel -> chpl
 - clarity
 - clojure -> clj
 - cmake
@@ -219,6 +222,7 @@ The list below is in the form: `{lang name} -> aliases`.
 - ocaml
 - odin
 - openscad -> scad
+- org
 - pascal
 - perl
 - php
