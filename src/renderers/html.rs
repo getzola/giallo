@@ -39,7 +39,7 @@ pub struct ExtraHtmlContent {
     pub after: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 /// A renderer that will output proper HTML code
 pub struct HtmlRenderer {
     /// Any metadata we want to add as `<code>` data-* attribute
@@ -52,6 +52,25 @@ pub struct HtmlRenderer {
     pub css_class_prefix: Option<String>,
     /// Any extra HTML content to add before or after the `<code>` element
     pub extra_html_content: ExtraHtmlContent,
+    /// If css output should set color-scheme when using a dual theme
+    ///
+    /// The default is `true`, which emits an inline `color-scheme` rule for every code block.
+    ///
+    /// If set to `false`, no `color-scheme` rule will be emitted.
+    /// Use this option if you set `color-scheme` elsewhere and want it to apply to code blocks.
+    pub add_color_scheme: bool,
+}
+
+impl Default for HtmlRenderer {
+    fn default() -> Self {
+        Self {
+            other_metadata: Default::default(),
+            data_attr_position: Default::default(),
+            css_class_prefix: Default::default(),
+            extra_html_content: Default::default(),
+            add_color_scheme: true,
+        }
+    }
 }
 
 impl HtmlRenderer {
@@ -251,8 +270,13 @@ impl HtmlRenderer {
                     &light.default_style.background,
                     &dark.default_style.background,
                 );
+                let color_scheme = if self.add_color_scheme {
+                    "color-scheme: light dark; "
+                } else {
+                    ""
+                };
                 format!(
-                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}" {pre_data_attrs}>{before_code_html}<code {code_data_attrs}>{lines}</code>{after_code_html}</pre>"#
+                    r#"<pre class="giallo" style="{color_scheme}{fg} {bg}" {pre_data_attrs}>{before_code_html}<code {code_data_attrs}>{lines}</code>{after_code_html}</pre>"#
                 )
             }
         }
