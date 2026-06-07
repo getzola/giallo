@@ -40,6 +40,16 @@ pub struct ExtraHtmlContent {
 }
 
 #[derive(Debug, PartialEq, Clone, Default, Serialize, Deserialize)]
+/// CSS color-scheme to use when rendering a theme using light-dark
+pub enum ColorScheme {
+    /// Don't set color-scheme (leave it up to the user)
+    NotSet,
+    /// Set color-scheme to system setting (`color-scheme: light dark`)
+    #[default]
+    System,
+}
+
+#[derive(Debug, PartialEq, Clone, Default, Serialize, Deserialize)]
 /// A renderer that will output proper HTML code
 pub struct HtmlRenderer {
     /// Any metadata we want to add as `<code>` data-* attribute
@@ -52,6 +62,22 @@ pub struct HtmlRenderer {
     pub css_class_prefix: Option<String>,
     /// Any extra HTML content to add before or after the `<code>` element
     pub extra_html_content: ExtraHtmlContent,
+    /// If css output should set color-scheme when using a dual theme
+    ///
+    /// The default is [`ColorScheme::System`], which emits an inline `color-scheme` rule for every code block.
+    ///
+    /// [`ColorScheme::NotSet`] will *not* emit any `color-scheme` rule.
+    /// Use this option if you set `color-scheme` elsewhere and want it to apply to code blocks.
+    pub css_color_scheme: ColorScheme,
+}
+
+impl fmt::Display for ColorScheme {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NotSet => Ok(()),
+            Self::System => f.write_str("color-scheme: light dark;"),
+        }
+    }
 }
 
 impl HtmlRenderer {
@@ -251,8 +277,9 @@ impl HtmlRenderer {
                     &light.default_style.background,
                     &dark.default_style.background,
                 );
+                let color_scheme = &self.css_color_scheme;
                 format!(
-                    r#"<pre class="giallo" style="color-scheme: light dark; {fg} {bg}" {pre_data_attrs}>{before_code_html}<code {code_data_attrs}>{lines}</code>{after_code_html}</pre>"#
+                    r#"<pre class="giallo" style="{color_scheme} {fg} {bg}" {pre_data_attrs}>{before_code_html}<code {code_data_attrs}>{lines}</code>{after_code_html}</pre>"#
                 )
             }
         }
