@@ -14,3 +14,5 @@ perf.data*
 src/fixtures/tokens/*.txt
 src/fixtures/snapshots/*.txt
 html-classes/
+
+/.devcontainer
