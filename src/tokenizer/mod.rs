@@ -13,7 +13,7 @@ use crate::grammars::{
     END_RULE_ID, GlobalRuleRef, GrammarId, InjectionPrecedence, PatternSet, PatternSetMatch, Regex,
     RegexId, Rule, resolve_backreferences,
 };
-use crate::scope::Scope;
+use crate::scope::{EMPTY_SCOPE_LIST, ScopeInterner, ScopeListId};
 use crate::tokenizer::anchors::AnchorActive;
 use crate::tokenizer::stack::StateStack;
 
@@ -26,7 +26,8 @@ pub struct Token {
     pub span: Range<usize>,
     /// Hierarchical scope names, ordered from outermost to innermost
     /// (e.g., source.js -> string.quoted.double -> punctuation.definition.string).
-    pub scopes: Vec<Scope>,
+    /// Interned so you need the interner
+    pub(crate) scopes: ScopeListId,
 }
 
 /// Small wrapper so we make we only produce valid tokens.
@@ -41,26 +42,15 @@ struct TokenAccumulator {
 }
 
 impl TokenAccumulator {
-    fn produce(&mut self, end_pos: usize, scopes: &[Scope]) {
+    fn produce(&mut self, end_pos: usize, scopes: ScopeListId) {
         // Skip empty tokens (can happen with zero-width matches)
         if self.last_end_pos >= end_pos {
             return;
         }
 
-        // Create and store the token with scope IDs directly
-        #[cfg(feature = "debug")]
-        log::debug!(
-            "[produce]: [{}..{end_pos}]\n{}",
-            self.last_end_pos,
-            scopes
-                .iter()
-                .map(|s| format!(" * {s}"))
-                .collect::<Vec<_>>()
-                .join("\n")
-        );
         self.tokens.push(Token {
             span: self.last_end_pos..end_pos,
-            scopes: scopes.to_vec(),
+            scopes,
         });
 
         // Advance to the end of this token
@@ -98,6 +88,8 @@ pub struct Tokenizer<'g> {
     /// versions of the same regex in there
     /// Some regex content use backref so they are essentially dynamic patterns
     end_regex_cache: HashMap<String, Regex>,
+    //
+    scope_interner: ScopeInterner,
 }
 
 impl<'g> Tokenizer<'g> {
@@ -106,7 +98,13 @@ impl<'g> Tokenizer<'g> {
             base_grammar_id,
             registry,
             end_regex_cache: HashMap::new(),
+            scope_interner: ScopeInterner::default(),
         }
+    }
+
+    /// We need to extract the interner for the highlighter
+    pub(crate) fn into_scope_interner(self) -> ScopeInterner {
+        self.scope_interner
     }
 
     /// Matches injection patterns at the current position
@@ -119,10 +117,16 @@ impl<'g> Tokenizer<'g> {
         is_first_line: bool,
         anchor_position: Option<usize>,
     ) -> Result<Option<(InjectionPrecedence, PatternSetMatch)>, String> {
+        // No need to do any work if we know there are no injections possible
+        if !self.registry.has_injection_patterns(self.base_grammar_id) {
+            return Ok(None);
+        }
+
         let anchor_context = AnchorActive::new(is_first_line, anchor_position, pos);
+        let content_scopes = self.scope_interner.get_scopes(stack.top().content_scopes);
         let injection_patterns = self
             .registry
-            .collect_injection_patterns(self.base_grammar_id, &stack.top().content_scopes);
+            .collect_injection_patterns(self.base_grammar_id, &content_scopes);
 
         if injection_patterns.is_empty() {
             return Ok(None);
@@ -258,8 +262,8 @@ impl<'g> Tokenizer<'g> {
         if while_frame_indices.is_empty() {
             #[cfg(feature = "debug")]
             log::debug!(
-                "[check_while_conditions] no while conditions active:\n  {:?}",
-                stack
+                "[check_while_conditions] no while conditions active:\n  {}",
+                stack.debug(&self.scope_interner).unwrap_or_default()
             );
             return Ok((stack, anchor_position, is_first_line));
         }
@@ -321,7 +325,7 @@ impl<'g> Tokenizer<'g> {
                 let absolute_start = *pos;
                 let absolute_end = *pos + end;
 
-                acc.produce(absolute_start, &frame.content_scopes);
+                acc.produce(absolute_start, frame.content_scopes);
                 // Handle while captures if they exist
                 if let Some(Rule::BeginWhile(begin_while_rule)) = self.registry.grammars
                     [frame.rule_ref.grammar]
@@ -348,7 +352,7 @@ impl<'g> Tokenizer<'g> {
                 }
 
                 // Produce token for the while match itself
-                acc.produce(absolute_end, &frame.content_scopes);
+                acc.produce(absolute_end, frame.content_scopes);
 
                 // Advance position and update anchor - matches VSCode behavior
                 if absolute_end > *pos {
@@ -481,7 +485,7 @@ impl<'g> Tokenizer<'g> {
         }
 
         // (scopes, end_pos)[]
-        let mut local_stack: Vec<(Vec<Scope>, usize)> = Vec::with_capacity(2);
+        let mut local_stack: Vec<(ScopeListId, usize)> = Vec::with_capacity(2);
 
         let min = std::cmp::min(rule_captures.len(), captures.len());
 
@@ -505,14 +509,14 @@ impl<'g> Tokenizer<'g> {
                 && let Some((scopes, end_pos)) = local_stack.last()
                 && *end_pos <= cap_start
             {
-                accumulator.produce(*end_pos, scopes);
+                accumulator.produce(*end_pos, *scopes);
                 local_stack.pop();
             }
 
             if let Some((scopes, _)) = local_stack.last() {
-                accumulator.produce(cap_start, scopes);
+                accumulator.produce(cap_start, *scopes);
             } else {
-                accumulator.produce(cap_start, &stack.top().content_scopes);
+                accumulator.produce(cap_start, stack.top().content_scopes);
             }
 
             //  Check if it has captures. If it does we need to call tokenize_string
@@ -521,22 +525,19 @@ impl<'g> Tokenizer<'g> {
             if rule.has_patterns() {
                 let mut retokenization_stack = stack.clone();
                 retokenization_stack.push(rule_ref, None, false, Some(cap_start));
-
                 // Apply rule name scopes to the new state
-                retokenization_stack
-                    .top_mut()
-                    .name_scopes
-                    .extend(rule.get_name_scopes(line, captures));
+                let name_scopes = self.scope_interner.extend(
+                    retokenization_stack.top().name_scopes,
+                    &rule.get_name_scopes(line, captures),
+                );
+                retokenization_stack.top_mut().name_scopes = name_scopes;
 
                 // Start with name + content scopes for content scopes
-                retokenization_stack.top_mut().content_scopes =
-                    retokenization_stack.top().name_scopes.clone();
+                let content_scopes = self
+                    .scope_interner
+                    .extend(name_scopes, &rule.get_content_scopes(line, captures));
+                retokenization_stack.top_mut().content_scopes = content_scopes;
 
-                // Apply content scopes
-                retokenization_stack
-                    .top_mut()
-                    .content_scopes
-                    .extend(rule.get_content_scopes(line, captures));
                 let substring = &line[0..cap_end];
                 #[cfg(feature = "debug")]
                 {
@@ -559,7 +560,7 @@ impl<'g> Tokenizer<'g> {
 
                 for token in retokenized_acc.tokens {
                     // Only include tokens that are within the capture bounds (they should all be valid now)
-                    accumulator.produce(token.span.end, &token.scopes);
+                    accumulator.produce(token.span.end, token.scopes);
                 }
                 continue;
             }
@@ -573,13 +574,13 @@ impl<'g> Tokenizer<'g> {
                 } else {
                     stack.top().content_scopes.clone()
                 };
-                base.extend(rule_scopes);
+                base = self.scope_interner.extend(base, &rule_scopes);
                 local_stack.push((base, cap_end));
             }
         }
 
         while let Some((scopes, end_pos)) = local_stack.pop() {
-            accumulator.produce(end_pos, &scopes);
+            accumulator.produce(end_pos, scopes);
         }
 
         Ok(())
@@ -667,13 +668,19 @@ impl<'g> Tokenizer<'g> {
                             "[BEFORE POP] Current anchor_position: {:?}",
                             anchor_position
                         );
-                        log::debug!("[BEFORE POP] Stack: {:?}", stack);
+                        log::debug!(
+                            "[BEFORE POP] Stack: {}",
+                            stack.debug(&self.scope_interner).unwrap_or_default()
+                        );
                     }
-                    accumulator.produce(m.start, &stack.top().content_scopes);
+                    accumulator.produce(m.start, stack.top().content_scopes);
                     let popped_enter_position = stack.top().enter_position; // Save for infinite loop protection
                     let popped_anchor_position = stack.top().anchor_position;
                     #[cfg(feature = "debug")]
-                    log::trace!("[POPPED RULE] Stack: {:?}", stack);
+                    log::trace!(
+                        "[POPPED RULE] Stack: {}",
+                        stack.debug(&self.scope_interner).unwrap_or_default()
+                    );
                     stack.set_content_scopes(stack.top().name_scopes.clone());
                     self.resolve_captures(
                         &stack,
@@ -683,7 +690,7 @@ impl<'g> Tokenizer<'g> {
                         &mut accumulator,
                         is_first_line,
                     )?;
-                    accumulator.produce(m.end, &stack.top().content_scopes);
+                    accumulator.produce(m.end, stack.top().content_scopes);
 
                     // Pop to parent state and update anchor position
                     let popped_frame = stack.pop().unwrap();
@@ -694,7 +701,10 @@ impl<'g> Tokenizer<'g> {
                             "[AFTER POP] Restored anchor_position: {:?}",
                             anchor_position
                         );
-                        log::debug!("[AFTER POP] New stack: {:?}", stack);
+                        log::debug!(
+                            "[AFTER POP] New stack: {}",
+                            stack.debug(&self.scope_interner).unwrap_or_default()
+                        );
                     }
 
                     // Grammar pushed & popped a rule without advancing - infinite loop protection
@@ -705,17 +715,19 @@ impl<'g> Tokenizer<'g> {
                         stack.frames.push(popped_frame);
                         #[cfg(feature = "debug")]
                         log::debug!(
-                            "[INFINITE LOOP PROTECTION] Restored rule to stack: {:?}",
-                            stack
+                            "[INFINITE LOOP PROTECTION] Restored rule to stack: {}",
+                            stack.debug(&self.scope_interner).unwrap_or_default()
                         );
-                        accumulator.produce(line.len(), &stack.top().content_scopes);
+                        accumulator.produce(line.len(), stack.top().content_scopes);
                         break;
                     }
                 } else {
                     let rule = &self.registry.grammars[m.rule_ref.grammar].rules[m.rule_ref.rule];
-                    accumulator.produce(m.start, &stack.top().content_scopes);
+                    accumulator.produce(m.start, stack.top().content_scopes);
                     let mut new_scopes = stack.top().content_scopes.clone();
-                    new_scopes.extend(rule.get_name_scopes(line, &m.capture_pos));
+                    new_scopes = self
+                        .scope_interner
+                        .extend(new_scopes, &rule.get_name_scopes(line, &m.capture_pos));
                     // Use push_with_scopes to avoid double-cloning
                     stack.push_with_scopes(
                         m.rule_ref,
@@ -749,10 +761,13 @@ impl<'g> Tokenizer<'g> {
                             &mut accumulator,
                             is_first_line,
                         )?;
-                        accumulator.produce(m.end, &stack.top().content_scopes);
+                        accumulator.produce(m.end, stack.top().content_scopes);
                         anchor_position = Some(m.end);
                         let mut content_scopes = stack.top().name_scopes.clone();
-                        content_scopes.extend(rule.get_content_scopes(line, &m.capture_pos));
+                        content_scopes = self.scope_interner.extend(
+                            content_scopes,
+                            &rule.get_content_scopes(line, &m.capture_pos),
+                        );
                         stack.set_content_scopes(content_scopes);
 
                         if end_has_backrefs {
@@ -787,7 +802,7 @@ impl<'g> Tokenizer<'g> {
                                 &mut accumulator,
                                 is_first_line,
                             )?;
-                            accumulator.produce(m.end, &stack.top().content_scopes);
+                            accumulator.produce(m.end, stack.top().content_scopes);
                             // pop rule immediately since it is a MatchRule
                             stack.pop();
 
@@ -797,7 +812,7 @@ impl<'g> Tokenizer<'g> {
                                 #[cfg(feature = "debug")]
                                 log::warn!("Match rule didn't advance, safe_pop and stop");
                                 stack.safe_pop();
-                                accumulator.produce(line.len(), &stack.top().content_scopes);
+                                accumulator.produce(line.len(), stack.top().content_scopes);
                                 break;
                             }
                         }
@@ -814,7 +829,7 @@ impl<'g> Tokenizer<'g> {
                 #[cfg(feature = "debug")]
                 log::debug!("[tokenize_line] no more matches");
                 // No more matches - emit final token and stop
-                accumulator.produce(line.len(), &stack.top().content_scopes);
+                accumulator.produce(line.len(), stack.top().content_scopes);
                 break;
             }
         }
@@ -829,7 +844,10 @@ impl<'g> Tokenizer<'g> {
 
         let mut stack = StateStack::new(
             self.base_grammar_id,
-            self.registry.grammars[self.base_grammar_id].scope,
+            self.scope_interner.push(
+                EMPTY_SCOPE_LIST,
+                self.registry.grammars[self.base_grammar_id].scope,
+            ),
         );
         let mut lines_tokens = Vec::new();
         let mut is_first_line = true;

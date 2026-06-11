@@ -229,6 +229,70 @@ pub(crate) fn replace_global_scope_repo(new_repo: ScopeRepository) {
     let _ = SCOPE_REPO.set(Mutex::new(new_repo));
 }
 
+/// Represents a Vec<Scope> as a u32
+#[derive(
+    Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Default, Hash, Serialize, Deserialize,
+)]
+pub(crate) struct ScopeListId(u32);
+
+/// We keep this const here instead of storing it in the interner since we would need to
+/// create a dummy scope otherwise
+pub(crate) const EMPTY_SCOPE_LIST: ScopeListId = ScopeListId(0);
+
+impl ScopeListId {
+    #[inline]
+    pub(crate) fn as_index(self) -> usize {
+        self.0 as usize
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct ScopeListNode {
+    parent: ScopeListId,
+    scope: Scope,
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub(crate) struct ScopeInterner {
+    nodes: Vec<ScopeListNode>,
+    lookup: HashMap<(ScopeListId, Scope), ScopeListId>,
+}
+
+impl ScopeInterner {
+    pub(crate) fn num_nodes(&self) -> usize {
+        self.nodes.len() + 1
+    }
+
+    pub(crate) fn push(&mut self, parent: ScopeListId, scope: Scope) -> ScopeListId {
+        *self.lookup.entry((parent, scope)).or_insert_with(|| {
+            let node = ScopeListNode { parent, scope };
+            self.nodes.push(node);
+            ScopeListId(self.nodes.len() as u32)
+        })
+    }
+
+    pub(crate) fn extend(&mut self, parent: ScopeListId, scopes: &[Scope]) -> ScopeListId {
+        let mut current = parent;
+        for scope in scopes {
+            current = self.push(current, *scope);
+        }
+        current
+    }
+
+    pub(crate) fn get_scopes(&self, id: ScopeListId) -> Vec<Scope> {
+        let mut out = vec![];
+        let mut current = id;
+        while current != EMPTY_SCOPE_LIST {
+            // we have EMPTY_SCOPE_LIST so interned ids are 1-based basically
+            let node = &self.nodes[current.as_index() - 1];
+            out.push(node.scope);
+            current = node.parent;
+        }
+        out.reverse();
+        out
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -261,6 +325,7 @@ mod tests {
     #[test]
     fn test_atom_truncation() {
         // Scopes with >8 atoms should be truncated to first 8
+        // only an issue with cpp grammar
         let long_scope = Scope::new("a.b.c.d.e.f.g.h.i.j.k.l")[0];
         assert_eq!(long_scope.len(), 8);
         assert_eq!(long_scope.build_string(), "a.b.c.d.e.f.g.h");
@@ -298,7 +363,6 @@ mod tests {
 
     #[test]
     fn test_empty_atom_preservation() {
-        // Test the main bug fix: scope names with double dots should be preserved
         let scope = Scope::new("meta.tag.object.svg..end.html")[0];
         assert_eq!(scope.build_string(), "meta.tag.object.svg..end.html");
         assert_eq!(scope.len(), 7);
@@ -306,9 +370,36 @@ mod tests {
 
     #[test]
     fn test_empty_atoms_various_positions() {
-        // Test empty atoms in different positions
         assert_eq!(Scope::new("a...b")[0].build_string(), "a...b");
         assert_eq!(Scope::new(".start.end")[0].build_string(), ".start.end");
         assert_eq!(Scope::new("start.end.")[0].build_string(), "start.end.");
+    }
+
+    #[test]
+    fn test_interner() {
+        let mut interner = ScopeInterner::default();
+        let id1 = interner.push(EMPTY_SCOPE_LIST, Scope::new("source.rust")[0]);
+        let id2 = interner.push(id1, Scope::new("comment")[0]);
+        // same one as above
+        let id3 = interner.push(id1, Scope::new("comment")[0]);
+        assert_eq!(id2, id3);
+        assert_eq!(interner.nodes.len(), 2);
+        let id4 = interner.extend(id2, &[Scope::new("variable")[0], Scope::new("other")[0]]);
+
+        let res = interner.get_scopes(id2);
+        assert_eq!(
+            res,
+            vec![Scope::new("source.rust")[0], Scope::new("comment")[0]]
+        );
+        let res = interner.get_scopes(id4);
+        assert_eq!(
+            res,
+            vec![
+                Scope::new("source.rust")[0],
+                Scope::new("comment")[0],
+                Scope::new("variable")[0],
+                Scope::new("other")[0]
+            ]
+        );
     }
 }

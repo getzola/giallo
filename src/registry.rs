@@ -11,9 +11,9 @@ use crate::grammars::{
 };
 use crate::highlight::{HighlightedText, Highlighter, MergingOptions};
 
-use crate::scope::Scope;
 #[cfg(feature = "dump")]
 use crate::scope::ScopeRepository;
+use crate::scope::{Scope, ScopeInterner};
 use crate::themes::css::{DARK_SUFFIX, LIGHT_SUFFIX};
 use crate::themes::{CompiledTheme, RawTheme, ThemeVariant};
 use crate::tokenizer::{Token, Tokenizer};
@@ -301,12 +301,12 @@ impl Registry {
         &self,
         grammar_id: GrammarId,
         content: &str,
-    ) -> GialloResult<Vec<Vec<Token>>> {
+    ) -> GialloResult<(Vec<Vec<Token>>, ScopeInterner)> {
         let mut tokenizer = Tokenizer::new(grammar_id, self);
         let tokens = tokenizer
             .tokenize_string(content)
             .map_err(Error::TokenizeRegex)?;
-        Ok(tokens)
+        Ok((tokens, tokenizer.into_scope_interner()))
     }
 
     /// Checks whether the given lang is available in the registry with its grammar name
@@ -348,7 +348,7 @@ impl Registry {
             .ok_or_else(|| Error::GrammarNotFound(options.lang.clone()))?;
 
         let normalized_content = normalize_string(content);
-        let tokens = self.tokenize(grammar_id, &normalized_content)?;
+        let (tokens, scope_interner) = self.tokenize(grammar_id, &normalized_content)?;
 
         let merging_options = MergingOptions {
             merge_whitespaces: options.merge_whitespaces,
@@ -362,7 +362,7 @@ impl Registry {
                     .get(theme_name)
                     .ok_or_else(|| Error::ThemeNotFound(theme_name.clone()))?;
 
-                let mut highlighter = Highlighter::new(theme);
+                let mut highlighter = Highlighter::new(theme, &scope_interner);
                 let highlighted_tokens =
                     highlighter.highlight_tokens(&normalized_content, tokens, merging_options);
 
@@ -382,7 +382,8 @@ impl Registry {
                     .get(dark)
                     .ok_or_else(|| Error::ThemeNotFound(dark.clone()))?;
 
-                let mut highlighter = Highlighter::new_dual(light_theme, dark_theme);
+                let mut highlighter =
+                    Highlighter::new_dual(light_theme, dark_theme, &scope_interner);
                 let highlighted_tokens =
                     highlighter.highlight_tokens(&normalized_content, tokens, merging_options);
 
@@ -482,6 +483,11 @@ impl Registry {
         };
         let mut visited = HashSet::new();
         self.get_pattern_set_data(base_grammar_id, base_patterns, &mut visited)
+    }
+
+    pub(crate) fn has_injection_patterns(&self, grammar_id: GrammarId) -> bool {
+        !self.grammars[grammar_id].injections.is_empty()
+            || !self.injections_by_grammar[grammar_id.as_index()].is_empty()
     }
 
     pub(crate) fn collect_injection_patterns(
@@ -623,6 +629,7 @@ mod tests {
 
     use super::*;
     use crate::highlight::HighlightedText;
+    use crate::scope::ScopeInterner;
     use crate::test_utils::get_registry;
     use crate::themes::font_style::FontStyle;
 
@@ -681,7 +688,11 @@ mod tests {
         result
     }
 
-    fn format_tokens(input: &str, lines_tokens: Vec<Vec<Token>>) -> String {
+    fn format_tokens(
+        input: &str,
+        interner: &ScopeInterner,
+        lines_tokens: Vec<Vec<Token>>,
+    ) -> String {
         let normalized = input.replace("\r\n", "\n").replace('\r', "\n");
         let lines: Vec<&str> = normalized.split('\n').collect();
 
@@ -696,7 +707,8 @@ mod tests {
                     "{}: '{}' (line {})\n", // Match fixture format: [start-end] (line N)
                     token_idx, text, line_idx
                 ));
-                for scope in &token.scopes {
+
+                for scope in &interner.get_scopes(token.scopes) {
                     out.push_str(&format!("  - {scope}\n"));
                 }
                 out.push('\n');
@@ -741,10 +753,10 @@ mod tests {
             let sample_path = format!("grammars-themes/samples/{grammar}.sample");
             println!("Checking {sample_path}");
             let sample_content = normalize_string(&fs::read_to_string(sample_path).unwrap());
-            let tokens = registry
+            let (tokens, scope_interner) = registry
                 .tokenize(registry.grammar_id_by_name[&grammar], &sample_content)
                 .unwrap();
-            let out = format_tokens(&sample_content, tokens);
+            let out = format_tokens(&sample_content, &scope_interner, tokens);
             assert_eq!(expected.trim(), out.trim());
         }
     }

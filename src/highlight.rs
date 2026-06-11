@@ -1,11 +1,10 @@
-use std::collections::HashMap;
 use std::fmt::Write;
 use std::ops::Range;
 
 use serde::{Deserialize, Serialize};
 
 use crate::renderers::html::HtmlEscaped;
-use crate::scope::Scope;
+use crate::scope::{ScopeInterner, ScopeListId};
 use crate::themes::compiled::ThemeType;
 use crate::themes::css::{DARK_SUFFIX, LIGHT_SUFFIX};
 use crate::themes::font_style::FontStyle;
@@ -256,29 +255,39 @@ pub(crate) struct Highlighter<'r> {
     // 1 theme for Single, 2 for Dual
     themes: Vec<&'r CompiledTheme>,
     // Separate cache per theme (max 2)
-    cache: [HashMap<Vec<Scope>, Style>; 2],
+    // The index is the interned scopes id
+    cache: [Vec<Option<Style>>; 2],
+    scope_interner: &'r ScopeInterner,
 }
 
 impl<'r> Highlighter<'r> {
     /// Create a new highlighter from a compiled theme
-    pub(crate) fn new(theme: &'r CompiledTheme) -> Self {
+    pub(crate) fn new(theme: &'r CompiledTheme, scope_interner: &'r ScopeInterner) -> Self {
+        let cache = vec![None; scope_interner.num_nodes()];
         Highlighter {
             themes: vec![theme],
-            cache: [HashMap::new(), HashMap::new()],
+            cache: [cache.clone(), cache],
+            scope_interner,
         }
     }
 
     /// Create a new highlighter for dual themes (light and dark)
-    pub(crate) fn new_dual(light_theme: &'r CompiledTheme, dark_theme: &'r CompiledTheme) -> Self {
+    pub(crate) fn new_dual(
+        light_theme: &'r CompiledTheme,
+        dark_theme: &'r CompiledTheme,
+        scope_interner: &'r ScopeInterner,
+    ) -> Self {
+        let cache = vec![None; scope_interner.num_nodes()];
         Highlighter {
             themes: vec![light_theme, dark_theme],
-            cache: [HashMap::new(), HashMap::new()],
+            cache: [cache.clone(), cache],
+            scope_interner,
         }
     }
 
     /// Match a scope stack against theme rules, building styles hierarchically
     /// like vscode-textmate does.
-    fn match_scopes(&mut self, scopes: &[Scope]) -> ThemeVariant<Style> {
+    fn match_scopes(&mut self, scopes: ScopeListId) -> ThemeVariant<Style> {
         match self.themes.len() {
             1 => {
                 let style = self.match_scopes_for_theme(scopes, 0);
@@ -297,14 +306,18 @@ impl<'r> Highlighter<'r> {
     }
 
     /// Match scopes for a specific theme index with caching
-    fn match_scopes_for_theme(&mut self, scopes: &[Scope], theme_index: usize) -> Style {
-        if let Some(cached) = self.cache[theme_index].get(scopes) {
-            return *cached;
+    fn match_scopes_for_theme(&mut self, scope_id: ScopeListId, theme_index: usize) -> Style {
+        let cache_idx = scope_id.as_index();
+
+        if let Some(cached) = self.cache[theme_index][cache_idx] {
+            return cached;
         }
 
         // cache miss, we compute the style
         let theme = self.themes[theme_index];
         let mut current_style = theme.default_style;
+
+        let scopes = self.scope_interner.get_scopes(scope_id);
 
         // Build up scope path incrementally, simulating vscode-textmate's approach
         // Each scope level can override the accumulated style
@@ -318,7 +331,7 @@ impl<'r> Highlighter<'r> {
             // If no match found, current_style remains unchanged (inheritance!)
         }
         let result = current_style;
-        self.cache[theme_index].insert(scopes.to_vec(), result);
+        self.cache[theme_index][cache_idx] = Some(result);
         result
     }
 
@@ -341,7 +354,7 @@ impl<'r> Highlighter<'r> {
             let mut line_result: Vec<(Range<usize>, ThemeVariant<Style>)> = line_tokens
                 .into_iter()
                 .map(|x| {
-                    let style = self.match_scopes(&x.scopes);
+                    let style = self.match_scopes(x.scopes);
                     (x.span, style)
                 })
                 .collect();
@@ -434,7 +447,7 @@ impl<'r> Highlighter<'r> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scope::Scope;
+    use crate::scope::{EMPTY_SCOPE_LIST, Scope, ScopeInterner};
     use crate::themes::compiled::StyleMap;
     use crate::themes::compiled::{CompiledThemeRule, StyleModifier, ThemeType};
     use crate::themes::font_style::FontStyle;
@@ -454,10 +467,10 @@ mod tests {
         Color::from_hex(hex).unwrap()
     }
 
-    fn token(start: usize, end: usize, scope_name: &str) -> Token {
+    fn token(interner: &mut ScopeInterner, start: usize, end: usize, scope_name: &str) -> Token {
         Token {
             span: Range { start, end },
-            scopes: vec![scope(scope_name)],
+            scopes: interner.extend(EMPTY_SCOPE_LIST, &[scope(scope_name)]),
         }
     }
 
@@ -500,25 +513,27 @@ mod tests {
     #[test]
     fn test_match_scopes() {
         let test_theme = test_theme();
-        let mut highlighter = Highlighter::new(&test_theme);
+        let mut interner = ScopeInterner::default();
+        let comment = interner.extend(EMPTY_SCOPE_LIST, &[scope("comment")]);
+        let keyword = interner.extend(EMPTY_SCOPE_LIST, &[scope("keyword")]);
+        let unknown = interner.extend(EMPTY_SCOPE_LIST, &[scope("unknown")]);
+        let mut highlighter = Highlighter::new(&test_theme, &interner);
 
         // Test matching scopes
-        let ThemeVariant::Single(comment_style) = highlighter.match_scopes(&[scope("comment")])
-        else {
+        let ThemeVariant::Single(comment_style) = highlighter.match_scopes(comment) else {
             unreachable!()
         };
         assert_eq!(comment_style.foreground, color("#6A9955"));
         assert_eq!(comment_style.font_style, FontStyle::ITALIC);
 
-        let ThemeVariant::Single(keyword_style) = highlighter.match_scopes(&[scope("keyword")])
-        else {
+        let ThemeVariant::Single(keyword_style) = highlighter.match_scopes(keyword) else {
             unreachable!()
         };
         assert_eq!(keyword_style.foreground, color("#569CD6"));
         assert_eq!(keyword_style.font_style, FontStyle::BOLD);
 
         // Test unmatched scope returns default
-        let unknown_style = highlighter.match_scopes(&[scope("unknown")]);
+        let unknown_style = highlighter.match_scopes(unknown);
         assert_eq!(
             unknown_style,
             ThemeVariant::Single(highlighter.themes[0].default_style)
@@ -528,11 +543,15 @@ mod tests {
     #[test]
     fn test_highlight_tokens() {
         let test_theme = test_theme();
-        let mut highlighter = Highlighter::new(&test_theme);
+        let mut interner = ScopeInterner::default();
         let tokens = vec![
-            vec![token(0, 2, "keyword"), token(3, 8, "unknown")],
-            vec![token(0, 2, "comment")],
+            vec![
+                token(&mut interner, 0, 2, "keyword"),
+                token(&mut interner, 3, 8, "unknown"),
+            ],
+            vec![token(&mut interner, 0, 2, "comment")],
         ];
+        let mut highlighter = Highlighter::new(&test_theme, &interner);
         let content = "if hello\n//";
 
         let highlighted = highlighter.highlight_tokens(content, tokens, MergingOptions::default());
@@ -628,30 +647,38 @@ mod tests {
 
         // Compile using proper pipeline (automatically sorts by specificity)
         let inheritance_theme = CompiledTheme::from_raw_theme(raw_theme).unwrap();
-        let mut highlighter = Highlighter::new(&inheritance_theme);
+        let mut interner = ScopeInterner::default();
+        let constant = interner.extend(EMPTY_SCOPE_LIST, &[scope("constant")]);
+        let numeric = interner.extend(
+            EMPTY_SCOPE_LIST,
+            &[scope("constant"), scope("constant.numeric")],
+        );
+        let hex = interner.extend(
+            EMPTY_SCOPE_LIST,
+            &[
+                scope("constant"),
+                scope("constant.numeric"),
+                scope("constant.numeric.hex"),
+            ],
+        );
+        let mut highlighter = Highlighter::new(&inheritance_theme, &interner);
 
         // Test: constant should get its own values
-        let ThemeVariant::Single(style) = highlighter.match_scopes(&[scope("constant")]) else {
+        let ThemeVariant::Single(style) = highlighter.match_scopes(constant) else {
             unreachable!()
         };
         assert_eq!(style.foreground, color("#300000"));
         assert_eq!(style.font_style, FontStyle::ITALIC);
 
         // Test: constant.numeric should inherit fontStyle from constant but override foreground
-        let ThemeVariant::Single(style) =
-            highlighter.match_scopes(&[scope("constant"), scope("constant.numeric")])
-        else {
+        let ThemeVariant::Single(style) = highlighter.match_scopes(numeric) else {
             unreachable!()
         };
         assert_eq!(style.foreground, color("#400000")); // Overridden
         assert_eq!(style.font_style, FontStyle::ITALIC);
 
         // Test: constant.numeric.hex should inherit foreground from constant.numeric but override fontStyle
-        let ThemeVariant::Single(style) = highlighter.match_scopes(&[
-            scope("constant"),
-            scope("constant.numeric"),
-            scope("constant.numeric.hex"),
-        ]) else {
+        let ThemeVariant::Single(style) = highlighter.match_scopes(hex) else {
             unreachable!()
         };
         assert_eq!(style.foreground, color("#400000")); // Should inherit from constant.numeric
@@ -665,42 +692,53 @@ mod tests {
             PathBuf::from("grammars-themes/packages/tm-themes/themes/vitesse-black.json");
         let raw_theme = RawTheme::load_from_file(theme_path).unwrap();
         let compiled_theme = CompiledTheme::from_raw_theme(raw_theme).unwrap();
-        let mut highlighter = Highlighter::new(&compiled_theme);
+        let mut interner = ScopeInterner::default();
 
         // Test real tokenizer output from ASP.NET Core Razor with invalid HTML tag
         // Token 1: '<' - HTML tag begin punctuation
-        let token1_scopes = [
-            scope("text.aspnetcorerazor"),
-            scope("meta.element.structure.svg.html"),
-            scope("meta.element.object.svg.foreignObject.html"),
-            scope("meta.element.other.invalid.html"),
-            scope("meta.tag.other.invalid.start.html"),
-            scope("punctuation.definition.tag.begin.html"),
-        ];
-        let style1 = highlighter.match_scopes(&token1_scopes);
+        let token1_scopes = interner.extend(
+            EMPTY_SCOPE_LIST,
+            &[
+                scope("text.aspnetcorerazor"),
+                scope("meta.element.structure.svg.html"),
+                scope("meta.element.object.svg.foreignObject.html"),
+                scope("meta.element.other.invalid.html"),
+                scope("meta.tag.other.invalid.start.html"),
+                scope("punctuation.definition.tag.begin.html"),
+            ],
+        );
 
         // Token 2: 'p' - Invalid/unrecognized HTML tag name
-        let token2_scopes = [
-            scope("text.aspnetcorerazor"),
-            scope("meta.element.structure.svg.html"),
-            scope("meta.element.object.svg.foreignObject.html"),
-            scope("meta.element.other.invalid.html"),
-            scope("meta.tag.other.invalid.start.html"),
-            scope("entity.name.tag.html"),
-            scope("invalid.illegal.unrecognized-tag.html"),
-        ];
-        let style2 = highlighter.match_scopes(&token2_scopes);
+        let token2_scopes = interner.extend(
+            EMPTY_SCOPE_LIST,
+            &[
+                scope("text.aspnetcorerazor"),
+                scope("meta.element.structure.svg.html"),
+                scope("meta.element.object.svg.foreignObject.html"),
+                scope("meta.element.other.invalid.html"),
+                scope("meta.tag.other.invalid.start.html"),
+                scope("entity.name.tag.html"),
+                scope("invalid.illegal.unrecognized-tag.html"),
+            ],
+        );
 
         // Token 3: '>' - HTML tag end punctuation
-        let token3_scopes = [
-            scope("text.aspnetcorerazor"),
-            scope("meta.element.structure.svg.html"),
-            scope("meta.element.object.svg.foreignObject.html"),
-            scope("meta.element.other.invalid.html"),
-            scope("meta.tag.other.invalid.start.html"),
-            scope("punctuation.definition.tag.end.html"),
-        ];
-        let style3 = highlighter.match_scopes(&token3_scopes);
+        let token3_scopes = interner.extend(
+            EMPTY_SCOPE_LIST,
+            &[
+                scope("text.aspnetcorerazor"),
+                scope("meta.element.structure.svg.html"),
+                scope("meta.element.object.svg.foreignObject.html"),
+                scope("meta.element.other.invalid.html"),
+                scope("meta.tag.other.invalid.start.html"),
+                scope("punctuation.definition.tag.end.html"),
+            ],
+        );
+
+        let mut highlighter = Highlighter::new(&compiled_theme, &interner);
+        let style1 = highlighter.match_scopes(token1_scopes);
+        let style2 = highlighter.match_scopes(token2_scopes);
+        let style3 = highlighter.match_scopes(token3_scopes);
 
         // Verify that styles are not default (theme inheritance is working)
         assert_ne!(style1, ThemeVariant::Single(compiled_theme.default_style));

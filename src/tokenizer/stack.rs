@@ -1,7 +1,8 @@
-use std::fmt;
-
 use crate::grammars::{GlobalRuleRef, GrammarId, ROOT_RULE_ID};
-use crate::scope::Scope;
+use crate::scope::ScopeListId;
+
+#[cfg(feature = "debug")]
+use crate::scope::ScopeInterner;
 
 #[derive(Clone, Debug)]
 pub struct StackFrame {
@@ -9,10 +10,10 @@ pub struct StackFrame {
     pub rule_ref: GlobalRuleRef,
     /// "name" scopes - applied to begin/end delimiters
     /// These scopes are active when matching the rule's boundaries
-    pub name_scopes: Vec<Scope>,
+    pub name_scopes: ScopeListId,
     /// "contentName" scopes - applied to content between delimiters
     /// These scopes are active for the rule's interior content
-    pub content_scopes: Vec<Scope>,
+    pub content_scopes: ScopeListId,
     /// Dynamic end/while pattern resolved with backreferences
     /// For BeginEnd rules: the end pattern with \1, \2, etc. resolved
     /// For BeginWhile rules: the while pattern with backreferences resolved
@@ -36,15 +37,15 @@ pub struct StateStack {
 }
 
 impl StateStack {
-    pub fn new(grammar_id: GrammarId, grammar_scope: Scope) -> Self {
+    pub fn new(grammar_id: GrammarId, grammar_scope: ScopeListId) -> Self {
         Self {
             frames: vec![StackFrame {
                 rule_ref: GlobalRuleRef {
                     grammar: grammar_id,
                     rule: ROOT_RULE_ID,
                 },
-                name_scopes: vec![grammar_scope],
-                content_scopes: vec![grammar_scope],
+                name_scopes: grammar_scope,
+                content_scopes: grammar_scope,
                 end_pattern: None,
                 begin_rule_has_captured_eol: false,
                 anchor_position: None,
@@ -81,11 +82,11 @@ impl StateStack {
         anchor_position: Option<usize>,
         begin_rule_has_captured_eol: bool,
         enter_position: Option<usize>,
-        scopes: Vec<Scope>,
+        scopes: ScopeListId,
     ) {
         self.frames.push(StackFrame {
             rule_ref,
-            name_scopes: scopes.clone(),
+            name_scopes: scopes,
             content_scopes: scopes,
             end_pattern: None,
             begin_rule_has_captured_eol,
@@ -94,7 +95,7 @@ impl StateStack {
         });
     }
 
-    pub fn set_content_scopes(&mut self, content_scopes: Vec<Scope>) {
+    pub fn set_content_scopes(&mut self, content_scopes: ScopeListId) {
         self.top_mut().content_scopes = content_scopes;
     }
 
@@ -135,10 +136,13 @@ impl StateStack {
     pub fn top_mut(&mut self) -> &mut StackFrame {
         self.frames.last_mut().expect("stack never empty")
     }
-}
 
-impl fmt::Debug for StateStack {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// We need the interner to show the actual scopes so it's a not a Debug impl
+    #[cfg(feature = "debug")]
+    pub(crate) fn debug(&self, interner: &ScopeInterner) -> Result<String, std::fmt::Error> {
+        use std::fmt::Write;
+
+        let mut f = String::new();
         writeln!(f, "StateStack:")?;
 
         for (depth, frame) in self.frames.iter().enumerate() {
@@ -153,9 +157,10 @@ impl fmt::Debug for StateStack {
             )?;
 
             // Add name scopes if not empty
-            if !frame.name_scopes.is_empty() {
+            let name_scopes = interner.get_scopes(frame.name_scopes);
+            if !name_scopes.is_empty() {
                 write!(f, " name=[")?;
-                for (i, scope) in frame.name_scopes.iter().enumerate() {
+                for (i, scope) in name_scopes.iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
@@ -165,9 +170,10 @@ impl fmt::Debug for StateStack {
             }
 
             // Add content scopes if not empty
-            if !frame.content_scopes.is_empty() {
+            let content_scopes = interner.get_scopes(frame.content_scopes);
+            if !content_scopes.is_empty() {
                 write!(f, ", content=[")?;
-                for (i, scope) in frame.content_scopes.iter().enumerate() {
+                for (i, scope) in content_scopes.iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
@@ -198,7 +204,6 @@ impl fmt::Debug for StateStack {
 
             writeln!(f)?;
         }
-
-        Ok(())
+        Ok(f)
     }
 }
