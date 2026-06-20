@@ -68,10 +68,45 @@ fn highlight_multiple_simple_benchmark(c: &mut Criterion) {
     });
 }
 
+fn highlight_sample_benchmark(c: &mut Criterion, grammar: &str) {
+    let mut registry =
+        Registry::load_from_file("builtin.zst").expect("Failed to load registry from builtin.zst");
+    registry.link_grammars();
+
+    let sample_path = format!("grammars-themes/samples/{grammar}.sample");
+    let content = fs::read_to_string(&sample_path)
+        .unwrap_or_else(|_| panic!("Failed to read sample {sample_path}"));
+
+    let options = HighlightOptions::new(grammar, ThemeVariant::Single("vitesse-black"));
+
+    c.bench_function(&format!("highlight {grammar}.sample"), |b| {
+        b.iter(|| {
+            registry.clear_pattern_cache();
+            let result = registry.highlight(&content, &options).unwrap();
+            std::hint::black_box(result);
+        })
+    });
+}
+
+fn highlight_rust_sample_benchmark(c: &mut Criterion) {
+    highlight_sample_benchmark(c, "rust");
+}
+
+fn highlight_markdown_sample_benchmark(c: &mut Criterion) {
+    highlight_sample_benchmark(c, "markdown");
+}
+
+fn highlight_javascript_sample_benchmark(c: &mut Criterion) {
+    highlight_sample_benchmark(c, "javascript");
+}
+
 criterion_group!(
     benches,
     highlight_jquery_benchmark,
     highlight_simple_benchmark,
-    highlight_multiple_simple_benchmark
+    highlight_multiple_simple_benchmark,
+    highlight_rust_sample_benchmark,
+    highlight_markdown_sample_benchmark,
+    highlight_javascript_sample_benchmark
 );
 criterion_main!(benches);
