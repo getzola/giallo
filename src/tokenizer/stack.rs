@@ -62,12 +62,12 @@ impl StateStack {
         begin_rule_has_captured_eol: bool,
         enter_position: Option<usize>,
     ) {
-        let content_scopes = self.top().content_scopes.clone();
+        let content_scopes = self.top().content_scopes;
 
         self.frames.push(StackFrame {
             rule_ref,
             // Start with the same scope they will diverge later
-            name_scopes: content_scopes.clone(),
+            name_scopes: content_scopes,
             content_scopes,
             end_pattern: None,
             begin_rule_has_captured_eol,

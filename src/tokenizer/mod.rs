@@ -570,9 +570,9 @@ impl<'g> Tokenizer<'g> {
 
             if !rule_scopes.is_empty() {
                 let mut base = if let Some((scopes, _)) = local_stack.last() {
-                    scopes.clone()
+                    *scopes
                 } else {
-                    stack.top().content_scopes.clone()
+                    stack.top().content_scopes
                 };
                 base = self.scope_interner.extend(base, &rule_scopes);
                 local_stack.push((base, cap_end));
@@ -681,7 +681,7 @@ impl<'g> Tokenizer<'g> {
                         "[POPPED RULE] Stack: {}",
                         stack.debug(&self.scope_interner).unwrap_or_default()
                     );
-                    stack.set_content_scopes(stack.top().name_scopes.clone());
+                    stack.set_content_scopes(stack.top().name_scopes);
                     self.resolve_captures(
                         &stack,
                         line,
@@ -724,7 +724,7 @@ impl<'g> Tokenizer<'g> {
                 } else {
                     let rule = &self.registry.grammars[m.rule_ref.grammar].rules[m.rule_ref.rule];
                     accumulator.produce(m.start, stack.top().content_scopes);
-                    let mut new_scopes = stack.top().content_scopes.clone();
+                    let mut new_scopes = stack.top().content_scopes;
                     new_scopes = self
                         .scope_interner
                         .extend(new_scopes, &rule.get_name_scopes(line, &m.capture_pos));
@@ -763,7 +763,7 @@ impl<'g> Tokenizer<'g> {
                         )?;
                         accumulator.produce(m.end, stack.top().content_scopes);
                         anchor_position = Some(m.end);
-                        let mut content_scopes = stack.top().name_scopes.clone();
+                        let mut content_scopes = stack.top().name_scopes;
                         content_scopes = self.scope_interner.extend(
                             content_scopes,
                             &rule.get_content_scopes(line, &m.capture_pos),
