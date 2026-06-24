@@ -2,14 +2,14 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
-
+use crate::caches::RegexCache;
 use crate::error::{Error, GialloResult};
 use crate::grammars::{
     BASE_GLOBAL_RULE_REF, CompiledGrammar, GlobalRuleRef, GrammarId, InjectionPrecedence, Match,
     NO_OP_GLOBAL_RULE_REF, PatternSet, ROOT_RULE_ID, RawGrammar, Rule, resolve_external_references,
 };
 use crate::highlight::{HighlightedText, Highlighter, MergingOptions};
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "dump")]
 use crate::scope::ScopeRepository;
@@ -141,6 +141,9 @@ pub struct Registry {
     injections_by_grammar: Vec<HashSet<GrammarId>>,
     // Once a registry has linked grammars, it's not possible to replace existing grammars.
     linked: bool,
+    // We cache each static regex/regexset in there.
+    // The pattern cache below is using that cache as well
+    pub(crate) regex_cache: Arc<RegexCache>,
     // We cache the pattern set at the registry level it's compiled only once instead of per
     // highlight. To do that we had to check the end regex in the tokenizer separately from the
     // regset.
@@ -156,6 +159,7 @@ impl Clone for Registry {
             themes: self.themes.clone(),
             injections_by_grammar: self.injections_by_grammar.clone(),
             linked: self.linked,
+            regex_cache: self.regex_cache.clone(),
             pattern_cache: papaya::HashMap::new(),
         }
     }
@@ -169,7 +173,6 @@ impl Registry {
         let mut grammar_id_by_scope_name = HashMap::with_capacity(grammars.len());
         let mut grammar_id_by_name = HashMap::with_capacity(grammars.len());
         let mut injections_by_grammar = Vec::with_capacity(grammars.len());
-        let pattern_cache = papaya::HashMap::new();
         let mut themes = HashMap::with_capacity(all_themes.len());
 
         for grammar in &grammars {
@@ -192,7 +195,8 @@ impl Registry {
             themes,
             injections_by_grammar,
             linked: false,
-            pattern_cache,
+            regex_cache: Arc::new(RegexCache::default()),
+            pattern_cache: papaya::HashMap::new(),
         };
         this.link_grammars();
 
@@ -444,17 +448,17 @@ impl Registry {
         let grammar = &self.grammars[rule_ref.grammar];
         let rule = &grammar.rules[rule_ref.rule];
         match rule {
-            Rule::Match(Match { regex_id, .. }) => {
-                if let Some(regex_id) = regex_id {
-                    let re = &grammar.regexes[*regex_id];
+            Rule::Match(Match { pattern_id, .. }) => {
+                if let Some(pat_id) = pattern_id {
+                    let re = &grammar.patterns[*pat_id];
                     out.push((rule_ref, re.pattern()));
                 }
             }
             Rule::IncludeOnly(i) => {
                 out.extend(self.get_pattern_set_data(base_grammar_id, &i.patterns, visited));
             }
-            Rule::BeginEnd(b) => out.push((rule_ref, grammar.regexes[b.begin].pattern())),
-            Rule::BeginWhile(b) => out.push((rule_ref, grammar.regexes[b.begin].pattern())),
+            Rule::BeginEnd(b) => out.push((rule_ref, grammar.patterns[b.begin].pattern())),
+            Rule::BeginWhile(b) => out.push((rule_ref, grammar.patterns[b.begin].pattern())),
             Rule::Noop => {}
         }
         out
@@ -546,6 +550,12 @@ impl Registry {
     }
 
     #[doc(hidden)]
+    pub fn clear_caches(&self) {
+        self.pattern_cache.pin().clear();
+        self.regex_cache.clear();
+    }
+
+    #[doc(hidden)]
     pub fn clear_pattern_cache(&self) {
         self.pattern_cache.pin().clear();
     }
@@ -567,7 +577,7 @@ impl Registry {
             .into_iter()
             .map(|(rule, pat)| (rule, pat.to_owned()))
             .collect();
-        let pattern_set = Arc::new(PatternSet::new(patterns)?);
+        let pattern_set = Arc::new(PatternSet::new(patterns, self.regex_cache.clone()));
 
         // Use get_or_insert for concurrent-safe lazy init
         let inserted = self

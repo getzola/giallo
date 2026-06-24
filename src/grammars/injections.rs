@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use crate::scope::Scope;
 
 /// Regex for tokenizing injection selectors (matches vscode-textmate exactly except for \* added)
-static TOKEN_REGEX: LazyLock<onig::Regex> = LazyLock::new(|| {
-    onig::Regex::new(r"([LR]:|[\w.:]+[\w\*.:\-]*|[,|\-()])").expect("Invalid selector regex")
+static TOKEN_REGEX: LazyLock<fancy_regex::Regex> = LazyLock::new(|| {
+    fancy_regex::Regex::new(r"([LR]:|[\w.:]+[\w\*.:\-]*|[,|\-()])").expect("Invalid selector regex")
 });
 
 // Only Left matters, Right is the same as no precedence. We keep both just for debug reasons
@@ -246,7 +246,7 @@ pub fn parse_injection_selector(selector: &str) -> Vec<CompiledInjectionMatcher>
 
     let tokens: Vec<_> = TOKEN_REGEX
         .find_iter(selector)
-        .map(|(start, end)| &selector[start..end])
+        .map(|m| m.expect("Failed to match injection selector").as_str())
         .filter(|s| !s.is_empty())
         .collect();
 
