@@ -1,6 +1,7 @@
 use giallo::{HighlightOptions, HtmlRenderer, Registry, RenderOptions, ThemeVariant};
 use std::fs;
 
+#[allow(clippy::single_range_in_vec_init)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut registry = Registry::load_from_file("builtin.zst")?;
     registry.link_grammars();
