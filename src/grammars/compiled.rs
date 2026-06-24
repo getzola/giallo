@@ -5,16 +5,16 @@ use std::sync::LazyLock;
 use serde::{Deserialize, Serialize};
 
 use crate::grammars::injections::{CompiledInjectionMatcher, parse_injection_selector};
+use crate::grammars::pattern::Pattern;
 use crate::grammars::raw::{Captures, RawGrammar, RawRule, Reference};
-use crate::grammars::regex::Regex;
 use crate::scope::Scope;
 
-static CAPTURING_NAME_RE: LazyLock<onig::Regex> =
-    LazyLock::new(|| onig::Regex::new(r"\$(\d+)|\${(\d+):\/(downcase|upcase)}").unwrap());
+static CAPTURING_NAME_RE: LazyLock<fancy_regex::Regex> =
+    LazyLock::new(|| fancy_regex::Regex::new(r"\$(\d+)|\${(\d+):\/(downcase|upcase)}").unwrap());
 
 fn has_captures(pat: Option<&str>) -> bool {
     if let Some(p) = pat {
-        CAPTURING_NAME_RE.find(p).is_some()
+        matches!(CAPTURING_NAME_RE.find(p), Ok(Some(_)))
     } else {
         false
     }
@@ -46,14 +46,15 @@ pub fn replace_captures(
     captures_pos: &[Option<(usize, usize)>],
 ) -> String {
     CAPTURING_NAME_RE
-        .replace_all(original_name, |caps: &onig::Captures| {
+        .replace_all(original_name, |caps: &fancy_regex::Captures<str>| {
             let capture_num = caps
-                .at(1)
-                .or_else(|| caps.at(2))
+                .get(1)
+                .or_else(|| caps.get(2))
+                .map(|m| m.as_str())
                 .unwrap_or("0")
                 .parse::<usize>()
                 .unwrap_or(0);
-            let command = caps.at(3);
+            let command = caps.get(3).map(|m| m.as_str());
 
             if let Some(Some((start, end))) = captures_pos.get(capture_num) {
                 // Remove leading dots that would make the selector invalid
@@ -68,7 +69,7 @@ pub fn replace_captures(
                 String::new()
             } else {
                 // Invalid capture bounds (index out of bounds), return original match
-                caps.at(0).unwrap().to_string()
+                caps.get(0).unwrap().as_str().to_string()
             }
         })
         .to_string()
@@ -135,9 +136,9 @@ pub const PRE_CROSS_LINKING_RULE_REF: GlobalRuleRef = GlobalRuleRef {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct RegexId(u16);
+pub struct PatternId(u16);
 
-impl RegexId {
+impl PatternId {
     pub(crate) fn as_index(self) -> usize {
         self.0 as usize
     }
@@ -192,10 +193,10 @@ pub struct Match {
     pub name: Option<String>,
     pub name_is_capturing: bool,
     pub scopes: Vec<Scope>,
-    /// The regex ID for this match rule.
+    /// The pattern ID for this match rule.
     /// None for scope-only rules (e.g., capture groups that only assign scopes like
     /// punctuation.definition.string.begin without their own pattern to match)
-    pub regex_id: Option<RegexId>,
+    pub pattern_id: Option<PatternId>,
     pub captures: Vec<Option<GlobalRuleRef>>,
     pub repository_stack: RepositoryStack,
 }
@@ -222,9 +223,9 @@ pub struct BeginEnd {
     pub content_name: Option<String>,
     pub content_name_is_capturing: bool,
     pub content_scopes: Vec<Scope>,
-    pub begin: RegexId,
+    pub begin: PatternId,
     pub begin_captures: Vec<Option<GlobalRuleRef>>,
-    pub end: RegexId,
+    pub end: PatternId,
     pub end_has_backrefs: bool,
     pub end_captures: Vec<Option<GlobalRuleRef>>,
     pub apply_end_pattern_last: bool,
@@ -241,9 +242,9 @@ pub struct BeginWhile {
     pub content_name: Option<String>,
     pub content_name_is_capturing: bool,
     pub content_scopes: Vec<Scope>,
-    pub begin: RegexId,
+    pub begin: PatternId,
     pub begin_captures: Vec<Option<GlobalRuleRef>>,
-    pub while_: RegexId,
+    pub while_: PatternId,
     pub while_has_backrefs: bool,
     pub while_captures: Vec<Option<GlobalRuleRef>>,
     pub patterns: Vec<GlobalRuleRef>,
@@ -421,7 +422,7 @@ pub struct CompiledGrammar {
     pub scope_name: String,
     pub scope: Scope,
     pub file_types: Vec<String>,
-    pub regexes: Vec<Regex>,
+    pub patterns: Vec<Pattern>,
     pub rules: Vec<Rule>,
     pub repositories: Vec<Repository>,
     pub injections: Vec<(Vec<CompiledInjectionMatcher>, GlobalRuleRef)>,
@@ -442,7 +443,7 @@ impl CompiledGrammar {
             scope_name: raw.scope_name.clone(),
             scope: Scope::new(&raw.scope_name)[0],
             file_types: raw.file_types,
-            regexes: Vec::new(),
+            patterns: Vec::new(),
             rules: Vec::new(),
             repositories: Vec::new(),
             injections: Vec::new(),
@@ -515,7 +516,7 @@ impl CompiledGrammar {
                     name_is_capturing,
                     name,
                     scopes,
-                    regex_id: Some(self.compile_regex(pat).0),
+                    pattern_id: Some(self.compile_regex(pat).0),
                     captures: self.compile_captures(raw_rule.captures, repository_stack),
                     repository_stack,
                 })
@@ -625,7 +626,7 @@ impl CompiledGrammar {
                     name_is_capturing,
                     name,
                     scopes,
-                    regex_id: None, // Scope-only rule (e.g., capture that only assigns scope)
+                    pattern_id: None, // Scope-only rule (e.g., capture that only assigns scope)
                     captures: vec![],
                     repository_stack,
                 })
@@ -685,13 +686,12 @@ impl CompiledGrammar {
         local_id
     }
 
-    fn compile_regex(&mut self, pattern: String) -> (RegexId, bool) {
-        let regex_id = RegexId(self.regexes.len() as u16);
+    fn compile_regex(&mut self, pattern: String) -> (PatternId, bool) {
+        let pat_id = PatternId(self.patterns.len() as u16);
         let has_backrefs = has_backreferences(&pattern);
-        let re = Regex::new(pattern);
-        self.regexes.push(re);
+        self.patterns.push(Pattern::new(pattern));
 
-        (regex_id, has_backrefs)
+        (pat_id, has_backrefs)
     }
 
     fn compile_repository(
@@ -969,16 +969,16 @@ impl IndexMut<RuleId> for Vec<Rule> {
     }
 }
 
-impl Index<RegexId> for Vec<Regex> {
-    type Output = Regex;
+impl Index<PatternId> for Vec<Pattern> {
+    type Output = Pattern;
 
-    fn index(&self, index: RegexId) -> &Self::Output {
+    fn index(&self, index: PatternId) -> &Self::Output {
         &self[index.as_index()]
     }
 }
 
-impl IndexMut<RegexId> for Vec<Regex> {
-    fn index_mut(&mut self, index: RegexId) -> &mut Self::Output {
+impl IndexMut<PatternId> for Vec<Pattern> {
+    fn index_mut(&mut self, index: PatternId) -> &mut Self::Output {
         &mut self[index.as_index()]
     }
 }
