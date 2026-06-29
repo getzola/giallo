@@ -44,19 +44,17 @@ impl PatternSet {
         if let Some(set) = self.set.as_ref() {
             let re_input = crate::grammars::regex::make_input(text, pos, anchors);
             if let Some(matches) = set.find_input(re_input).map_err(|e| e.to_string())? {
-                for res in matches {
-                    if let Ok(m) = res {
-                        let captures = m.captures();
-                        let capture_pos: Vec<Option<(usize, usize)>> = (0..captures.len())
-                            .map(|i| captures.get(i).map(|c| (c.start(), c.end())))
-                            .collect();
-                        return Ok(Some(PatternSetMatch {
-                            rule_ref: self.rule_refs[m.pattern()],
-                            start: m.start(),
-                            end: m.end(),
-                            capture_pos,
-                        }));
-                    }
+                if let Some(m) = matches.flatten().next() {
+                    let captures = m.captures();
+                    let capture_pos: Vec<Option<(usize, usize)>> = (0..captures.len())
+                        .map(|i| captures.get(i).map(|c| (c.start(), c.end())))
+                        .collect();
+                    return Ok(Some(PatternSetMatch {
+                        rule_ref: self.rule_refs[m.pattern()],
+                        start: m.start(),
+                        end: m.end(),
+                        capture_pos,
+                    }));
                 }
                 Ok(None)
             } else {
