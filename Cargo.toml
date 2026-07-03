@@ -28,6 +28,7 @@ bitcode = { version = "0.6.9", optional = true, features = ["serde"] }
 zstd = { version = "0.13.3", optional = true }
 fancy-regex = {git="https://github.com/fancy-regex/fancy-regex/", branch = "main"}
 log = { version = "0.4", optional = true }
+regex-syntax = "0.8.11"
 
 [features]
 tools = ["dump"]

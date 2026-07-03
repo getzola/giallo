@@ -2,6 +2,7 @@ mod compiled;
 mod injections;
 pub mod pattern;
 mod pattern_set;
+mod prefilter;
 mod raw;
 pub(crate) mod regex;
 
