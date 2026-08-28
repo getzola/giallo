@@ -42,6 +42,16 @@ impl AnchorActive {
     pub fn allow_g(&self) -> bool {
         matches!(self, AnchorActive::G | AnchorActive::AG)
     }
+
+    /// The same anchor context with \G deactivated.
+    /// RegexSet handles it on its own (inside fancy-regex) but not the normal Regex
+    /// we walk through
+    pub fn without_g(&self) -> Self {
+        match self {
+            AnchorActive::A | AnchorActive::AG => AnchorActive::A,
+            AnchorActive::G | AnchorActive::None => AnchorActive::None,
+        }
+    }
 }
 
 impl fmt::Debug for AnchorActive {

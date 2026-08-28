@@ -260,7 +260,7 @@ fn fancy_start(expr: &Expr) -> Start {
     }
 }
 
-fn get_byteset_from_pattern(pattern: &str) -> Option<ByteSet> {
+pub(crate) fn get_byte_set_from_pattern(pattern: &str) -> Option<ByteSet> {
     let tree = Expr::parse_tree(pattern).ok()?;
     match fancy_start(&tree.expr) {
         Start::Definite(set) if !set.is_empty() => Some(set),
@@ -268,7 +268,7 @@ fn get_byteset_from_pattern(pattern: &str) -> Option<ByteSet> {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub struct Prefilter {
     /// List of 256 bool per pattern.
     /// A Vec<Vec<bool>> inlined to avoid too many allocations
@@ -277,18 +277,37 @@ pub struct Prefilter {
     quick_lookup: [bool; 256],
 }
 
+impl Default for Prefilter {
+    fn default() -> Self {
+        Self {
+            table: Vec::new(),
+            quick_lookup: [false; 256],
+        }
+    }
+}
+
 impl Prefilter {
-    pub fn build(patterns: &[String]) -> Option<Self> {
-        if patterns.is_empty() {
+    /// Builds a prefilter from the given list of [ByteSet]
+    /// If there are no actual ByteSet, returns None.
+    /// Otherwise returns the built prefilter along with the indices that are NOT contained
+    /// in the prefilter.
+    pub fn from_byte_sets(sets: &[Option<ByteSet>]) -> Option<(Self, Vec<usize>)> {
+        if sets.is_empty() {
             return None;
         }
-        let n = patterns.len();
+        let n = sets.len();
 
         let mut table = vec![false; 256 * n];
         let mut quick_lookup = [false; 256];
+        let mut unqualified = Vec::new();
+        let mut something_qualified = false;
 
-        for (idx, pattern) in patterns.iter().enumerate() {
-            let set = get_byteset_from_pattern(pattern)?;
+        for (idx, set) in sets.iter().enumerate() {
+            let Some(set) = set.as_ref() else {
+                unqualified.push(idx);
+                continue;
+            };
+            something_qualified = true;
             for b in 0..=u8::MAX {
                 if set.contains(b) {
                     quick_lookup[b as usize] = true;
@@ -297,10 +316,17 @@ impl Prefilter {
             }
         }
 
-        Some(Self {
-            table,
-            quick_lookup,
-        })
+        if !something_qualified {
+            return None;
+        }
+
+        Some((
+            Self {
+                table,
+                quick_lookup,
+            },
+            unqualified,
+        ))
     }
 
     #[inline]
@@ -323,7 +349,7 @@ mod tests {
     use super::*;
 
     fn first_bytes_of(pattern: &str) -> Option<Vec<u8>> {
-        let set = get_byteset_from_pattern(pattern)?;
+        let set = get_byte_set_from_pattern(pattern)?;
         let mut out = vec![];
         for (i, val) in set.0.iter().enumerate() {
             if *val {

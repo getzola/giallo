@@ -28,7 +28,6 @@ mod registry;
 mod scope;
 mod themes;
 
-mod caches;
 mod highlight;
 mod markdown_fence;
 mod renderers;

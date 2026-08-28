@@ -5,17 +5,15 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use crate::Registry;
-use crate::grammars::regex::compile_regex;
+use crate::grammars::anchors::AnchorActive;
 use crate::grammars::{
-    END_RULE_ID, GlobalRuleRef, GrammarId, InjectionPrecedence, PatternId, PatternSet,
-    PatternSetMatch, Rule, resolve_backreferences,
+    END_RULE_ID, GlobalRuleRef, GrammarId, InjectionPrecedence, PatternId, Rule, RuleMatch,
+    RuleMatcher, engine, resolve_backreferences,
 };
 use crate::scope::{EMPTY_SCOPE_LIST, ScopeInterner, ScopeListId};
-use crate::tokenizer::anchors::AnchorActive;
 use crate::tokenizer::stack::StateStack;
 use serde::{Deserialize, Serialize};
 
-pub(crate) mod anchors;
 mod stack;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -85,7 +83,7 @@ pub struct Tokenizer<'g> {
     /// Some end patterns will change depending on backrefs so we might have multiple
     /// versions of the same regex in there
     /// Some regex content use backref so they are essentially dynamic patterns
-    end_regex_cache: HashMap<String, fancy_regex::Regex>,
+    end_regex_cache: HashMap<String, Arc<engine::Regex>>,
     scope_interner: ScopeInterner,
 }
 
@@ -105,7 +103,7 @@ impl<'g> Tokenizer<'g> {
     }
 
     /// Matches injection patterns at the current position
-    /// Returns (is_left_precedence, PatternSetMatch) for the best match
+    /// Returns (is_left_precedence, RuleMatch) for the best match
     fn match_injections(
         &mut self,
         stack: &StateStack,
@@ -113,7 +111,7 @@ impl<'g> Tokenizer<'g> {
         pos: usize,
         is_first_line: bool,
         anchor_position: Option<usize>,
-    ) -> Result<Option<(InjectionPrecedence, PatternSetMatch)>, String> {
+    ) -> Result<Option<(InjectionPrecedence, RuleMatch)>, String> {
         // No need to do any work if we know there are no injections possible
         if !self.registry.has_injection_patterns(self.base_grammar_id) {
             return Ok(None);
@@ -129,17 +127,17 @@ impl<'g> Tokenizer<'g> {
             return Ok(None);
         }
 
-        let mut best_match: Option<(InjectionPrecedence, PatternSetMatch)> = None;
+        let mut best_match: Option<(InjectionPrecedence, RuleMatch)> = None;
 
         // Process injections in the order returned by registry (already sorted by precedence)
         for (precedence, rule) in injection_patterns {
             // Use injection override instead of cloning stack
-            let pattern_set = self.get_or_create_pattern_set(
+            let rule_matcher = self.get_or_create_rule_matcher(
                 stack,
                 Some(rule), // Override rule_ref for injection testing
             )?;
 
-            if let Some(found) = pattern_set.find_at(line, pos, anchor_context)? {
+            if let Some(found) = rule_matcher.find_at(line, pos, anchor_context)? {
                 if let Some((_, current_best_match)) = &best_match {
                     if found.start >= current_best_match.start {
                         continue;
@@ -167,14 +165,12 @@ impl<'g> Tokenizer<'g> {
         pos: usize,
         is_first_line: bool,
         anchor_position: Option<usize>,
-    ) -> Result<Option<PatternSetMatch>, String> {
+    ) -> Result<Option<RuleMatch>, String> {
         let anchor_context = AnchorActive::new(is_first_line, anchor_position, pos);
 
-        // Get regular rule patterns.
-        // The end pattern is done separately from the regex so the regset doesn't need to be updated
-        // and can be shared across threads safely
-        let pattern_set = self.get_or_create_pattern_set(stack, None)?;
-        let regset_match = pattern_set.find_at(line, pos, anchor_context)?;
+        // Get regular rule patterns
+        let rule_matcher = self.get_or_create_rule_matcher(stack, None)?;
+        let regset_match = rule_matcher.find_at(line, pos, anchor_context)?;
         let rule_ref = stack.top().rule_ref;
         let apply_end_pattern_last =
             self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule].apply_end_pattern_last();
@@ -300,8 +296,7 @@ impl<'g> Tokenizer<'g> {
 
             let search_text = line.get(*pos..).unwrap_or("");
 
-            if let Some((start, end, captures)) =
-                crate::grammars::regex::search(&compiled_re, search_text, 0, active_anchor)
+            if let Some((start, end, captures)) = compiled_re.search(search_text, 0, active_anchor)
                 && start == 0
             // Must match at current position
             {
@@ -369,23 +364,23 @@ impl<'g> Tokenizer<'g> {
         Ok((stack, anchor_position, is_first_line))
     }
 
-    fn get_or_create_pattern_set(
+    fn get_or_create_rule_matcher(
         &self,
         stack: &StateStack,
         injection_rule_override: Option<GlobalRuleRef>,
-    ) -> Result<Arc<PatternSet>, String> {
+    ) -> Result<Arc<RuleMatcher>, String> {
         let rule_ref = injection_rule_override.unwrap_or(stack.top().rule_ref);
         #[cfg(feature = "debug")]
         {
             log::debug!(
-                "[get_or_create_pattern_set] Rule: {rule_ref:?} (grammar: {})",
-                self.registry.grammars[rule_ref.grammar].name
+                "[get_or_create_rule_matcher] Rule: {rule_ref:?} (grammar: {})",
+                &self.registry.grammars[rule_ref.grammar].name
             );
-            log::debug!("[get_or_create_pattern_set] Scanning patterns");
+            log::debug!("[get_or_create_rule_matcher] Scanning patterns");
         }
 
         self.registry
-            .get_or_create_pattern_set(self.base_grammar_id, rule_ref)
+            .get_or_create_rule_matcher(self.base_grammar_id, rule_ref)
     }
 
     /// Get compiled regex for end/while pattern.
@@ -396,22 +391,18 @@ impl<'g> Tokenizer<'g> {
         resolved_pattern: Option<&str>,
         grammar_id: GrammarId,
         regex_id: PatternId,
-    ) -> fancy_regex::Regex {
+    ) -> Arc<engine::Regex> {
         if let Some(pattern) = resolved_pattern {
             if let Some(re) = self.end_regex_cache.get(pattern) {
                 re.clone()
             } else {
-                let re = compile_regex(pattern);
+                let re = Arc::new(engine::Regex::new(pattern));
                 self.end_regex_cache.insert(pattern.to_owned(), re.clone());
                 re
             }
         } else {
             let pat = &self.registry.grammars[grammar_id].patterns[regex_id];
-            self.registry
-                .regex_cache
-                .get_regex(pat.pattern())
-                .as_ref()
-                .clone()
+            self.registry.regex_cache.get_regex(pat.pattern())
         }
     }
 
@@ -421,7 +412,7 @@ impl<'g> Tokenizer<'g> {
         line: &str,
         pos: usize,
         active_anchor: AnchorActive,
-    ) -> Result<Option<PatternSetMatch>, String> {
+    ) -> Result<Option<RuleMatch>, String> {
         let rule_ref = stack.top().rule_ref;
         let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
 
@@ -432,10 +423,8 @@ impl<'g> Tokenizer<'g> {
             }
             _ => return Ok(None),
         };
-        if let Some((start, end, capture_pos)) =
-            crate::grammars::regex::search(&compiled_re, line, pos, active_anchor)
-        {
-            return Ok(Some(PatternSetMatch {
+        if let Some((start, end, capture_pos)) = compiled_re.search(line, pos, active_anchor) {
+            return Ok(Some(RuleMatch {
                 rule_ref: GlobalRuleRef {
                     grammar: rule_ref.grammar,
                     rule: END_RULE_ID,

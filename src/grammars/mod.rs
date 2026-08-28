@@ -1,13 +1,15 @@
+pub(crate) mod anchors;
+pub(crate) mod caches;
 mod compiled;
+pub(crate) mod engine;
 mod injections;
+mod matcher;
 pub mod pattern;
-mod pattern_set;
-mod prefilter;
+pub(crate) mod prefilter;
 mod raw;
-pub(crate) mod regex;
 
 pub use compiled::*;
 pub use injections::InjectionPrecedence;
+pub use matcher::{RuleMatch, RuleMatcher};
 pub use pattern::resolve_backreferences;
-pub use pattern_set::{PatternSet, PatternSetMatch};
 pub use raw::RawGrammar;

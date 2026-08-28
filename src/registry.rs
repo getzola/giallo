@@ -2,11 +2,12 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::Arc;
 
-use crate::caches::RegexCache;
 use crate::error::{Error, GialloResult};
+use crate::grammars::caches::RegexCache;
 use crate::grammars::{
     BASE_GLOBAL_RULE_REF, CompiledGrammar, GlobalRuleRef, GrammarId, InjectionPrecedence, Match,
-    NO_OP_GLOBAL_RULE_REF, PatternSet, ROOT_RULE_ID, RawGrammar, Rule, resolve_external_references,
+    NO_OP_GLOBAL_RULE_REF, ROOT_RULE_ID, RawGrammar, Rule, RuleMatcher,
+    resolve_external_references,
 };
 use crate::highlight::{HighlightedText, Highlighter, MergingOptions};
 use serde::{Deserialize, Serialize};
@@ -147,7 +148,7 @@ pub struct Registry {
     // We cache the pattern set at the registry level it's compiled only once instead of per
     // highlight. To do that we had to check the end regex in the tokenizer separately from the
     // regset.
-    pattern_cache: papaya::HashMap<(GrammarId, GlobalRuleRef), Arc<PatternSet>>,
+    matcher_cache: papaya::HashMap<(GrammarId, GlobalRuleRef), Arc<RuleMatcher>>,
 }
 
 impl Clone for Registry {
@@ -160,7 +161,7 @@ impl Clone for Registry {
             injections_by_grammar: self.injections_by_grammar.clone(),
             linked: self.linked,
             regex_cache: self.regex_cache.clone(),
-            pattern_cache: papaya::HashMap::new(),
+            matcher_cache: papaya::HashMap::new(),
         }
     }
 }
@@ -196,7 +197,7 @@ impl Registry {
             injections_by_grammar,
             linked: false,
             regex_cache: Arc::new(RegexCache::default()),
-            pattern_cache: papaya::HashMap::new(),
+            matcher_cache: papaya::HashMap::new(),
         };
         this.link_grammars();
 
@@ -455,7 +456,7 @@ impl Registry {
                 }
             }
             Rule::IncludeOnly(i) => {
-                out.extend(self.get_pattern_set_data(base_grammar_id, &i.patterns, visited));
+                out.extend(self.get_rule_matcher_data(base_grammar_id, &i.patterns, visited));
             }
             Rule::BeginEnd(b) => out.push((rule_ref, grammar.patterns[b.begin].pattern())),
             Rule::BeginWhile(b) => out.push((rule_ref, grammar.patterns[b.begin].pattern())),
@@ -464,7 +465,7 @@ impl Registry {
         out
     }
 
-    fn get_pattern_set_data(
+    fn get_rule_matcher_data(
         &self,
         base_grammar_id: GrammarId,
         rule_refs: &[GlobalRuleRef],
@@ -493,7 +494,7 @@ impl Registry {
             Rule::Match(_) | Rule::Noop => &[],
         };
         let mut visited = HashSet::new();
-        self.get_pattern_set_data(base_grammar_id, base_patterns, &mut visited)
+        self.get_rule_matcher_data(base_grammar_id, base_patterns, &mut visited)
     }
 
     pub(crate) fn has_injection_patterns(&self, grammar_id: GrammarId) -> bool {
@@ -551,25 +552,25 @@ impl Registry {
 
     #[doc(hidden)]
     pub fn clear_caches(&self) {
-        self.pattern_cache.pin().clear();
+        self.matcher_cache.pin().clear();
         self.regex_cache.clear();
     }
 
     #[doc(hidden)]
     pub fn clear_pattern_cache(&self) {
-        self.pattern_cache.pin().clear();
+        self.matcher_cache.pin().clear();
     }
 
-    pub(crate) fn get_or_create_pattern_set(
+    pub(crate) fn get_or_create_rule_matcher(
         &self,
         base_grammar_id: GrammarId,
         rule_ref: GlobalRuleRef,
-    ) -> Result<Arc<PatternSet>, String> {
+    ) -> Result<Arc<RuleMatcher>, String> {
         let cache_key = (base_grammar_id, rule_ref);
-        let guard = self.pattern_cache.guard();
+        let guard = self.matcher_cache.guard();
 
-        if let Some(pattern_set) = self.pattern_cache.get(&cache_key, &guard) {
-            return Ok(Arc::clone(pattern_set));
+        if let Some(matcher) = self.matcher_cache.get(&cache_key, &guard) {
+            return Ok(Arc::clone(matcher));
         }
 
         let raw_patterns = self.collect_patterns(base_grammar_id, rule_ref);
@@ -577,12 +578,12 @@ impl Registry {
             .into_iter()
             .map(|(rule, pat)| (rule, pat.to_owned()))
             .collect();
-        let pattern_set = Arc::new(PatternSet::new(patterns, self.regex_cache.clone()));
+        let rule_matcher = Arc::new(RuleMatcher::new(patterns, self.regex_cache.clone()));
 
         // Use get_or_insert for concurrent-safe lazy init
         let inserted = self
-            .pattern_cache
-            .get_or_insert(cache_key, pattern_set, &guard);
+            .matcher_cache
+            .get_or_insert(cache_key, rule_matcher, &guard);
 
         Ok(Arc::clone(inserted))
     }
