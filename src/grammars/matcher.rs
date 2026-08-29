@@ -1,10 +1,30 @@
-use std::sync::{Arc, OnceLock};
-
 use crate::grammars::anchors::AnchorActive;
 use crate::grammars::caches::RegexCache;
 use crate::grammars::engine::CaptureSpans;
 use crate::grammars::prefilter::Prefilter;
 use crate::grammars::{GlobalRuleRef, engine};
+use std::sync::{Arc, OnceLock};
+
+/// How will giallo find the next matching pattern
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Default)]
+pub enum MatchStrategy {
+    /// giallo will check every pattern individually when it can and fallback to a RegexSet when it cannot
+    ///
+    /// This is fast when giallo is cold and uses less memory.
+    /// This should be used by CLIs highlighting a few things and exiting or if you are memory constrained.
+    #[default]
+    Walk,
+    /// giallo will only use a RegexSet
+    ///
+    /// Compared to [MatchStrategy::Walk]:
+    /// 1. Initial RegexSet compilation is _very_ slow: first highlight will likely be around 10x slower
+    /// 2. It will use *much* more memory  (2-10x more) growing with the number of languages that have highlighted
+    /// 3. Warm highlights will be between 15-60% faster, dependent on language
+    ///
+    /// This should only be used if you're using giallo in a long-lived process and you're okay with
+    /// potentially 10GB+ of ram used just for giallo with a few dozen languages.
+    Set,
+}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RuleMatch {
@@ -132,20 +152,27 @@ pub struct RuleMatcher {
 }
 
 impl RuleMatcher {
-    pub fn new(items: Vec<(GlobalRuleRef, String)>, cache: Arc<RegexCache>) -> Self {
+    pub fn new(
+        items: Vec<(GlobalRuleRef, String)>,
+        cache: Arc<RegexCache>,
+        strategy: MatchStrategy,
+    ) -> Self {
         if items.is_empty() {
             return RuleMatcher::default();
         }
 
         let (rule_refs, patterns): (Vec<_>, Vec<_>) = items.into_iter().unzip();
-        let sets: Vec<_> = patterns.iter().map(|p| cache.get_first_bytes(p)).collect();
 
-        let (prefilter, remaining) =
+        let (prefilter, remaining) = if strategy == MatchStrategy::Walk {
+            let sets: Vec<_> = patterns.iter().map(|p| cache.get_first_bytes(p)).collect();
             if let Some((prefilter, remaining)) = Prefilter::from_byte_sets(&sets) {
                 (prefilter, remaining)
             } else {
                 (Prefilter::default(), (0..patterns.len()).collect())
-            };
+            }
+        } else {
+            (Prefilter::default(), (0..patterns.len()).collect())
+        };
 
         let has_walk = remaining.len() < patterns.len();
         let remainder = (!remaining.is_empty()).then(|| {

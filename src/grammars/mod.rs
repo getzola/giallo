@@ -10,6 +10,6 @@ mod raw;
 
 pub use compiled::*;
 pub use injections::InjectionPrecedence;
-pub use matcher::{RuleMatch, RuleMatcher};
+pub use matcher::{MatchStrategy, RuleMatch, RuleMatcher};
 pub use pattern::resolve_backreferences;
 pub use raw::RawGrammar;

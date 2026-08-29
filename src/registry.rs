@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::Arc;
 
+use crate::MatchStrategy;
 use crate::error::{Error, GialloResult};
 use crate::grammars::caches::RegexCache;
 use crate::grammars::{
@@ -10,14 +11,13 @@ use crate::grammars::{
     resolve_external_references,
 };
 use crate::highlight::{HighlightedText, Highlighter, MergingOptions};
-use serde::{Deserialize, Serialize};
-
 #[cfg(feature = "dump")]
 use crate::scope::ScopeRepository;
 use crate::scope::{Scope, ScopeInterner};
 use crate::themes::css::{DARK_SUFFIX, LIGHT_SUFFIX};
 use crate::themes::{CompiledTheme, RawTheme, ThemeVariant};
 use crate::tokenizer::{Token, Tokenizer};
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "dump")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -149,6 +149,8 @@ pub struct Registry {
     // highlight. To do that we had to check the end regex in the tokenizer separately from the
     // regset.
     matcher_cache: papaya::HashMap<(GrammarId, GlobalRuleRef), Arc<RuleMatcher>>,
+    // whether to walk or only use regset
+    match_strategy: MatchStrategy,
 }
 
 impl Clone for Registry {
@@ -162,6 +164,7 @@ impl Clone for Registry {
             linked: self.linked,
             regex_cache: self.regex_cache.clone(),
             matcher_cache: papaya::HashMap::new(),
+            match_strategy: self.match_strategy,
         }
     }
 }
@@ -198,6 +201,7 @@ impl Registry {
             linked: false,
             regex_cache: Arc::new(RegexCache::default()),
             matcher_cache: papaya::HashMap::new(),
+            match_strategy: MatchStrategy::default(),
         };
         this.link_grammars();
 
@@ -319,6 +323,12 @@ impl Registry {
             .tokenize_string(content)
             .map_err(Error::TokenizeRegex)?;
         Ok((tokens, tokenizer.into_scope_interner()))
+    }
+
+    /// See [MatchStrategy] documentation to see which one to use for your usecase
+    pub fn set_match_strategy(&mut self, match_strategy: MatchStrategy) {
+        self.match_strategy = match_strategy;
+        self.clear_matcher_cache();
     }
 
     /// Checks whether the given lang is available in the registry with its grammar name
@@ -554,10 +564,11 @@ impl Registry {
     pub fn clear_caches(&self) {
         self.matcher_cache.pin().clear();
         self.regex_cache.clear();
+        self.matcher_cache.pin().clear();
     }
 
     #[doc(hidden)]
-    pub fn clear_pattern_cache(&self) {
+    pub fn clear_matcher_cache(&self) {
         self.matcher_cache.pin().clear();
     }
 
@@ -578,7 +589,11 @@ impl Registry {
             .into_iter()
             .map(|(rule, pat)| (rule, pat.to_owned()))
             .collect();
-        let rule_matcher = Arc::new(RuleMatcher::new(patterns, self.regex_cache.clone()));
+        let rule_matcher = Arc::new(RuleMatcher::new(
+            patterns,
+            self.regex_cache.clone(),
+            self.match_strategy,
+        ));
 
         // Use get_or_insert for concurrent-safe lazy init
         let inserted = self
