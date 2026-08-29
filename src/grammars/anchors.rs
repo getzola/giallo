@@ -1,4 +1,3 @@
-use onig::SearchOptions;
 use std::fmt;
 
 /// We use that as a way to convey both the rule and which anchors should be active
@@ -36,15 +35,21 @@ impl AnchorActive {
         }
     }
 
-    pub fn to_search_options(self) -> SearchOptions {
+    pub fn allow_a(&self) -> bool {
+        matches!(self, AnchorActive::A | AnchorActive::AG)
+    }
+
+    pub fn allow_g(&self) -> bool {
+        matches!(self, AnchorActive::G | AnchorActive::AG)
+    }
+
+    /// The same anchor context with \G deactivated.
+    /// RegexSet handles it on its own (inside fancy-regex) but not the normal Regex
+    /// we walk through
+    pub fn without_g(&self) -> Self {
         match self {
-            AnchorActive::AG => SearchOptions::SEARCH_OPTION_NONE,
-            AnchorActive::A => SearchOptions::SEARCH_OPTION_NOT_BEGIN_POSITION,
-            AnchorActive::G => SearchOptions::SEARCH_OPTION_NOT_BEGIN_STRING,
-            AnchorActive::None => {
-                SearchOptions::SEARCH_OPTION_NOT_BEGIN_STRING
-                    | SearchOptions::SEARCH_OPTION_NOT_BEGIN_POSITION
-            }
+            AnchorActive::A | AnchorActive::AG => AnchorActive::A,
+            AnchorActive::G | AnchorActive::None => AnchorActive::None,
         }
     }
 }

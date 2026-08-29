@@ -1,7 +1,3 @@
-use std::fmt;
-use std::sync::{Arc, OnceLock};
-
-use onig::{RegexOptions, Syntax};
 use serde::{Deserialize, Serialize};
 
 /// Escapes regular expression characters in a given string
@@ -80,34 +76,10 @@ fn transform_z_anchor(pattern: &str) -> String {
         .replace("___TEMP___", "\\\\z") // Restore literal \\z
 }
 
-/// A regex wrapper that serializes as a string but compiles lazily at runtime
-#[derive(Serialize, Deserialize)]
-pub struct Regex {
-    pattern: String,
-    #[serde(skip)]
-    compiled: OnceLock<Option<Arc<onig::Regex>>>,
-}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Pattern(String);
 
-impl Clone for Regex {
-    fn clone(&self) -> Self {
-        // Create a new regex with the same pattern but fresh lazy compilation
-        Regex::new(self.pattern.clone())
-    }
-}
-
-impl fmt::Debug for Regex {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.pattern)
-    }
-}
-
-impl PartialEq for Regex {
-    fn eq(&self, other: &Self) -> bool {
-        self.pattern == other.pattern
-    }
-}
-
-impl Regex {
+impl Pattern {
     pub fn new(pattern: String) -> Self {
         // Transform \z to $(?!\n)(?<!\n) to match vscode-textmate behavior
         // \z in Oniguruma matches absolute end of string, but TextMate grammars
@@ -115,33 +87,11 @@ impl Regex {
         // This is needed at least for the po grammar sample from shiki
         let transformed_pattern = transform_z_anchor(&pattern);
 
-        Self {
-            pattern: transformed_pattern,
-            compiled: OnceLock::new(),
-        }
+        Self(transformed_pattern)
     }
 
     pub fn pattern(&self) -> &str {
-        &self.pattern
-    }
-
-    pub fn compiled(&self) -> Option<&Arc<onig::Regex>> {
-        self.compiled
-            .get_or_init(|| {
-                onig::Regex::with_options(
-                    &self.pattern,
-                    RegexOptions::REGEX_OPTION_CAPTURE_GROUP,
-                    Syntax::default(),
-                )
-                .ok()
-                .map(Arc::new)
-            })
-            .as_ref()
-    }
-
-    /// Validate that this regex pattern compiles successfully
-    pub fn validate(&self) -> Result<(), onig::Error> {
-        onig::Regex::new(&self.pattern).map(|_| ())
+        &self.0
     }
 }
 
