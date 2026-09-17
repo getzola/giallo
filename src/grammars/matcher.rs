@@ -3,6 +3,7 @@ use crate::grammars::caches::RegexCache;
 use crate::grammars::engine::CaptureSpans;
 use crate::grammars::prefilter::Prefilter;
 use crate::grammars::{GlobalRuleRef, engine};
+use crate::tokenizer::last_match::LastMatchCache;
 use fancy_regex::ByteSet;
 use std::sync::{Arc, OnceLock};
 
@@ -56,27 +57,35 @@ impl Remainder {
         text: &str,
         pos: usize,
         anchors: AnchorActive,
-    ) -> Result<Option<engine::Match>, String> {
+        last_match_cache: &mut LastMatchCache,
+    ) -> Option<engine::Match> {
+        // We want the idx at the rule level, not the one inside the regex/regset
         match self {
-            Remainder::Single { re, index } => {
-                if let Some((start, end, capture_pos)) = re.search(text, pos, anchors) {
-                    return Ok(Some(engine::Match {
-                        pattern_idx: *index,
-                        start,
-                        end,
-                        capture_pos,
-                    }));
-                }
-            }
-            Remainder::Set { set, indices } => {
-                if let Some(mut m) = set.search(text, pos, anchors)? {
-                    // We want the idx at the rule level, not just the regset
+            Remainder::Single { re, index } => last_match_cache
+                .search(
+                    Arc::as_ptr(re) as usize,
+                    pos,
+                    re.anchor_usage(),
+                    anchors,
+                    || re.search(text, pos, anchors),
+                )
+                .map(|mut m| {
+                    m.pattern_idx = *index;
+                    m
+                }),
+            Remainder::Set { set, indices } => last_match_cache
+                .search(
+                    Arc::as_ptr(set) as usize,
+                    pos,
+                    set.anchor_usage(),
+                    anchors,
+                    || set.search(text, pos, anchors),
+                )
+                .map(|mut m| {
                     m.pattern_idx = indices[m.pattern_idx];
-                    return Ok(Some(m));
-                }
-            }
+                    m
+                }),
         }
-        Ok(None)
     }
 }
 
@@ -95,15 +104,16 @@ impl Finder {
         text: &str,
         pos: usize,
         anchors: AnchorActive,
-    ) -> Result<Option<engine::Match>, String> {
+        last_match_cache: &mut LastMatchCache,
+    ) -> Option<engine::Match> {
         // Regset first so we can get a starting pos to stop the walk early
-        let set_hit = match &self.remainder {
-            Some(r) => r.find_at(text, pos, anchors)?,
-            None => None,
-        };
+        let set_hit = self
+            .remainder
+            .as_ref()
+            .and_then(|r| r.find_at(text, pos, anchors, last_match_cache));
 
         if self.regexes.is_empty() {
-            return Ok(set_hit);
+            return set_hit;
         }
 
         let set_hit_start = set_hit.as_ref().map(|m| m.start);
@@ -133,18 +143,12 @@ impl Finder {
             for idx in self.prefilter.candidates(b) {
                 let regex =
                     self.regexes[idx].get_or_init(|| self.cache.get_regex(&self.patterns[idx]));
-                let Some((start, end, capture_pos)) =
-                    regex.anchored_search(text, p, attempt_anchors)
-                else {
+                let Some(mut m) = regex.anchored_search(text, p, attempt_anchors) else {
                     continue;
                 };
 
-                walk_hit = Some(engine::Match {
-                    pattern_idx: idx,
-                    start,
-                    end,
-                    capture_pos,
-                });
+                m.pattern_idx = idx;
+                walk_hit = Some(m);
                 break 'walk;
             }
 
@@ -152,17 +156,17 @@ impl Finder {
         }
 
         match (set_hit, walk_hit) {
-            (None, None) => Ok(None),
-            (Some(m), None) => Ok(Some(m)),
-            (None, Some(m)) => Ok(Some(m)),
+            (None, None) => None,
+            (Some(m), None) => Some(m),
+            (None, Some(m)) => Some(m),
             (Some(set_m), Some(walk_m)) => {
                 // Earliest win, otherwise by the idx in the list of patterns
                 if set_m.start < walk_m.start
                     || (set_m.start == walk_m.start && set_m.pattern_idx < walk_m.pattern_idx)
                 {
-                    Ok(Some(set_m))
+                    Some(set_m)
                 } else {
-                    Ok(Some(walk_m))
+                    Some(walk_m)
                 }
             }
         }
@@ -242,14 +246,15 @@ impl RuleMatcher {
         text: &str,
         pos: usize,
         anchors: AnchorActive,
-    ) -> Result<Option<RuleMatch>, String> {
-        let hit = self.finder.find_at(text, pos, anchors)?;
-
-        Ok(hit.map(|m| RuleMatch {
-            rule_ref: self.rule_refs[m.pattern_idx],
-            start: m.start,
-            end: m.end,
-            capture_pos: m.capture_pos,
-        }))
+        last_match_cache: &mut LastMatchCache,
+    ) -> Option<RuleMatch> {
+        self.finder
+            .find_at(text, pos, anchors, last_match_cache)
+            .map(|m| RuleMatch {
+                rule_ref: self.rule_refs[m.pattern_idx],
+                start: m.start,
+                end: m.end,
+                capture_pos: m.capture_pos,
+            })
     }
 }

@@ -323,12 +323,10 @@ impl Registry {
         &self,
         grammar_id: GrammarId,
         content: &str,
-    ) -> GialloResult<(Vec<Vec<Token>>, ScopeInterner)> {
+    ) -> (Vec<Vec<Token>>, ScopeInterner) {
         let mut tokenizer = Tokenizer::new(grammar_id, self);
-        let tokens = tokenizer
-            .tokenize_string(content)
-            .map_err(Error::TokenizeRegex)?;
-        Ok((tokens, tokenizer.into_scope_interner()))
+        let tokens = tokenizer.tokenize_string(content);
+        (tokens, tokenizer.into_scope_interner())
     }
 
     /// Gets the name and aliases of all grammars in the registry
@@ -387,7 +385,7 @@ impl Registry {
             .ok_or_else(|| Error::GrammarNotFound(options.lang.clone()))?;
 
         let normalized_content = normalize_string(content);
-        let (tokens, scope_interner) = self.tokenize(grammar_id, &normalized_content)?;
+        let (tokens, scope_interner) = self.tokenize(grammar_id, &normalized_content);
 
         let merging_options = MergingOptions {
             merge_whitespaces: options.merge_whitespaces,
@@ -592,12 +590,12 @@ impl Registry {
         &self,
         base_grammar_id: GrammarId,
         rule_ref: GlobalRuleRef,
-    ) -> Result<Arc<RuleMatcher>, String> {
+    ) -> Arc<RuleMatcher> {
         let cache_key = (base_grammar_id, rule_ref);
         let guard = self.matcher_cache.guard();
 
         if let Some(matcher) = self.matcher_cache.get(&cache_key, &guard) {
-            return Ok(Arc::clone(matcher));
+            return Arc::clone(matcher);
         }
 
         let raw_patterns = self.collect_patterns(base_grammar_id, rule_ref);
@@ -616,7 +614,7 @@ impl Registry {
             .matcher_cache
             .get_or_insert(cache_key, rule_matcher, &guard);
 
-        Ok(Arc::clone(inserted))
+        Arc::clone(inserted)
     }
 
     #[cfg(feature = "dump")]
@@ -848,9 +846,8 @@ mod tests {
             let sample_path = format!("grammars-themes/samples/{grammar}.sample");
             println!("Checking {sample_path}");
             let sample_content = normalize_string(&fs::read_to_string(sample_path).unwrap());
-            let (tokens, scope_interner) = registry
-                .tokenize(registry.grammar_id_by_name[&grammar], &sample_content)
-                .unwrap();
+            let (tokens, scope_interner) =
+                registry.tokenize(registry.grammar_id_by_name[&grammar], &sample_content);
             let out = format_tokens(&sample_content, &scope_interner, tokens);
             assert_eq!(expected.trim(), out.trim());
         }

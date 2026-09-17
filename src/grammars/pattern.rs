@@ -125,6 +125,31 @@ impl Pattern {
     }
 }
 
+/// Whether a pattern contains a \A or \G
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct AnchorUsage {
+    pub uses_a: bool,
+    pub uses_g: bool,
+}
+
+impl AnchorUsage {
+    pub fn from_pattern(pattern: &str) -> Self {
+        let bytes = pattern.as_bytes();
+        let has = |letter: u8| bytes.windows(2).any(|w| w == [b'\\', letter]);
+        Self {
+            uses_a: has(b'A'),
+            uses_g: has(b'G'),
+        }
+    }
+
+    pub fn union(self, other: Self) -> Self {
+        Self {
+            uses_a: self.uses_a || other.uses_a,
+            uses_g: self.uses_g || other.uses_g,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
