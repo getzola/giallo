@@ -2,21 +2,22 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
-
+use crate::MatchStrategy;
 use crate::error::{Error, GialloResult};
+use crate::grammars::caches::RegexCache;
 use crate::grammars::{
     BASE_GLOBAL_RULE_REF, CompiledGrammar, GlobalRuleRef, GrammarId, InjectionPrecedence, Match,
-    NO_OP_GLOBAL_RULE_REF, PatternSet, ROOT_RULE_ID, RawGrammar, Rule, resolve_external_references,
+    NO_OP_GLOBAL_RULE_REF, Pattern, ROOT_RULE_ID, RawGrammar, Rule, RuleMatcher,
+    resolve_external_references,
 };
 use crate::highlight::{HighlightedText, Highlighter, MergingOptions};
-
 #[cfg(feature = "dump")]
 use crate::scope::ScopeRepository;
 use crate::scope::{Scope, ScopeInterner};
 use crate::themes::css::{DARK_SUFFIX, LIGHT_SUFFIX};
 use crate::themes::{CompiledTheme, RawTheme, ThemeVariant};
 use crate::tokenizer::{Token, Tokenizer};
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "dump")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -147,10 +148,15 @@ pub struct Registry {
     injections_by_grammar: Vec<HashSet<GrammarId>>,
     // Once a registry has linked grammars, it's not possible to replace existing grammars.
     linked: bool,
+    // We cache each static regex/regexset in there.
+    // The pattern cache below is using that cache as well
+    pub(crate) regex_cache: Arc<RegexCache>,
     // We cache the pattern set at the registry level it's compiled only once instead of per
     // highlight. To do that we had to check the end regex in the tokenizer separately from the
     // regset.
-    pattern_cache: papaya::HashMap<(GrammarId, GlobalRuleRef), Arc<PatternSet>>,
+    matcher_cache: papaya::HashMap<(GrammarId, GlobalRuleRef), Arc<RuleMatcher>>,
+    // whether to walk or only use regset
+    match_strategy: MatchStrategy,
 }
 
 impl Clone for Registry {
@@ -162,7 +168,9 @@ impl Clone for Registry {
             themes: self.themes.clone(),
             injections_by_grammar: self.injections_by_grammar.clone(),
             linked: self.linked,
-            pattern_cache: papaya::HashMap::new(),
+            regex_cache: self.regex_cache.clone(),
+            matcher_cache: papaya::HashMap::new(),
+            match_strategy: self.match_strategy,
         }
     }
 }
@@ -175,7 +183,6 @@ impl Registry {
         let mut grammar_id_by_scope_name = HashMap::with_capacity(grammars.len());
         let mut grammar_id_by_name = HashMap::with_capacity(grammars.len());
         let mut injections_by_grammar = Vec::with_capacity(grammars.len());
-        let pattern_cache = papaya::HashMap::new();
         let mut themes = HashMap::with_capacity(all_themes.len());
 
         for grammar in &grammars {
@@ -198,7 +205,9 @@ impl Registry {
             themes,
             injections_by_grammar,
             linked: false,
-            pattern_cache,
+            regex_cache: Arc::new(RegexCache::default()),
+            matcher_cache: papaya::HashMap::new(),
+            match_strategy: MatchStrategy::default(),
         };
         this.link_grammars();
 
@@ -326,13 +335,17 @@ impl Registry {
     pub fn get_grammar_names(&'_ self) -> Vec<GrammarNameAndAliases<'_>> {
         self.grammars
             .iter()
-            .map(|grammar| {
-                GrammarNameAndAliases {
-                    name: &grammar.name,
-                    aliases: &grammar.aliases,
-                }
+            .map(|grammar| GrammarNameAndAliases {
+                name: &grammar.name,
+                aliases: &grammar.aliases,
             })
             .collect()
+    }
+
+    /// See [MatchStrategy] documentation to see which one to use for your usecase
+    pub fn set_match_strategy(&mut self, match_strategy: MatchStrategy) {
+        self.match_strategy = match_strategy;
+        self.clear_matcher_cache();
     }
 
     /// Checks whether the given lang is available in the registry with its grammar name
@@ -447,7 +460,7 @@ impl Registry {
         base_grammar_id: GrammarId,
         mut rule_ref: GlobalRuleRef,
         visited: &mut HashSet<GlobalRuleRef>,
-    ) -> Vec<(GlobalRuleRef, &str)> {
+    ) -> Vec<(GlobalRuleRef, &Pattern)> {
         let mut out = vec![];
         if visited.contains(&rule_ref) || rule_ref == NO_OP_GLOBAL_RULE_REF {
             return out;
@@ -463,28 +476,28 @@ impl Registry {
         let grammar = &self.grammars[rule_ref.grammar];
         let rule = &grammar.rules[rule_ref.rule];
         match rule {
-            Rule::Match(Match { regex_id, .. }) => {
-                if let Some(regex_id) = regex_id {
-                    let re = &grammar.regexes[*regex_id];
-                    out.push((rule_ref, re.pattern()));
+            Rule::Match(Match { pattern_id, .. }) => {
+                if let Some(pat_id) = pattern_id {
+                    let re = &grammar.patterns[*pat_id];
+                    out.push((rule_ref, re));
                 }
             }
             Rule::IncludeOnly(i) => {
-                out.extend(self.get_pattern_set_data(base_grammar_id, &i.patterns, visited));
+                out.extend(self.get_rule_matcher_data(base_grammar_id, &i.patterns, visited));
             }
-            Rule::BeginEnd(b) => out.push((rule_ref, grammar.regexes[b.begin].pattern())),
-            Rule::BeginWhile(b) => out.push((rule_ref, grammar.regexes[b.begin].pattern())),
+            Rule::BeginEnd(b) => out.push((rule_ref, &grammar.patterns[b.begin])),
+            Rule::BeginWhile(b) => out.push((rule_ref, &grammar.patterns[b.begin])),
             Rule::Noop => {}
         }
         out
     }
 
-    fn get_pattern_set_data(
+    fn get_rule_matcher_data(
         &self,
         base_grammar_id: GrammarId,
         rule_refs: &[GlobalRuleRef],
         visited: &mut HashSet<GlobalRuleRef>,
-    ) -> Vec<(GlobalRuleRef, &str)> {
+    ) -> Vec<(GlobalRuleRef, &Pattern)> {
         let mut out = Vec::new();
 
         for r in rule_refs {
@@ -499,7 +512,7 @@ impl Registry {
         &self,
         base_grammar_id: GrammarId,
         rule_ref: GlobalRuleRef,
-    ) -> Vec<(GlobalRuleRef, &str)> {
+    ) -> Vec<(GlobalRuleRef, &Pattern)> {
         let grammar = &self.grammars[rule_ref.grammar];
         let base_patterns: &[GlobalRuleRef] = match &grammar.rules[rule_ref.rule] {
             Rule::IncludeOnly(a) => &a.patterns,
@@ -508,7 +521,7 @@ impl Registry {
             Rule::Match(_) | Rule::Noop => &[],
         };
         let mut visited = HashSet::new();
-        self.get_pattern_set_data(base_grammar_id, base_patterns, &mut visited)
+        self.get_rule_matcher_data(base_grammar_id, base_patterns, &mut visited)
     }
 
     pub(crate) fn has_injection_patterns(&self, grammar_id: GrammarId) -> bool {
@@ -565,33 +578,43 @@ impl Registry {
     }
 
     #[doc(hidden)]
-    pub fn clear_pattern_cache(&self) {
-        self.pattern_cache.pin().clear();
+    pub fn clear_caches(&self) {
+        self.matcher_cache.pin().clear();
+        self.regex_cache.clear();
     }
 
-    pub(crate) fn get_or_create_pattern_set(
+    #[doc(hidden)]
+    pub fn clear_matcher_cache(&self) {
+        self.matcher_cache.pin().clear();
+    }
+
+    pub(crate) fn get_or_create_rule_matcher(
         &self,
         base_grammar_id: GrammarId,
         rule_ref: GlobalRuleRef,
-    ) -> Result<Arc<PatternSet>, String> {
+    ) -> Result<Arc<RuleMatcher>, String> {
         let cache_key = (base_grammar_id, rule_ref);
-        let guard = self.pattern_cache.guard();
+        let guard = self.matcher_cache.guard();
 
-        if let Some(pattern_set) = self.pattern_cache.get(&cache_key, &guard) {
-            return Ok(Arc::clone(pattern_set));
+        if let Some(matcher) = self.matcher_cache.get(&cache_key, &guard) {
+            return Ok(Arc::clone(matcher));
         }
 
         let raw_patterns = self.collect_patterns(base_grammar_id, rule_ref);
         let patterns: Vec<_> = raw_patterns
             .into_iter()
-            .map(|(rule, pat)| (rule, pat.to_owned()))
+            .map(|(rule, pat)| (rule, pat.pattern().to_owned(), pat.byte_set().copied()))
             .collect();
-        let pattern_set = Arc::new(PatternSet::new(patterns)?);
+        let rule_matcher = Arc::new(RuleMatcher::new(
+            patterns,
+            self.regex_cache.clone(),
+            self.match_strategy,
+        ));
 
         // Use get_or_insert for concurrent-safe lazy init
         let inserted = self
-            .pattern_cache
-            .get_or_insert(cache_key, pattern_set, &guard);
+            .matcher_cache
+            .get_or_insert(cache_key, rule_matcher, &guard);
 
         Ok(Arc::clone(inserted))
     }
@@ -769,7 +792,7 @@ mod tests {
             registry.get_grammar_names(),
             vec![GrammarNameAndAliases {
                 name: &String::from("shellscript"),
-                aliases: &vec![String::from("bash")],
+                aliases: &[String::from("bash")],
             }]
         );
 
@@ -778,7 +801,7 @@ mod tests {
             registry.get_grammar_names(),
             vec![GrammarNameAndAliases {
                 name: &String::from("shellscript"),
-                aliases: &vec![String::from("bash"), String::from("bashs")],
+                aliases: &[String::from("bash"), String::from("bashs")],
             }]
         );
     }

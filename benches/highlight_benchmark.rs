@@ -1,26 +1,35 @@
-use criterion::{Criterion, criterion_group, criterion_main};
-use giallo::{HighlightOptions, Registry, ThemeVariant};
 use std::fs;
 
-fn highlight_jquery_benchmark(c: &mut Criterion) {
-    // Load registry once for all benchmarks
-    let mut registry =
-        Registry::load_from_file("builtin.zst").expect("Failed to load registry from builtin.zst");
-    registry.link_grammars();
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+use giallo::{HighlightOptions, Registry, ThemeVariant};
 
-    // Read jQuery file content once
-    let jquery_content =
-        fs::read_to_string("src/fixtures/samples/jquery.js").expect("Failed to read jQuery file");
+const SAMPLES: &[(&str, &str)] = &[
+    ("javascript", "src/fixtures/samples/jquery.js"),
+    ("javascript", "grammars-themes/samples/javascript.sample"),
+    ("typescript", "grammars-themes/samples/typescript.sample"),
+    ("tsx", "grammars-themes/samples/tsx.sample"),
+    ("rust", "grammars-themes/samples/rust.sample"),
+    ("c", "grammars-themes/samples/c.sample"),
+    ("markdown", "grammars-themes/samples/markdown.sample"),
+    ("python", "grammars-themes/samples/python.sample"),
+    ("html", "grammars-themes/samples/html.sample"),
+    ("css", "grammars-themes/samples/css.sample"),
+    ("ruby", "grammars-themes/samples/ruby.sample"),
+    ("go", "grammars-themes/samples/go.sample"),
+    ("astro", "grammars-themes/samples/astro.sample"),
+    ("c#", "grammars-themes/samples/csharp.sample"),
+    ("java", "grammars-themes/samples/java.sample"),
+    ("php", "grammars-themes/samples/php.sample"),
+    ("json", "grammars-themes/samples/json.sample"),
+    ("shellscript", "grammars-themes/samples/shellscript.sample"),
+];
 
-    let options = HighlightOptions::new("javascript", ThemeVariant::Single("vitesse-black"));
-
-    c.bench_function("highlight jquery.js", |b| {
-        b.iter(|| {
-            registry.clear_pattern_cache();
-            let result = registry.highlight(&jquery_content, &options).unwrap();
-            std::hint::black_box(result);
-        })
-    });
+fn bench_name(grammar: &'static str, path: &str) -> &'static str {
+    if path.contains("jquery") {
+        "jquery"
+    } else {
+        grammar
+    }
 }
 
 fn highlight_simple_benchmark(c: &mut Criterion) {
@@ -33,11 +42,11 @@ fn highlight_simple_benchmark(c: &mut Criterion) {
     let options = HighlightOptions::new("typescript", ThemeVariant::Single("vitesse-black"));
 
     c.bench_function("highlight simple.ts", |b| {
-        b.iter(|| {
-            registry.clear_pattern_cache();
-            let result = registry.highlight(&ts_content, &options).unwrap();
-            std::hint::black_box(result);
-        })
+        b.iter_batched(
+            || registry.clear_caches(),
+            |()| std::hint::black_box(registry.highlight(&ts_content, &options).unwrap()),
+            BatchSize::PerIteration,
+        )
     });
 }
 
@@ -51,62 +60,57 @@ fn highlight_multiple_simple_benchmark(c: &mut Criterion) {
     let options = HighlightOptions::new("typescript", ThemeVariant::Single("vitesse-black"));
 
     c.bench_function("highlight multiple simple.ts", |b| {
-        b.iter(|| {
-            // should not be 5x slower than "highlight simple.ts"
-            registry.clear_pattern_cache();
-            let result = registry.highlight(&ts_content, &options).unwrap();
-            std::hint::black_box(result);
-            let result = registry.highlight(&ts_content, &options).unwrap();
-            std::hint::black_box(result);
-            let result = registry.highlight(&ts_content, &options).unwrap();
-            std::hint::black_box(result);
-            let result = registry.highlight(&ts_content, &options).unwrap();
-            std::hint::black_box(result);
-            let result = registry.highlight(&ts_content, &options).unwrap();
-            std::hint::black_box(result);
-        })
+        b.iter_batched(
+            || registry.clear_caches(),
+            |()| {
+                // should not be 5x slower than "highlight simple.ts"
+                for _ in 0..5 {
+                    std::hint::black_box(registry.highlight(&ts_content, &options).unwrap());
+                }
+            },
+            BatchSize::PerIteration,
+        )
     });
 }
 
-fn highlight_sample_benchmark(c: &mut Criterion, grammar: &str) {
-    let mut registry =
-        Registry::load_from_file("builtin.zst").expect("Failed to load registry from builtin.zst");
-    registry.link_grammars();
-
-    let sample_path = format!("grammars-themes/samples/{grammar}.sample");
-    let content = fs::read_to_string(&sample_path)
-        .unwrap_or_else(|_| panic!("Failed to read sample {sample_path}"));
-
-    let options = HighlightOptions::new(grammar, ThemeVariant::Single("vitesse-black"));
-
-    c.bench_function(&format!("highlight {grammar}.sample"), |b| {
-        b.iter(|| {
-            registry.clear_pattern_cache();
-            let result = registry.highlight(&content, &options).unwrap();
-            std::hint::black_box(result);
-        })
-    });
+fn highlight_cold_benchmark(c: &mut Criterion) {
+    let registry = Registry::load_from_file("builtin.zst").unwrap();
+    let mut group = c.benchmark_group("highlight cold");
+    group.sample_size(50);
+    for &(grammar, path) in SAMPLES {
+        let content = fs::read_to_string(path).unwrap();
+        let options = HighlightOptions::new(grammar, ThemeVariant::Single("vitesse-black"));
+        registry.highlight(&content, &options).unwrap();
+        group.bench_function(bench_name(grammar, path), |b| {
+            b.iter_batched(
+                || registry.clear_caches(),
+                |()| std::hint::black_box(registry.highlight(&content, &options).unwrap()),
+                BatchSize::PerIteration,
+            )
+        });
+    }
+    group.finish();
 }
 
-fn highlight_rust_sample_benchmark(c: &mut Criterion) {
-    highlight_sample_benchmark(c, "rust");
-}
-
-fn highlight_markdown_sample_benchmark(c: &mut Criterion) {
-    highlight_sample_benchmark(c, "markdown");
-}
-
-fn highlight_javascript_sample_benchmark(c: &mut Criterion) {
-    highlight_sample_benchmark(c, "javascript");
+fn highlight_warm_benchmark(c: &mut Criterion) {
+    let registry = Registry::load_from_file("builtin.zst").unwrap();
+    let mut group = c.benchmark_group("highlight warm");
+    for &(grammar, path) in SAMPLES {
+        let content = fs::read_to_string(path).unwrap();
+        let options = HighlightOptions::new(grammar, ThemeVariant::Single("vitesse-black"));
+        registry.highlight(&content, &options).unwrap();
+        group.bench_function(bench_name(grammar, path), |b| {
+            b.iter(|| std::hint::black_box(registry.highlight(&content, &options).unwrap()))
+        });
+    }
+    group.finish();
 }
 
 criterion_group!(
     benches,
-    highlight_jquery_benchmark,
     highlight_simple_benchmark,
     highlight_multiple_simple_benchmark,
-    highlight_rust_sample_benchmark,
-    highlight_markdown_sample_benchmark,
-    highlight_javascript_sample_benchmark
+    highlight_cold_benchmark,
+    highlight_warm_benchmark,
 );
 criterion_main!(benches);

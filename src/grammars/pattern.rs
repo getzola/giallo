@@ -1,7 +1,5 @@
-use std::fmt;
-use std::sync::{Arc, OnceLock};
-
-use onig::{RegexOptions, Syntax};
+use crate::grammars::engine::fancy_options;
+use fancy_regex::ByteSet;
 use serde::{Deserialize, Serialize};
 
 /// Escapes regular expression characters in a given string
@@ -80,68 +78,50 @@ fn transform_z_anchor(pattern: &str) -> String {
         .replace("___TEMP___", "\\\\z") // Restore literal \\z
 }
 
-/// A regex wrapper that serializes as a string but compiles lazily at runtime
-#[derive(Serialize, Deserialize)]
-pub struct Regex {
-    pattern: String,
-    #[serde(skip)]
-    compiled: OnceLock<Option<Arc<onig::Regex>>>,
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Pattern {
+    pat: String,
+    #[serde(with = "byte_set_serde")]
+    byte_set: Option<ByteSet>,
 }
 
-impl Clone for Regex {
-    fn clone(&self) -> Self {
-        // Create a new regex with the same pattern but fresh lazy compilation
-        Regex::new(self.pattern.clone())
+mod byte_set_serde {
+    use fancy_regex::ByteSet;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S: Serializer>(v: &Option<ByteSet>, s: S) -> Result<S::Ok, S::Error> {
+        v.map(|b| *b.words()).serialize(s)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<ByteSet>, D::Error> {
+        let words = Option::<[u64; 4]>::deserialize(d)?;
+        Ok(words.map(ByteSet::from_words))
     }
 }
 
-impl fmt::Debug for Regex {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.pattern)
-    }
-}
-
-impl PartialEq for Regex {
-    fn eq(&self, other: &Self) -> bool {
-        self.pattern == other.pattern
-    }
-}
-
-impl Regex {
+impl Pattern {
     pub fn new(pattern: String) -> Self {
         // Transform \z to $(?!\n)(?<!\n) to match vscode-textmate behavior
         // \z in Oniguruma matches absolute end of string, but TextMate grammars
         // expect it to match end-of-string-or-before-final-newline
         // This is needed at least for the po grammar sample from shiki
         let transformed_pattern = transform_z_anchor(&pattern);
+        let byte_set = fancy_options()
+            .start_bytes(&transformed_pattern)
+            .unwrap_or(None);
 
         Self {
-            pattern: transformed_pattern,
-            compiled: OnceLock::new(),
+            pat: transformed_pattern,
+            byte_set,
         }
     }
 
     pub fn pattern(&self) -> &str {
-        &self.pattern
+        &self.pat
     }
 
-    pub fn compiled(&self) -> Option<&Arc<onig::Regex>> {
-        self.compiled
-            .get_or_init(|| {
-                onig::Regex::with_options(
-                    &self.pattern,
-                    RegexOptions::REGEX_OPTION_CAPTURE_GROUP,
-                    Syntax::default(),
-                )
-                .ok()
-                .map(Arc::new)
-            })
-            .as_ref()
-    }
-
-    /// Validate that this regex pattern compiles successfully
-    pub fn validate(&self) -> Result<(), onig::Error> {
-        onig::Regex::new(&self.pattern).map(|_| ())
+    pub fn byte_set(&self) -> Option<&ByteSet> {
+        self.byte_set.as_ref()
     }
 }
 
