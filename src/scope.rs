@@ -291,6 +291,10 @@ impl ScopeInterner {
         out.reverse();
         out
     }
+
+    pub(crate) fn parent(&self, id: ScopeListId) -> ScopeListId {
+        self.nodes[id.as_index() - 1].parent
+    }
 }
 
 #[cfg(test)]
