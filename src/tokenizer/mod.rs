@@ -171,7 +171,7 @@ impl<'g> Tokenizer<'g> {
     /// Follows vscode-textmate's comparison logic for rule vs injection precedence
     fn match_rule_or_injections(
         &mut self,
-        stack: &StateStack,
+        stack: &mut StateStack,
         line: &str,
         pos: usize,
         is_first_line: bool,
@@ -179,8 +179,14 @@ impl<'g> Tokenizer<'g> {
     ) -> Option<RuleMatch> {
         let anchor_context = AnchorActive::new(is_first_line, anchor_position, pos);
 
-        // Get regular rule patterns
-        let rule_matcher = self.get_or_create_rule_matcher(stack, None);
+        let rule_matcher = match &stack.top().matcher {
+            Some(matcher) => matcher.clone(),
+            None => {
+                let matcher = self.get_or_create_rule_matcher(stack, None);
+                stack.top_mut().matcher = Some(matcher.clone());
+                matcher
+            }
+        };
         let regset_match =
             rule_matcher.find_at(line, pos, anchor_context, &mut self.last_match_cache);
         let rule_ref = stack.top().rule_ref;
@@ -300,9 +306,13 @@ impl<'g> Tokenizer<'g> {
                     *pos
                 );
             }
-            let resolved = frame.end_pattern.as_deref();
-            let compiled_re =
-                self.get_end_or_while_regex(resolved, frame.rule_ref.grammar, b.while_);
+            let compiled_re = match &frame.end_regex {
+                Some(re) => re.clone(),
+                None => {
+                    let resolved = frame.end_pattern.as_deref();
+                    self.get_end_or_while_regex(resolved, frame.rule_ref.grammar, b.while_)
+                }
+            };
 
             let search_text = line.get(*pos..).unwrap_or("");
 
@@ -428,10 +438,13 @@ impl<'g> Tokenizer<'g> {
         let rule = &self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule];
 
         let compiled_re = match rule {
-            Rule::BeginEnd(b) => {
-                let resolved = stack.top().end_pattern.as_deref();
-                self.get_end_or_while_regex(resolved, rule_ref.grammar, b.end)
-            }
+            Rule::BeginEnd(b) => match &stack.top().end_regex {
+                Some(re) => re.clone(),
+                None => {
+                    let resolved = stack.top().end_pattern.as_deref();
+                    self.get_end_or_while_regex(resolved, rule_ref.grammar, b.end)
+                }
+            },
             _ => return None,
         };
         self.last_match_cache
@@ -601,7 +614,7 @@ impl<'g> Tokenizer<'g> {
             }
 
             if let Some(m) =
-                self.match_rule_or_injections(&stack, line, pos, is_first_line, anchor_position)
+                self.match_rule_or_injections(&mut stack, line, pos, is_first_line, anchor_position)
             {
                 #[cfg(feature = "debug")]
                 log::debug!(
@@ -746,6 +759,13 @@ impl<'g> Tokenizer<'g> {
                                     resolve_backreferences(re.pattern(), line, &m.capture_pos);
                                 stack.set_end_pattern(resolved_end);
                             }
+
+                            let compiled = self.get_end_or_while_regex(
+                                stack.top().end_pattern.as_deref(),
+                                m.rule_ref.grammar,
+                                re_id,
+                            );
+                            stack.top_mut().end_regex = Some(compiled);
                         };
 
                     match rule {
