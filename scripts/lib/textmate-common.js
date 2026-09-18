@@ -83,20 +83,31 @@ async function createRegistry() {
         }
     }
 
+    const injectionsByScope = new Map();
+    for (const rawGrammar of loadedGrammars.values()) {
+        for (const target of rawGrammar.injectTo || []) {
+            if (!injectionsByScope.has(target)) {
+                injectionsByScope.set(target, []);
+            }
+            injectionsByScope.get(target).push(rawGrammar.scopeName);
+        }
+    }
+
     // Set up oniguruma and create registry
     const onigLib = await getOniguruma();
     const registry = new Registry({
         onigLib: onigLib,
         loadGrammar: async (scopeName) => {
             return loadedGrammars.get(scopeName) || null;
-        }
+        },
+        getInjections: (scopeName) => injectionsByScope.get(scopeName),
     });
 
     // Load all grammars into the registry upfront to support injections
     console.log(`Loading ${loadedGrammars.size} grammars into registry...`);
     for (const [scopeName, rawGrammar] of loadedGrammars.entries()) {
         try {
-            await registry.addGrammar(rawGrammar);
+            await registry.addGrammar(rawGrammar, injectionsByScope.get(scopeName) || []);
         } catch (error) {
             console.warn(`⚠️  Failed to load grammar ${scopeName}:`, error.message);
         }

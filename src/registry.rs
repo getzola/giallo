@@ -444,7 +444,7 @@ impl Registry {
 
             let grammar = &self.grammars[i];
             for inject_to in &grammar.inject_to {
-                if let Some(g_id) = self.grammar_id_by_name.get(inject_to) {
+                if let Some(g_id) = self.grammar_id_by_scope_name.get(&inject_to.to_lowercase()) {
                     self.injections_by_grammar[g_id.as_index()].insert(grammar.id);
                 }
             }
@@ -835,6 +835,16 @@ mod tests {
         let result = registry
             .add_grammar_from_path("grammars-themes/packages/tm-grammars/grammars/json.json");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn applies_inject_to_grammars() {
+        let registry = get_registry();
+        let js = registry.grammar_id_by_name["javascript"];
+        let es_tag_css = registry.grammar_id_by_name["es-tag-css"];
+
+        assert!(registry.injections_by_grammar[js.as_index()].contains(&es_tag_css));
+        assert!(registry.has_injection_patterns(js));
     }
 
     #[test]
