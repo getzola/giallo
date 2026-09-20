@@ -155,6 +155,8 @@ pub struct Registry {
     // highlight. To do that we had to check the end regex in the tokenizer separately from the
     // regset.
     matcher_cache: papaya::HashMap<(GrammarId, GlobalRuleRef), Arc<RuleMatcher>>,
+    // Injections with the same precedence share the same RuleMatcher, using a RegexSet inside
+    injection_matcher_cache: papaya::HashMap<(GrammarId, Vec<GlobalRuleRef>), Arc<RuleMatcher>>,
     // whether to walk or only use regset
     match_strategy: MatchStrategy,
 }
@@ -170,6 +172,7 @@ impl Clone for Registry {
             linked: self.linked,
             regex_cache: self.regex_cache.clone(),
             matcher_cache: papaya::HashMap::new(),
+            injection_matcher_cache: papaya::HashMap::new(),
             match_strategy: self.match_strategy,
         }
     }
@@ -207,6 +210,7 @@ impl Registry {
             linked: false,
             regex_cache: Arc::new(RegexCache::default()),
             matcher_cache: papaya::HashMap::new(),
+            injection_matcher_cache: papaya::HashMap::new(),
             match_strategy: MatchStrategy::default(),
         };
         this.link_grammars();
@@ -527,12 +531,13 @@ impl Registry {
             || !self.injections_by_grammar[grammar_id.as_index()].is_empty()
     }
 
-    pub(crate) fn collect_injection_patterns(
+    pub(crate) fn collect_injection_matchers(
         &self,
         target_grammar_id: GrammarId,
         scope_stack: &[Scope],
-    ) -> Vec<(InjectionPrecedence, GlobalRuleRef)> {
-        let mut result = Vec::new();
+    ) -> Vec<(InjectionPrecedence, Arc<RuleMatcher>)> {
+        let mut left = Vec::new();
+        let mut right = Vec::new();
 
         for (matchers, rule) in &self.grammars[target_grammar_id].injections {
             for matcher in matchers {
@@ -542,7 +547,10 @@ impl Registry {
                             "Scope stack {scope_stack:?} matched injection selector {matcher:?}"
                         );
                     }
-                    result.push((matcher.precedence(), *rule));
+                    match matcher.precedence() {
+                        InjectionPrecedence::Left => left.push(*rule),
+                        InjectionPrecedence::Right => right.push(*rule),
+                    }
                 }
             }
         }
@@ -557,33 +565,81 @@ impl Registry {
                 .find(|matcher| matcher.matches(scope_stack))
             {
                 // in injector grammars, there should be just a root rule and we inject it all
-                result.push((
-                    matcher.precedence(),
-                    GlobalRuleRef {
-                        grammar: injector_id,
-                        rule: ROOT_RULE_ID,
-                    },
-                ));
+                let rule = GlobalRuleRef {
+                    grammar: injector_id,
+                    rule: ROOT_RULE_ID,
+                };
+
+                match matcher.precedence() {
+                    InjectionPrecedence::Left => left.push(rule),
+                    InjectionPrecedence::Right => right.push(rule),
+                }
             }
         }
 
-        result.sort_by_key(|(precedence, _)| match precedence {
-            InjectionPrecedence::Left => -1,
-            InjectionPrecedence::Right => 1,
-        });
-
-        result
+        // left first, then right
+        let mut out = Vec::with_capacity(2);
+        if !left.is_empty() {
+            out.push((
+                InjectionPrecedence::Left,
+                self.get_or_create_injection_matcher(target_grammar_id, left),
+            ));
+        }
+        if !right.is_empty() {
+            out.push((
+                InjectionPrecedence::Right,
+                self.get_or_create_injection_matcher(target_grammar_id, right),
+            ));
+        }
+        out
     }
 
     #[doc(hidden)]
     pub fn clear_caches(&self) {
-        self.matcher_cache.pin().clear();
+        self.clear_matcher_cache();
         self.regex_cache.clear();
     }
 
     #[doc(hidden)]
     pub fn clear_matcher_cache(&self) {
         self.matcher_cache.pin().clear();
+        self.injection_matcher_cache.pin().clear();
+    }
+
+    fn get_or_create_injection_matcher(
+        &self,
+        base_grammar_id: GrammarId,
+        rules: Vec<GlobalRuleRef>,
+    ) -> Arc<RuleMatcher> {
+        let cache_key = (base_grammar_id, rules);
+        let guard = self.injection_matcher_cache.guard();
+        if let Some(matcher) = self.injection_matcher_cache.get(&cache_key, &guard) {
+            return Arc::clone(matcher);
+        }
+
+        let mut seen = HashSet::new();
+        let mut matcher_patterns = Vec::new();
+
+        for rule in &cache_key.1 {
+            let patterns = self.collect_patterns(base_grammar_id, *rule);
+            for (r, pat) in patterns {
+                if seen.insert(pat.pattern()) {
+                    matcher_patterns.push((r, pat.pattern().to_owned(), pat.byte_set().copied()));
+                }
+            }
+        }
+
+        let matcher = Arc::new(RuleMatcher::new(
+            matcher_patterns,
+            self.regex_cache.clone(),
+            // We force a set for those, the last match cache will get res for all of them in
+            // one call this way
+            MatchStrategy::Set,
+        ));
+        Arc::clone(
+            self.injection_matcher_cache
+                .get_or_insert(cache_key, matcher, &guard),
+        )
     }
 
     pub(crate) fn get_or_create_rule_matcher(

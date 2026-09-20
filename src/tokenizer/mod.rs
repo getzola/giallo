@@ -88,6 +88,7 @@ pub struct Tokenizer<'g> {
     end_regex_cache: HashMap<String, Arc<engine::Regex>>,
     scope_interner: ScopeInterner,
     last_match_cache: LastMatchCache,
+    injection_matchers: HashMap<ScopeListId, Vec<(InjectionPrecedence, Arc<RuleMatcher>)>>,
 }
 
 impl<'g> Tokenizer<'g> {
@@ -98,6 +99,7 @@ impl<'g> Tokenizer<'g> {
             end_regex_cache: HashMap::new(),
             scope_interner: ScopeInterner::default(),
             last_match_cache: LastMatchCache::default(),
+            injection_matchers: HashMap::new(),
         }
     }
 
@@ -107,7 +109,7 @@ impl<'g> Tokenizer<'g> {
     }
 
     /// Matches injection patterns at the current position
-    /// Returns (is_left_precedence, RuleMatch) for the best match
+    /// Returns (precedence, best match)
     fn match_injections(
         &mut self,
         stack: &StateStack,
@@ -122,25 +124,19 @@ impl<'g> Tokenizer<'g> {
         }
 
         let anchor_context = AnchorActive::new(is_first_line, anchor_position, pos);
-        let content_scopes = self.scope_interner.get_scopes(stack.top().content_scopes);
-        let injection_patterns = self
-            .registry
-            .collect_injection_patterns(self.base_grammar_id, &content_scopes);
-
-        if injection_patterns.is_empty() {
-            return None;
-        }
+        let matchers = self
+            .injection_matchers
+            .entry(stack.top().content_scopes)
+            .or_insert_with(|| {
+                let scopes = self.scope_interner.get_scopes(stack.top().content_scopes);
+                self.registry
+                    .collect_injection_matchers(self.base_grammar_id, &scopes)
+            });
 
         let mut best_match: Option<(InjectionPrecedence, RuleMatch)> = None;
 
-        // Process injections in the order returned by registry (already sorted by precedence)
-        for (precedence, rule) in injection_patterns {
-            // Use injection override instead of cloning stack
-            let rule_matcher = self.get_or_create_rule_matcher(
-                stack,
-                Some(rule), // Override rule_ref for injection testing
-            );
-
+        // Injections are already in the right order
+        for (precedence, rule_matcher) in matchers.iter() {
             if let Some(found) =
                 rule_matcher.find_at(line, pos, anchor_context, &mut self.last_match_cache)
             {
@@ -149,13 +145,13 @@ impl<'g> Tokenizer<'g> {
                         continue;
                     }
                     let is_done = found.start == pos;
-                    best_match = Some((precedence, found));
+                    best_match = Some((*precedence, found));
                     if is_done {
                         break;
                     }
                 } else {
                     let is_done = found.start == pos;
-                    best_match = Some((precedence, found));
+                    best_match = Some((*precedence, found));
                     // The first injection wins ties, and no match can start before pos.
                     if is_done {
                         break;
@@ -182,7 +178,7 @@ impl<'g> Tokenizer<'g> {
         let rule_matcher = match &stack.top().matcher {
             Some(matcher) => matcher.clone(),
             None => {
-                let matcher = self.get_or_create_rule_matcher(stack, None);
+                let matcher = self.get_or_create_rule_matcher(stack);
                 stack.top_mut().matcher = Some(matcher.clone());
                 matcher
             }
@@ -385,12 +381,8 @@ impl<'g> Tokenizer<'g> {
         (stack, anchor_position, is_first_line)
     }
 
-    fn get_or_create_rule_matcher(
-        &self,
-        stack: &StateStack,
-        injection_rule_override: Option<GlobalRuleRef>,
-    ) -> Arc<RuleMatcher> {
-        let rule_ref = injection_rule_override.unwrap_or(stack.top().rule_ref);
+    fn get_or_create_rule_matcher(&self, stack: &StateStack) -> Arc<RuleMatcher> {
+        let rule_ref = stack.top().rule_ref;
         #[cfg(feature = "debug")]
         {
             log::debug!(
