@@ -104,13 +104,15 @@ impl Finder {
         text: &str,
         pos: usize,
         anchors: AnchorActive,
+        end_start: Option<usize>,
         last_match_cache: &mut LastMatchCache,
     ) -> Option<engine::Match> {
         // Regset first so we can get a starting pos to stop the walk early
         let set_hit = self
             .remainder
             .as_ref()
-            .and_then(|r| r.find_at(text, pos, anchors, last_match_cache));
+            .and_then(|r| r.find_at(text, pos, anchors, last_match_cache))
+            .filter(|r| end_start.is_none_or(|x| r.start < x));
 
         if self.regexes.is_empty() {
             return set_hit;
@@ -120,8 +122,9 @@ impl Finder {
         let bytes = text.as_bytes();
         let mut walk_hit = None;
         let mut p = pos;
+        let walk_end = end_start.unwrap_or(bytes.len()).min(bytes.len());
 
-        'walk: while p < bytes.len() {
+        'walk: while p < walk_end {
             if let Some(set_start) = set_hit_start
                 && p > set_start
             {
@@ -246,10 +249,11 @@ impl RuleMatcher {
         text: &str,
         pos: usize,
         anchors: AnchorActive,
+        end_start: Option<usize>,
         last_match_cache: &mut LastMatchCache,
     ) -> Option<RuleMatch> {
         self.finder
-            .find_at(text, pos, anchors, last_match_cache)
+            .find_at(text, pos, anchors, end_start, last_match_cache)
             .map(|m| RuleMatch {
                 rule_ref: self.rule_refs[m.pattern_idx],
                 start: m.start,
