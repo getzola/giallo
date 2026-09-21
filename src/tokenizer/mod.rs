@@ -116,6 +116,7 @@ impl<'g> Tokenizer<'g> {
         line: &str,
         pos: usize,
         is_first_line: bool,
+        match_start: Option<usize>,
         anchor_position: Option<usize>,
     ) -> Option<(InjectionPrecedence, RuleMatch)> {
         // No need to do any work if we know there are no injections possible
@@ -137,8 +138,17 @@ impl<'g> Tokenizer<'g> {
 
         // Injections are already in the right order
         for (precedence, rule_matcher) in matchers.iter() {
+            // Left injections can win a tie against normal match rules so we allow matches
+            // to end on the same idx
+            let limit = match_start.map(|start| {
+                if *precedence == InjectionPrecedence::Left {
+                    start + 1
+                } else {
+                    start
+                }
+            });
             if let Some(found) =
-                rule_matcher.find_at(line, pos, anchor_context, &mut self.last_match_cache)
+                rule_matcher.find_at(line, pos, anchor_context, limit, &mut self.last_match_cache)
             {
                 if let Some((_, current_best_match)) = &best_match {
                     if found.start >= current_best_match.start {
@@ -175,6 +185,22 @@ impl<'g> Tokenizer<'g> {
     ) -> Option<RuleMatch> {
         let anchor_context = AnchorActive::new(is_first_line, anchor_position, pos);
 
+        // We query for the end pattern first since if we do find something, it means we can bound
+        // the actual rules matching and skip some unnecessary regex calls.
+        let end_match = self.match_end_pattern(stack, line, pos, anchor_context);
+        let rule_ref = stack.top().rule_ref;
+        let apply_end_pattern_last =
+            self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule].apply_end_pattern_last();
+        let end_start = end_match.as_ref().map(|m| {
+            // Regular rules should win if apply_end_pattern_last is true so we add 1 to not
+            // avoid a match at the same idx
+            if apply_end_pattern_last {
+                m.start + 1
+            } else {
+                m.start
+            }
+        });
+
         let rule_matcher = match &stack.top().matcher {
             Some(matcher) => matcher.clone(),
             None => {
@@ -183,23 +209,15 @@ impl<'g> Tokenizer<'g> {
                 matcher
             }
         };
-        let regset_match =
-            rule_matcher.find_at(line, pos, anchor_context, &mut self.last_match_cache);
-        let rule_ref = stack.top().rule_ref;
-        let apply_end_pattern_last =
-            self.registry.grammars[rule_ref.grammar].rules[rule_ref.rule].apply_end_pattern_last();
-
-        let end_match = self.match_end_pattern(stack, line, pos, anchor_context);
-
-        // Get injection matches
-        let injection_match =
-            self.match_injections(stack, line, pos, is_first_line, anchor_position);
-
+        let rules_match = rule_matcher.find_at(
+            line,
+            pos,
+            anchor_context,
+            end_start,
+            &mut self.last_match_cache,
+        );
         // First, decide between regular patterns and the end pattern
-        let combined_match = match (regset_match, end_match) {
-            (None, None) => None,
-            (Some(r), None) => Some(r),
-            (None, Some(e)) => Some(e),
+        let combined_match = match (rules_match, end_match) {
             (Some(r), Some(e)) => {
                 if r.start < e.start {
                     Some(r)
@@ -211,13 +229,22 @@ impl<'g> Tokenizer<'g> {
                     Some(e)
                 }
             }
+            (a, b) => a.or(b),
         };
 
+        // Get injection matches
+        let injection_match = self.match_injections(
+            stack,
+            line,
+            pos,
+            is_first_line,
+            combined_match.as_ref().map(|x| x.start),
+            anchor_position,
+        );
+
         // Then apply injection precedence rules
+
         match (combined_match, injection_match) {
-            (None, None) => None,
-            (Some(c), None) => Some(c),
-            (None, Some((_, inj))) => Some(inj),
             (Some(c), Some((precedence, inj))) => {
                 if inj.start < c.start
                     || (inj.start == c.start && precedence == InjectionPrecedence::Left)
@@ -227,6 +254,7 @@ impl<'g> Tokenizer<'g> {
                     Some(c)
                 }
             }
+            (a, b) => a.or(b.map(|(_, x)| x)),
         }
     }
 
