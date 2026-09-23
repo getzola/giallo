@@ -1,4 +1,7 @@
-use crate::grammars::engine::fancy_options;
+use std::sync::{Arc, OnceLock};
+
+use crate::grammars::caches::RegexCache;
+use crate::grammars::engine::{self, fancy_options};
 use fancy_regex::ByteSet;
 use serde::{Deserialize, Serialize};
 
@@ -78,13 +81,24 @@ fn transform_z_anchor(pattern: &str) -> String {
         .replace("___TEMP___", "\\\\z") // Restore literal \\z
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pattern {
     pat: String,
     #[serde(with = "optional_byte_set_serde")]
     start_byte_set: Option<ByteSet>,
     #[serde(with = "byte_set_serde")]
     required_byte_set: ByteSet,
+    /// The original compiled one is in the `RegexCache`, this is just a Arc clone so we save some time
+    /// by skipping a hashmap lookup (+ to_string() since papaya requires an owned key).
+    /// Only used for end/while regex, it's not worth using that as well for the matcher.
+    #[serde(skip)]
+    compiled: OnceLock<Arc<engine::Regex>>,
+}
+
+impl PartialEq for Pattern {
+    fn eq(&self, other: &Self) -> bool {
+        self.pat == other.pat
+    }
 }
 
 mod optional_byte_set_serde {
@@ -133,7 +147,19 @@ impl Pattern {
             pat: transformed_pattern,
             start_byte_set,
             required_byte_set,
+            compiled: OnceLock::new(),
         }
+    }
+
+    pub(crate) fn regex(&self, cache: &RegexCache) -> Arc<engine::Regex> {
+        self.compiled
+            .get_or_init(|| cache.get_regex(&self.pat))
+            .clone()
+    }
+
+    /// Drops the compiled regex for benchmarks.
+    pub(crate) fn reset(&mut self) {
+        self.compiled.take();
     }
 
     pub fn pattern(&self) -> &str {

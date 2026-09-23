@@ -584,9 +584,14 @@ impl Registry {
     }
 
     #[doc(hidden)]
-    pub fn clear_caches(&self) {
+    pub fn clear_caches(&mut self) {
         self.clear_matcher_cache();
         self.regex_cache.clear();
+        for grammar in &mut self.grammars {
+            for pattern in &mut grammar.patterns {
+                pattern.reset();
+            }
+        }
     }
 
     #[doc(hidden)]

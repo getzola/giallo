@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::fs;
 
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
@@ -36,6 +37,7 @@ fn highlight_simple_benchmark(c: &mut Criterion) {
     let mut registry =
         Registry::load_from_file("builtin.zst").expect("Failed to load registry from builtin.zst");
     registry.link_grammars();
+    let registry = RefCell::new(registry);
 
     let ts_content = fs::read_to_string("src/fixtures/samples/simple.ts").unwrap();
 
@@ -43,8 +45,11 @@ fn highlight_simple_benchmark(c: &mut Criterion) {
 
     c.bench_function("highlight simple.ts", |b| {
         b.iter_batched(
-            || registry.clear_caches(),
-            |()| std::hint::black_box(registry.highlight(&ts_content, &options).unwrap()),
+            || registry.borrow_mut().clear_caches(),
+            |()| {
+                let registry = registry.borrow();
+                std::hint::black_box(registry.highlight(&ts_content, &options).unwrap());
+            },
             BatchSize::PerIteration,
         )
     });
@@ -54,6 +59,7 @@ fn highlight_multiple_simple_benchmark(c: &mut Criterion) {
     let mut registry =
         Registry::load_from_file("builtin.zst").expect("Failed to load registry from builtin.zst");
     registry.link_grammars();
+    let registry = RefCell::new(registry);
 
     let ts_content = fs::read_to_string("src/fixtures/samples/simple.ts").unwrap();
 
@@ -61,11 +67,13 @@ fn highlight_multiple_simple_benchmark(c: &mut Criterion) {
 
     c.bench_function("highlight multiple simple.ts", |b| {
         b.iter_batched(
-            || registry.clear_caches(),
+            || registry.borrow_mut().clear_caches(),
             |()| {
                 // should not be 5x slower than "highlight simple.ts"
                 for _ in 0..5 {
-                    std::hint::black_box(registry.highlight(&ts_content, &options).unwrap());
+                    std::hint::black_box(
+                        registry.borrow().highlight(&ts_content, &options).unwrap(),
+                    );
                 }
             },
             BatchSize::PerIteration,
@@ -74,17 +82,20 @@ fn highlight_multiple_simple_benchmark(c: &mut Criterion) {
 }
 
 fn highlight_cold_benchmark(c: &mut Criterion) {
-    let registry = Registry::load_from_file("builtin.zst").unwrap();
+    let registry = RefCell::new(Registry::load_from_file("builtin.zst").unwrap());
     let mut group = c.benchmark_group("highlight cold");
     group.sample_size(50);
     for &(grammar, path) in SAMPLES {
         let content = fs::read_to_string(path).unwrap();
         let options = HighlightOptions::new(grammar, ThemeVariant::Single("vitesse-black"));
-        registry.highlight(&content, &options).unwrap();
+        registry.borrow().highlight(&content, &options).unwrap();
         group.bench_function(bench_name(grammar, path), |b| {
             b.iter_batched(
-                || registry.clear_caches(),
-                |()| std::hint::black_box(registry.highlight(&content, &options).unwrap()),
+                || registry.borrow_mut().clear_caches(),
+                |()| {
+                    let registry = registry.borrow();
+                    std::hint::black_box(registry.highlight(&content, &options).unwrap());
+                },
                 BatchSize::PerIteration,
             )
         });
