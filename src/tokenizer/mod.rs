@@ -1,9 +1,5 @@
 //! This file replicates the logic of <https://github.com/microsoft/vscode-textmate>
 
-use std::collections::HashMap;
-use std::ops::Range;
-use std::sync::Arc;
-
 use crate::Registry;
 use crate::grammars::anchors::AnchorActive;
 use crate::grammars::{
@@ -13,7 +9,11 @@ use crate::grammars::{
 use crate::scope::{EMPTY_SCOPE_LIST, ScopeInterner, ScopeListId};
 use crate::tokenizer::last_match::LastMatchCache;
 use crate::tokenizer::stack::StateStack;
+use fancy_regex::ByteSet;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::ops::Range;
+use std::sync::Arc;
 
 pub(crate) mod last_match;
 mod stack;
@@ -89,6 +89,7 @@ pub struct Tokenizer<'g> {
     scope_interner: ScopeInterner,
     last_match_cache: LastMatchCache,
     injection_matchers: HashMap<ScopeListId, Vec<(InjectionPrecedence, Arc<RuleMatcher>)>>,
+    current_line_byte_set: ByteSet,
 }
 
 impl<'g> Tokenizer<'g> {
@@ -100,6 +101,7 @@ impl<'g> Tokenizer<'g> {
             scope_interner: ScopeInterner::default(),
             last_match_cache: LastMatchCache::default(),
             injection_matchers: HashMap::new(),
+            current_line_byte_set: ByteSet::default(),
         }
     }
 
@@ -147,9 +149,14 @@ impl<'g> Tokenizer<'g> {
                     start
                 }
             });
-            if let Some(found) =
-                rule_matcher.find_at(line, pos, anchor_context, limit, &mut self.last_match_cache)
-            {
+            if let Some(found) = rule_matcher.find_at(
+                line,
+                &self.current_line_byte_set,
+                pos,
+                anchor_context,
+                limit,
+                &mut self.last_match_cache,
+            ) {
                 if let Some((_, current_best_match)) = &best_match {
                     if found.start >= current_best_match.start {
                         continue;
@@ -211,6 +218,7 @@ impl<'g> Tokenizer<'g> {
         };
         let rules_match = rule_matcher.find_at(
             line,
+            &self.current_line_byte_set,
             pos,
             anchor_context,
             end_start,
@@ -566,6 +574,7 @@ impl<'g> Tokenizer<'g> {
                     );
                 }
                 let last_match_cache = std::mem::take(&mut self.last_match_cache);
+                let line_byte_set = self.current_line_byte_set;
                 let (retokenized_acc, _) = self.tokenize_line(
                     retokenization_stack,
                     substring,
@@ -574,6 +583,7 @@ impl<'g> Tokenizer<'g> {
                     false,
                 );
                 self.last_match_cache = last_match_cache;
+                self.current_line_byte_set = line_byte_set;
 
                 for token in retokenized_acc.tokens {
                     // Only include tokens that are within the capture bounds (they should all be valid now)
@@ -610,6 +620,11 @@ impl<'g> Tokenizer<'g> {
         check_while_conditions: bool,
     ) -> (TokenAccumulator, StateStack) {
         self.last_match_cache.clear();
+        let mut byteset = ByteSet::default();
+        for b in line.as_bytes() {
+            byteset.insert(*b);
+        }
+        self.current_line_byte_set = byteset;
         let mut accumulator = TokenAccumulator::default();
         let mut pos = line_pos;
         let mut anchor_position = None;

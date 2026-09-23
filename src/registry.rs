@@ -624,7 +624,7 @@ impl Registry {
             let patterns = self.collect_patterns(base_grammar_id, *rule);
             for (r, pat) in patterns {
                 if seen.insert(pat.pattern()) {
-                    matcher_patterns.push((r, pat.pattern().to_owned(), pat.byte_set().copied()));
+                    matcher_patterns.push((r, pat));
                 }
             }
         }
@@ -654,11 +654,7 @@ impl Registry {
             return Arc::clone(matcher);
         }
 
-        let raw_patterns = self.collect_patterns(base_grammar_id, rule_ref);
-        let patterns: Vec<_> = raw_patterns
-            .into_iter()
-            .map(|(rule, pat)| (rule, pat.pattern().to_owned(), pat.byte_set().copied()))
-            .collect();
+        let patterns = self.collect_patterns(base_grammar_id, rule_ref);
         let rule_matcher = Arc::new(RuleMatcher::new(
             patterns,
             self.regex_cache.clone(),

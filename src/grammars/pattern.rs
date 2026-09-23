@@ -81,11 +81,13 @@ fn transform_z_anchor(pattern: &str) -> String {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Pattern {
     pat: String,
+    #[serde(with = "optional_byte_set_serde")]
+    start_byte_set: Option<ByteSet>,
     #[serde(with = "byte_set_serde")]
-    byte_set: Option<ByteSet>,
+    required_byte_set: ByteSet,
 }
 
-mod byte_set_serde {
+mod optional_byte_set_serde {
     use fancy_regex::ByteSet;
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -99,6 +101,20 @@ mod byte_set_serde {
     }
 }
 
+mod byte_set_serde {
+    use fancy_regex::ByteSet;
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S: Serializer>(v: &ByteSet, s: S) -> Result<S::Ok, S::Error> {
+        v.words().serialize(s)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<ByteSet, D::Error> {
+        let words = <[u64; 4]>::deserialize(d)?;
+        Ok(ByteSet::from_words(words))
+    }
+}
+
 impl Pattern {
     pub fn new(pattern: String) -> Self {
         // Transform \z to $(?!\n)(?<!\n) to match vscode-textmate behavior
@@ -106,13 +122,17 @@ impl Pattern {
         // expect it to match end-of-string-or-before-final-newline
         // This is needed at least for the po grammar sample from shiki
         let transformed_pattern = transform_z_anchor(&pattern);
-        let byte_set = fancy_options()
-            .start_bytes(&transformed_pattern)
-            .unwrap_or(None);
+
+        let options = fancy_options();
+        let start_byte_set = options.start_bytes(&transformed_pattern).unwrap_or(None);
+        let required_byte_set = options
+            .required_bytes(&transformed_pattern)
+            .expect("should be able to get required bytes");
 
         Self {
             pat: transformed_pattern,
-            byte_set,
+            start_byte_set,
+            required_byte_set,
         }
     }
 
@@ -121,7 +141,11 @@ impl Pattern {
     }
 
     pub fn byte_set(&self) -> Option<&ByteSet> {
-        self.byte_set.as_ref()
+        self.start_byte_set.as_ref()
+    }
+
+    pub fn required_byte_set(&self) -> &ByteSet {
+        &self.required_byte_set
     }
 }
 
