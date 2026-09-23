@@ -1,8 +1,8 @@
 use crate::grammars::anchors::AnchorActive;
 use crate::grammars::caches::RegexCache;
 use crate::grammars::engine::CaptureSpans;
-use crate::grammars::prefilter::Prefilter;
-use crate::grammars::{GlobalRuleRef, engine};
+use crate::grammars::prefilter::{Prefilter};
+use crate::grammars::{GlobalRuleRef, Pattern, engine};
 use crate::tokenizer::last_match::LastMatchCache;
 use fancy_regex::ByteSet;
 use std::sync::{Arc, OnceLock};
@@ -44,10 +44,13 @@ enum Remainder {
     Single {
         re: Arc<engine::Regex>,
         index: usize,
+        required: ByteSet,
     },
     Set {
         set: Arc<engine::RegexSet>,
         indices: Vec<usize>,
+        /// Bytes required by *every* pattern of the set
+        required: ByteSet,
     },
 }
 
@@ -55,13 +58,21 @@ impl Remainder {
     fn find_at(
         &self,
         text: &str,
+        line_bytes: &ByteSet,
         pos: usize,
         anchors: AnchorActive,
         last_match_cache: &mut LastMatchCache,
     ) -> Option<engine::Match> {
+        let required = match self {
+            Remainder::Single { required, .. } | Remainder::Set { required, .. } => required,
+        };
+        if !required.is_subset(line_bytes) {
+            return None;
+        }
+
         // We want the idx at the rule level, not the one inside the regex/regset
         match self {
-            Remainder::Single { re, index } => last_match_cache
+            Remainder::Single { re, index, .. } => last_match_cache
                 .search(
                     Arc::as_ptr(re) as usize,
                     pos,
@@ -73,7 +84,7 @@ impl Remainder {
                     m.pattern_idx = *index;
                     m
                 }),
-            Remainder::Set { set, indices } => last_match_cache
+            Remainder::Set { set, indices, .. } => last_match_cache
                 .search(
                     Arc::as_ptr(set) as usize,
                     pos,
@@ -92,6 +103,7 @@ impl Remainder {
 #[derive(Default, Debug)]
 struct Finder {
     patterns: Vec<String>,
+    required: Vec<ByteSet>,
     regexes: Vec<OnceLock<Arc<engine::Regex>>>,
     cache: Arc<RegexCache>,
     prefilter: Prefilter,
@@ -102,6 +114,7 @@ impl Finder {
     pub fn find_at(
         &self,
         text: &str,
+        line_bytes: &ByteSet,
         pos: usize,
         anchors: AnchorActive,
         end_start: Option<usize>,
@@ -111,7 +124,7 @@ impl Finder {
         let set_hit = self
             .remainder
             .as_ref()
-            .and_then(|r| r.find_at(text, pos, anchors, last_match_cache))
+            .and_then(|r| r.find_at(text, line_bytes, pos, anchors, last_match_cache))
             .filter(|r| end_start.is_none_or(|x| r.start < x));
 
         if self.regexes.is_empty() {
@@ -144,6 +157,10 @@ impl Finder {
             };
 
             for idx in self.prefilter.candidates(b) {
+                // If the pattern can't match the line, we don't even need to compile it
+                if !self.required[idx].is_subset(line_bytes) {
+                    continue;
+                }
                 let regex =
                     self.regexes[idx].get_or_init(|| self.cache.get_regex(&self.patterns[idx]));
                 let Some(mut m) = regex.anchored_search(text, p, attempt_anchors) else {
@@ -184,7 +201,7 @@ pub struct RuleMatcher {
 
 impl RuleMatcher {
     pub fn new(
-        items: Vec<(GlobalRuleRef, String, Option<ByteSet>)>,
+        items: Vec<(GlobalRuleRef, &Pattern)>,
         cache: Arc<RegexCache>,
         strategy: MatchStrategy,
     ) -> Self {
@@ -195,10 +212,12 @@ impl RuleMatcher {
         let mut rule_refs = Vec::with_capacity(items.len());
         let mut patterns = Vec::with_capacity(items.len());
         let mut byte_sets = Vec::with_capacity(items.len());
-        for (rule_ref, pattern, byte_set) in items {
+        let mut required = Vec::with_capacity(items.len());
+        for (rule_ref, pattern) in items {
             rule_refs.push(rule_ref);
-            patterns.push(pattern);
-            byte_sets.push(byte_set);
+            patterns.push(pattern.pattern().to_owned());
+            byte_sets.push(pattern.byte_set().copied());
+            required.push(*pattern.required_byte_set());
         }
 
         let (prefilter, remaining) = if strategy == MatchStrategy::Walk {
@@ -214,15 +233,21 @@ impl RuleMatcher {
         let has_walk = remaining.len() < patterns.len();
         let remainder = (!remaining.is_empty()).then(|| {
             let sub: Vec<String> = remaining.iter().map(|&i| patterns[i].clone()).collect();
+            let mut set_required = required[remaining[0]];
+            for &i in &remaining[1..] {
+                set_required.intersection(&required[i]);
+            }
             if sub.len() > 1 {
                 Remainder::Set {
                     set: cache.get_set(&sub),
                     indices: remaining,
+                    required: set_required,
                 }
             } else {
                 Remainder::Single {
                     re: cache.get_regex(&sub[0]),
                     index: remaining[0],
+                    required: set_required,
                 }
             }
         });
@@ -236,6 +261,7 @@ impl RuleMatcher {
             rule_refs,
             finder: Finder {
                 patterns,
+                required,
                 regexes,
                 cache,
                 prefilter,
@@ -247,13 +273,14 @@ impl RuleMatcher {
     pub fn find_at(
         &self,
         text: &str,
+        line_bytes: &ByteSet,
         pos: usize,
         anchors: AnchorActive,
         end_start: Option<usize>,
         last_match_cache: &mut LastMatchCache,
     ) -> Option<RuleMatch> {
         self.finder
-            .find_at(text, pos, anchors, end_start, last_match_cache)
+            .find_at(text, line_bytes, pos, anchors, end_start, last_match_cache)
             .map(|m| RuleMatch {
                 rule_ref: self.rule_refs[m.pattern_idx],
                 start: m.start,
