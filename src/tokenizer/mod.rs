@@ -450,8 +450,7 @@ impl<'g> Tokenizer<'g> {
                 re
             }
         } else {
-            let pat = &self.registry.grammars[grammar_id].patterns[regex_id];
-            self.registry.regex_cache.get_regex(pat.pattern())
+            self.registry.grammars[grammar_id].patterns[regex_id].regex(&self.registry.regex_cache)
         }
     }
 
