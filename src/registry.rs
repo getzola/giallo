@@ -2,12 +2,11 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::Arc;
 
-use crate::MatchStrategy;
 use crate::error::{Error, GialloResult};
 use crate::grammars::caches::RegexCache;
 use crate::grammars::{
     BASE_GLOBAL_RULE_REF, CompiledGrammar, GlobalRuleRef, GrammarId, InjectionPrecedence, Match,
-    NO_OP_GLOBAL_RULE_REF, Pattern, ROOT_RULE_ID, RawGrammar, Rule, RuleMatcher,
+    MatchStrategy, NO_OP_GLOBAL_RULE_REF, Pattern, ROOT_RULE_ID, RawGrammar, Rule, RuleMatcher,
     resolve_external_references,
 };
 use crate::highlight::{HighlightedText, Highlighter, MergingOptions};
@@ -157,8 +156,6 @@ pub struct Registry {
     matcher_cache: papaya::HashMap<(GrammarId, GlobalRuleRef), Arc<RuleMatcher>>,
     // Injections with the same precedence share the same RuleMatcher, using a RegexSet inside
     injection_matcher_cache: papaya::HashMap<(GrammarId, Vec<GlobalRuleRef>), Arc<RuleMatcher>>,
-    // whether to walk or only use regset
-    match_strategy: MatchStrategy,
 }
 
 impl Clone for Registry {
@@ -173,7 +170,6 @@ impl Clone for Registry {
             regex_cache: self.regex_cache.clone(),
             matcher_cache: papaya::HashMap::new(),
             injection_matcher_cache: papaya::HashMap::new(),
-            match_strategy: self.match_strategy,
         }
     }
 }
@@ -211,7 +207,6 @@ impl Registry {
             regex_cache: Arc::new(RegexCache::default()),
             matcher_cache: papaya::HashMap::new(),
             injection_matcher_cache: papaya::HashMap::new(),
-            match_strategy: MatchStrategy::default(),
         };
         this.link_grammars();
 
@@ -342,12 +337,6 @@ impl Registry {
                 aliases: &grammar.aliases,
             })
             .collect()
-    }
-
-    /// See [MatchStrategy] documentation to see which one to use for your usecase
-    pub fn set_match_strategy(&mut self, match_strategy: MatchStrategy) {
-        self.match_strategy = match_strategy;
-        self.clear_matcher_cache();
     }
 
     /// Checks whether the given lang is available in the registry with its grammar name
@@ -658,7 +647,7 @@ impl Registry {
         let rule_matcher = Arc::new(RuleMatcher::new(
             patterns,
             self.regex_cache.clone(),
-            self.match_strategy,
+            MatchStrategy::Walk,
         ));
 
         // Use get_or_insert for concurrent-safe lazy init
