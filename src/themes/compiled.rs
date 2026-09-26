@@ -1,7 +1,9 @@
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+
 use crate::error::{Error, GialloResult};
+use crate::scope::Scope;
 use crate::themes::Color;
 use crate::themes::font_style::FontStyle;
 use crate::themes::raw::{RawTheme, TokenColorSettings};
@@ -188,6 +190,46 @@ pub struct CompiledThemeRule {
     pub style_modifier: StyleModifier,
 }
 
+/// The rules of a theme grouped by their first atom.
+/// This allows the highlighter to get directly the list of rules to check for a given prefix,
+/// cutting down on the number of rules it has to actually inspect.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub(crate) struct RulesByPrefix {
+    /// (first atom, list of rule index starting with that atom)
+    buckets: Vec<(u16, Vec<u32>)>,
+}
+
+impl RulesByPrefix {
+    pub(crate) fn new(rules: &[CompiledThemeRule]) -> Self {
+        let mut by_atom: HashMap<u16, Vec<u32>> = HashMap::new();
+        for (idx, rule) in rules.iter().enumerate() {
+            let atom = rule.selector.target_scope.atom_at(0);
+            assert!(atom > 0);
+            by_atom.entry(atom).or_default().push(idx as u32)
+        }
+        let mut atoms: Vec<u16> = by_atom.keys().copied().collect();
+        atoms.sort_unstable();
+        let mut buckets = Vec::with_capacity(atoms.len());
+        for atom in atoms {
+            let indices = by_atom.remove(&atom).unwrap();
+            buckets.push((atom, indices));
+        }
+        Self { buckets }
+    }
+
+    /// We only check the last element
+    pub(crate) fn candidates(&self, path: &[Scope]) -> &[u32] {
+        let Some(last) = path.last() else {
+            return &[];
+        };
+
+        self.buckets
+            .iter()
+            .find(|(atom, _)| *atom == last.atom_at(0))
+            .map_or(&[], |(_, rules)| rules.as_slice())
+    }
+}
+
 /// Compiled theme optimized for fast lookups
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompiledTheme {
@@ -205,9 +247,15 @@ pub struct CompiledTheme {
     pub(crate) rules: Vec<CompiledThemeRule>,
     /// Color -> class name for CSS output
     pub(crate) style_map: StyleMap,
+    /// a (first atom, list of rule) lookup
+    pub(crate) rules_by_prefix: RulesByPrefix,
 }
 
 impl CompiledTheme {
+    pub(crate) fn candidates_for(&self, path: &[Scope]) -> &[u32] {
+        self.rules_by_prefix.candidates(path)
+    }
+
     pub(crate) fn from_raw_theme(raw_theme: RawTheme) -> GialloResult<Self> {
         let theme_type = raw_theme
             .kind
@@ -292,6 +340,7 @@ impl CompiledTheme {
             .collect();
 
         let style_map = StyleMap::new(&rules, default_style);
+        let rules_by_prefix = RulesByPrefix::new(&rules);
 
         Ok(CompiledTheme {
             name: raw_theme.name,
@@ -301,6 +350,7 @@ impl CompiledTheme {
             line_number_foreground,
             rules,
             style_map,
+            rules_by_prefix,
         })
     }
 }

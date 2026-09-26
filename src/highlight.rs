@@ -4,7 +4,7 @@ use std::ops::Range;
 use serde::{Deserialize, Serialize};
 
 use crate::renderers::html::HtmlEscaped;
-use crate::scope::{ScopeInterner, ScopeListId};
+use crate::scope::{EMPTY_SCOPE_LIST, ScopeInterner, ScopeListId};
 use crate::themes::compiled::ThemeType;
 use crate::themes::css::{DARK_SUFFIX, LIGHT_SUFFIX};
 use crate::themes::font_style::FontStyle;
@@ -307,32 +307,40 @@ impl<'r> Highlighter<'r> {
 
     /// Match scopes for a specific theme index with caching
     fn match_scopes_for_theme(&mut self, scope_id: ScopeListId, theme_index: usize) -> Style {
-        let cache_idx = scope_id.as_index();
-
-        if let Some(cached) = self.cache[theme_index][cache_idx] {
+        if let Some(cached) = self.cache[theme_index][scope_id.as_index()] {
             return cached;
         }
 
         // cache miss, we compute the style
         let theme = self.themes[theme_index];
+
+        let mut uncached = Vec::with_capacity(6);
+        let mut current = scope_id;
         let mut current_style = theme.default_style;
+        while current != EMPTY_SCOPE_LIST {
+            if let Some(cached) = self.cache[theme_index][current.as_index()] {
+                current_style = cached;
+                break;
+            }
+            uncached.push(current);
+            current = self.scope_interner.parent(current);
+        }
 
         let scopes = self.scope_interner.get_scopes(scope_id);
+        let ancestor_depth = scopes.len() - uncached.len();
 
-        // Build up scope path incrementally, simulating vscode-textmate's approach
-        // Each scope level can override the accumulated style
-        for i in 1..=scopes.len() {
-            let current_scope_path = &scopes[0..i];
-            for rule in &theme.rules {
+        for (idx, node) in uncached.into_iter().rev().enumerate() {
+            let current_scope_path = &scopes[0..ancestor_depth + idx + 1];
+            for &rule_idx in theme.candidates_for(current_scope_path) {
+                let rule = &theme.rules[rule_idx as usize];
                 if rule.selector.matches(current_scope_path) {
                     current_style = rule.style_modifier.apply_to(&current_style);
                 }
             }
-            // If no match found, current_style remains unchanged (inheritance!)
+            self.cache[theme_index][node.as_index()] = Some(current_style);
         }
-        let result = current_style;
-        self.cache[theme_index][cache_idx] = Some(result);
-        result
+
+        current_style
     }
 
     /// Apply highlighting to tokenized lines, preserving line structure.
@@ -448,8 +456,8 @@ impl<'r> Highlighter<'r> {
 mod tests {
     use super::*;
     use crate::scope::{EMPTY_SCOPE_LIST, Scope, ScopeInterner};
-    use crate::themes::compiled::StyleMap;
     use crate::themes::compiled::{CompiledThemeRule, StyleModifier, ThemeType};
+    use crate::themes::compiled::{RulesByPrefix, StyleMap};
     use crate::themes::font_style::FontStyle;
     use crate::themes::raw::{Colors, TokenColorRule, TokenColorSettings};
     use crate::themes::selector::parse_selector;
@@ -499,6 +507,7 @@ mod tests {
             font_style: FontStyle::default(),
         };
         let style_map = StyleMap::new(&rules, default_style);
+        let rules_by_prefix = RulesByPrefix::new(&rules);
         CompiledTheme {
             name: "Test".to_string(),
             theme_type: ThemeType::Dark,
@@ -507,6 +516,7 @@ mod tests {
             highlight_background_color: None,
             style_map,
             rules,
+            rules_by_prefix,
         }
     }
 
