@@ -1,9 +1,70 @@
+use std::borrow::Cow;
 use std::sync::{Arc, OnceLock};
 
 use crate::grammars::caches::RegexCache;
 use crate::grammars::engine::{self, fancy_options};
 use fancy_regex::ByteSet;
 use serde::{Deserialize, Serialize};
+
+// Hardcoded replacements until upstream is fixed
+const REPLACEMENT_STRINGS: &[(&str, &str)] = &[
+    // https://github.com/rust-lang/regex/pull/1396 for PHP grammar
+    (
+        r#"[\&()0-9\\_a-z|\x7F-\x{10FFFF}\s]"#,
+        r#"(?-i:[\&()0-9\\_A-Za-z|\x7F-\x{10FFFF}\s])"#,
+    ),
+    (
+        r#"[^0-9A-Z\\_a-z\x7F-\x{10FFFF}]"#,
+        r#"(?-i:[^0-9A-Z\\_A-Za-z\x7F-\x{10FFFF}])"#,
+    ),
+    (
+        r#"[^$0-9\\_a-z\x7F-\x{10FFFF}]"#,
+        r#"(?-i:[^$0-9\\_A-Za-z\x7F-\x{10FFFF}])"#,
+    ),
+    (
+        r#"[^0-9\\_a-z\x7F-\x{10FFFF}]"#,
+        r#"(?-i:[^0-9\\_A-Za-z\x7F-\x{10FFFF}])"#,
+    ),
+    (
+        r#"[$0-9\\_a-z\x7F-\x{10FFFF}]"#,
+        r#"(?-i:[$0-9\\_A-Za-z\x7F-\x{10FFFF}])"#,
+    ),
+    (
+        r#"[(0-9\\_a-z\x7F-\x{10FFFF}]"#,
+        r#"(?-i:[(0-9\\_A-Za-z\x7F-\x{10FFFF}])"#,
+    ),
+    (
+        r#"[0-9\\_a-z\x7F-\x{10FFFF}]"#,
+        r#"(?-i:[0-9\\_A-Za-z\x7F-\x{10FFFF}])"#,
+    ),
+    (
+        r#"[0-9_a-z\x7F-\x{10FFFF}]"#,
+        r#"(?-i:[0-9_A-Za-z\x7F-\x{10FFFF}])"#,
+    ),
+    (
+        r#"[\\_a-z\x7F-\x{10FFFF}]"#,
+        r#"(?-i:[\\_A-Za-z\x7F-\x{10FFFF}])"#,
+    ),
+    (
+        r#"[_a-z\x7F-\x{10FFFF}]"#,
+        r#"(?-i:[_A-Za-z\x7F-\x{10FFFF}])"#,
+    ),
+    // https://github.com/slevithan/oniguruma-parser/pull/28 for shellscript grammar
+    (
+        r#"(?!nocorrect\W|nocorrect\$|function\W|function\$|foreach\W|foreach\$|repeat\W|repeat\$|logout\W|logout\$|coproc\W|coproc\$|select\W|select\$|while\W|while\$|pushd\W|pushd\$|until\W|until\$|case\W|case\$|done\W|done\$|elif\W|elif\$|else\W|else\$|esac\W|esac\$|popd\W|popd\$|then\W|then\$|time\W|time\$|for\W|for\$|end\W|end\$|fi\W|fi\$|do\W|do\$|in\W|in\$|if\W|if\$)"#,
+        r#"(?!(?:nocorrect|function|foreach|repeat|logout|coproc|select|while|pushd|until|case|done|elif|else|esac|popd|then|time|for|end|fi|do|in|if)(?:\W|\$))"#,
+    ),
+];
+
+fn fix_slow_patterns(pattern: &str) -> Cow<'_, str> {
+    let mut out = Cow::Borrowed(pattern);
+    for (from, to) in REPLACEMENT_STRINGS {
+        if out.contains(from) {
+            out = Cow::Owned(out.replace(from, to));
+        }
+    }
+    out
+}
 
 /// Escapes regular expression characters in a given string
 pub fn escape_regexp_characters(value: &str) -> String {
@@ -136,6 +197,7 @@ impl Pattern {
         // expect it to match end-of-string-or-before-final-newline
         // This is needed at least for the po grammar sample from shiki
         let transformed_pattern = transform_z_anchor(&pattern);
+        let transformed_pattern = fix_slow_patterns(&transformed_pattern).to_string();
 
         let options = fancy_options();
         let start_byte_set = options.start_bytes(&transformed_pattern).unwrap_or(None);
