@@ -85,7 +85,6 @@ pub struct Tokenizer<'g> {
     /// Some end patterns will change depending on backrefs so we might have multiple
     /// versions of the same regex in there
     /// Some regex content use backref so they are essentially dynamic patterns
-    end_regex_cache: HashMap<String, Arc<engine::Regex>>,
     scope_interner: ScopeInterner,
     last_match_cache: LastMatchCache,
     injection_matchers: HashMap<ScopeListId, Vec<(InjectionPrecedence, Arc<RuleMatcher>)>>,
@@ -97,7 +96,6 @@ impl<'g> Tokenizer<'g> {
         Self {
             base_grammar_id,
             registry,
-            end_regex_cache: HashMap::new(),
             scope_interner: ScopeInterner::default(),
             last_match_cache: LastMatchCache::default(),
             injection_matchers: HashMap::new(),
@@ -442,13 +440,7 @@ impl<'g> Tokenizer<'g> {
         regex_id: PatternId,
     ) -> Arc<engine::Regex> {
         if let Some(pattern) = resolved_pattern {
-            if let Some(re) = self.end_regex_cache.get(pattern) {
-                re.clone()
-            } else {
-                let re = Arc::new(engine::Regex::new(pattern));
-                self.end_regex_cache.insert(pattern.to_owned(), re.clone());
-                re
-            }
+            self.registry.regex_cache.get_regex(pattern)
         } else {
             self.registry.grammars[grammar_id].patterns[regex_id].regex(&self.registry.regex_cache)
         }
