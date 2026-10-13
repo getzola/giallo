@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 use crate::grammars::anchors::AnchorActive;
 use crate::grammars::engine::Match;
@@ -19,7 +19,7 @@ struct Entry {
 #[derive(Debug, Default)]
 pub(crate) struct LastMatchCache {
     /// (regex{set}+ ptr, entry)
-    entries: HashMap<usize, Entry>,
+    entries: FxHashMap<usize, Entry>,
 }
 
 impl LastMatchCache {
