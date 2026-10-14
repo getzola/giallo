@@ -106,7 +106,7 @@ pub fn parse_markdown_fence(fence: &str) -> ParsedFence {
     }
 
     ParsedFence {
-        lang: language.unwrap_or_default().to_string(),
+        lang: language.unwrap_or(PLAIN_GRAMMAR_NAME).to_string(),
         options,
         rest,
     }
@@ -122,6 +122,14 @@ mod tests {
         assert_eq!(result.lang, "rust");
         assert_eq!(result.options, RenderOptions::default());
         assert!(result.rest.is_empty());
+    }
+
+    #[test]
+    fn test_options_only() {
+        let result = parse_markdown_fence("linenos,hl_lines=1-3 5");
+        assert_eq!(result.lang, PLAIN_GRAMMAR_NAME);
+        assert!(result.options.show_line_numbers);
+        assert_eq!(result.options.highlight_lines, vec![1..=3, 5..=5]);
     }
 
     #[test]
