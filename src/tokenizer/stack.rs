@@ -1,4 +1,7 @@
-use crate::grammars::{GlobalRuleRef, GrammarId, ROOT_RULE_ID};
+use std::sync::Arc;
+
+use crate::grammars::engine;
+use crate::grammars::{GlobalRuleRef, GrammarId, ROOT_RULE_ID, RuleMatcher};
 use crate::scope::ScopeListId;
 
 #[cfg(feature = "debug")]
@@ -18,6 +21,10 @@ pub struct StackFrame {
     /// For BeginEnd rules: the end pattern with \1, \2, etc. resolved
     /// For BeginWhile rules: the while pattern with backreferences resolved
     pub end_pattern: Option<String>,
+    /// The compiled end (or while) regex of this frame
+    pub end_regex: Option<Arc<engine::Regex>>,
+    /// The matcher for this frame patterns
+    pub matcher: Option<Arc<RuleMatcher>>,
     /// The state has entered and captured \n.
     /// This means that the next line should start with an anchor_position of 0.
     pub begin_rule_has_captured_eol: bool,
@@ -47,6 +54,8 @@ impl StateStack {
                 name_scopes: grammar_scope,
                 content_scopes: grammar_scope,
                 end_pattern: None,
+                end_regex: None,
+                matcher: None,
                 begin_rule_has_captured_eol: false,
                 anchor_position: None,
                 enter_position: None,
@@ -70,6 +79,8 @@ impl StateStack {
             name_scopes: content_scopes,
             content_scopes,
             end_pattern: None,
+            end_regex: None,
+            matcher: None,
             begin_rule_has_captured_eol,
             anchor_position,
             enter_position,
@@ -89,6 +100,8 @@ impl StateStack {
             name_scopes: scopes,
             content_scopes: scopes,
             end_pattern: None,
+            end_regex: None,
+            matcher: None,
             begin_rule_has_captured_eol,
             anchor_position,
             enter_position,
@@ -100,7 +113,9 @@ impl StateStack {
     }
 
     pub fn set_end_pattern(&mut self, end_pattern: String) {
-        self.top_mut().end_pattern = Some(end_pattern);
+        let top = self.top_mut();
+        top.end_pattern = Some(end_pattern);
+        top.end_regex = None;
     }
 
     /// Exits the current context, getting back to the parent
