@@ -83,7 +83,7 @@ where
 }
 
 /// Captures in TM grammars is represented as a dict {[number: str]: Rule}. Sometimes the value is
-/// array as well
+/// an array as well
 /// {
 ///   "captures": {
 ///     "0": {"name": "entire.match"},

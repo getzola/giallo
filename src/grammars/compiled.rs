@@ -9,7 +9,7 @@ use crate::grammars::pattern::Pattern;
 use crate::grammars::raw::{Captures, RawGrammar, RawRule, Reference};
 use crate::scope::Scope;
 
-static CAPTURING_NAME_RE: LazyLock<fancy_regex::Regex> =
+pub(crate) static CAPTURING_NAME_RE: LazyLock<fancy_regex::Regex> =
     LazyLock::new(|| fancy_regex::Regex::new(r"\$(\d+)|\${(\d+):\/(downcase|upcase)}").unwrap());
 
 fn has_captures(pat: Option<&str>) -> bool {
@@ -487,7 +487,8 @@ impl CompiledGrammar {
         grammar
     }
 
-    fn compile_rule(&mut self, raw_rule: RawRule, repository_stack: RepositoryStack) -> RuleId {
+    fn compile_rule(&mut self, mut raw_rule: RawRule, repository_stack: RepositoryStack) -> RuleId {
+        super::capture_pruning::prune_rule(&mut raw_rule);
         let local_id = RuleId(self.rules.len() as u16);
         let global_id = GlobalRuleRef {
             grammar: self.id,

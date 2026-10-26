@@ -1,5 +1,6 @@
 pub(crate) mod anchors;
 pub(crate) mod caches;
+mod capture_pruning;
 mod compiled;
 pub(crate) mod engine;
 mod injections;
