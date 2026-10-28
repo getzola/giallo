@@ -27,11 +27,8 @@ serde_json = "1"
 # Optional dependencies for serialization
 bitcode = { version = "0.6.9", optional = true, features = ["serde"] }
 zstd = { version = "0.14", optional = true }
-fancy-regex = "0.19"
+fancy-regex = "0.20"
 log = { version = "0.4", optional = true }
-
-[patch.crates-io]
-fancy-regex = { git = "https://github.com/fancy-regex/fancy-regex" }
 
 [features]
 tools = ["dump"]
