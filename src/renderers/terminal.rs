@@ -102,6 +102,7 @@ mod tests {
     use crate::test_utils::get_registry;
 
     #[test]
+    #[allow(clippy::single_range_in_vec_init)]
     fn test_highlight_and_hide_lines() {
         let registry = get_registry();
         let code = "let a = 1;\nlet b = 2;\nlet c = 3;\nlet d = 4;\nlet e = 5;";

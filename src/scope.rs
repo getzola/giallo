@@ -5,6 +5,7 @@
 //! Each atom is 16 bits, storing repository_index + 1 (0 = unused slot)
 //! Any atom above the 8th will be ignored
 
+use rustc_hash::FxHashMap;
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
@@ -255,7 +256,7 @@ pub(crate) struct ScopeListNode {
 #[derive(Debug, Default, Clone, PartialEq)]
 pub(crate) struct ScopeInterner {
     nodes: Vec<ScopeListNode>,
-    lookup: HashMap<(ScopeListId, Scope), ScopeListId>,
+    lookup: FxHashMap<(ScopeListId, Scope), ScopeListId>,
 }
 
 impl ScopeInterner {
@@ -290,6 +291,10 @@ impl ScopeInterner {
         }
         out.reverse();
         out
+    }
+
+    pub(crate) fn parent(&self, id: ScopeListId) -> ScopeListId {
+        self.nodes[id.as_index() - 1].parent
     }
 }
 
