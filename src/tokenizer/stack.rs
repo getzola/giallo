@@ -4,9 +4,6 @@ use crate::grammars::engine;
 use crate::grammars::{GlobalRuleRef, GrammarId, ROOT_RULE_ID, RuleMatcher};
 use crate::scope::ScopeListId;
 
-#[cfg(feature = "debug")]
-use crate::scope::ScopeInterner;
-
 #[derive(Clone, Debug)]
 pub struct StackFrame {
     /// Global rule ref that created this stack element
@@ -150,75 +147,5 @@ impl StateStack {
     /// Mutable access to the top frame of the stack
     pub fn top_mut(&mut self) -> &mut StackFrame {
         self.frames.last_mut().expect("stack never empty")
-    }
-
-    /// We need the interner to show the actual scopes so it's a not a Debug impl
-    #[cfg(feature = "debug")]
-    pub(crate) fn debug(&self, interner: &ScopeInterner) -> Result<String, std::fmt::Error> {
-        use std::fmt::Write;
-
-        let mut f = String::new();
-        writeln!(f, "StateStack:")?;
-
-        for (depth, frame) in self.frames.iter().enumerate() {
-            // Create indentation
-            let indent = "  ".repeat(depth);
-
-            // Format the basic info
-            write!(
-                f,
-                "{}grammar={}, rule={}",
-                indent, frame.rule_ref.grammar.0, frame.rule_ref.rule.0
-            )?;
-
-            // Add name scopes if not empty
-            let name_scopes = interner.get_scopes(frame.name_scopes);
-            if !name_scopes.is_empty() {
-                write!(f, " name=[")?;
-                for (i, scope) in name_scopes.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{}", scope.build_string())?;
-                }
-                write!(f, "]")?;
-            }
-
-            // Add content scopes if not empty
-            let content_scopes = interner.get_scopes(frame.content_scopes);
-            if !content_scopes.is_empty() {
-                write!(f, ", content=[")?;
-                for (i, scope) in content_scopes.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{}", scope.build_string())?;
-                }
-                write!(f, "]")?;
-            }
-
-            // Add end_pattern if present
-            if let Some(pattern) = &frame.end_pattern {
-                write!(f, ", end_pattern=\"{}\"", pattern)?;
-            }
-
-            write!(f, ", anchor_pos={:?}", frame.anchor_position)?;
-
-            // Add enter_position if present and different from anchor_position
-            if let Some(enter_pos) = frame.enter_position
-                && frame.anchor_position != Some(enter_pos)
-            {
-                write!(f, ", enter_pos={}", enter_pos)?;
-            }
-
-            write!(
-                f,
-                ", begin_rule_has_captured_eol={}",
-                frame.begin_rule_has_captured_eol
-            )?;
-
-            writeln!(f)?;
-        }
-        Ok(f)
     }
 }

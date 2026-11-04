@@ -294,21 +294,10 @@ impl<'g> Tokenizer<'g> {
         }
 
         if while_frame_indices.is_empty() {
-            #[cfg(feature = "debug")]
-            log::debug!(
-                "[check_while_conditions] no while conditions active:\n  {}",
-                stack.debug(&self.scope_interner).unwrap_or_default()
-            );
             return (stack, anchor_position, is_first_line);
         }
 
         let active_anchor = AnchorActive::new(is_first_line, anchor_position, *pos);
-        #[cfg(feature = "debug")]
-        log::debug!(
-            "[check_while_conditions] going to check {} while rules at indices: {:?}, anchors: {active_anchor:?}",
-            while_frame_indices.len(),
-            while_frame_indices
-        );
 
         for &frame_idx in while_frame_indices.iter() {
             let frame = &stack.frames[frame_idx];
@@ -318,24 +307,6 @@ impl<'g> Tokenizer<'g> {
                 unreachable!()
             };
 
-            #[cfg(feature = "debug")]
-            {
-                let pat = frame
-                    .end_pattern
-                    .as_ref()
-                    .map(|p| p.as_str().to_owned())
-                    .unwrap_or_else(|| {
-                        self.registry.grammars[frame.rule_ref.grammar].patterns[b.while_]
-                            .pattern()
-                            .to_owned()
-                    });
-                log::debug!(
-                    "[check_while_conditions] Testing while pattern: {:?}, active_anchor={:?}, pos={}",
-                    pat,
-                    active_anchor,
-                    *pos
-                );
-            }
             let compiled_re = match &frame.end_regex {
                 Some(re) => re.clone(),
                 None => {
@@ -392,16 +363,6 @@ impl<'g> Tokenizer<'g> {
                     is_first_line = false;
                 }
             } else {
-                #[cfg(feature = "debug")]
-                log::debug!(
-                    "[check_while_conditions] No while match found, popping: {:?}",
-                    self.registry.grammars[frame.rule_ref.grammar]
-                        .rules
-                        .get(frame.rule_ref.rule.as_index())
-                        .unwrap()
-                        .original_name()
-                );
-
                 // Create StateStack and pop the while frame
                 let mut popped_stack = StateStack {
                     frames: stack.frames[0..=frame_idx].to_vec(),
@@ -417,14 +378,6 @@ impl<'g> Tokenizer<'g> {
 
     fn get_or_create_rule_matcher(&self, stack: &StateStack) -> Arc<RuleMatcher> {
         let rule_ref = stack.top().rule_ref;
-        #[cfg(feature = "debug")]
-        {
-            log::debug!(
-                "[get_or_create_rule_matcher] Rule: {rule_ref:?} (grammar: {})",
-                self.registry.grammars[rule_ref.grammar].name
-            );
-            log::debug!("[get_or_create_rule_matcher] Scanning patterns");
-        }
 
         self.registry
             .get_or_create_rule_matcher(self.base_grammar_id, rule_ref)
@@ -553,17 +506,6 @@ impl<'g> Tokenizer<'g> {
                 retokenization_stack.top_mut().content_scopes = content_scopes;
 
                 let substring = &line[0..cap_end];
-                #[cfg(feature = "debug")]
-                {
-                    log::debug!(
-                        "[resolve_captures] Retokenizing capture at [0..{cap_end}]: {:?}",
-                        &line[0..cap_end]
-                    );
-                    log::debug!(
-                        "[resolve_captures] Using substring [0..{cap_end}]: {:?}",
-                        substring
-                    );
-                }
                 let last_match_cache = std::mem::take(&mut self.last_match_cache);
                 let line_byte_set = self.current_line_byte_set;
                 let (retokenized_acc, _) = self.tokenize_line(
@@ -633,64 +575,20 @@ impl<'g> Tokenizer<'g> {
 
         // 2. We check for any matching patterns
         loop {
-            #[cfg(feature = "debug")]
-            {
-                log::trace!("");
-                log::trace!("[tokenize_line] Scanning {pos}: |{:?}|", &line[pos..]);
-            }
-
             if let Some(m) =
                 self.match_rule_or_injections(&mut stack, line, pos, is_first_line, anchor_position)
             {
-                #[cfg(feature = "debug")]
-                log::debug!(
-                    "[tokenize_line] Matched rule: {:?} from pos {} to {} => {:?}",
-                    m.rule_ref.rule,
-                    m.start,
-                    m.end,
-                    &line[m.start..m.end]
-                );
-
                 // Track whether this match has advanced the position
                 let has_advanced = m.end > pos;
 
-                #[cfg(feature = "debug")]
-                if m.rule_ref.rule == END_RULE_ID {
-                    log::debug!(
-                        "[tokenize_line] END RULE MATCHED at pos={}, m.start={}, m.end={}",
-                        pos,
-                        m.start,
-                        m.end
-                    );
-                }
                 // We matched the `end` for this rule, can only happen for BeginEnd rules
                 if m.rule_ref.rule == END_RULE_ID
                     && let Rule::BeginEnd(b) = &self.registry.grammars[stack.top().rule_ref.grammar]
                         .rules[stack.top().rule_ref.rule]
                 {
-                    #[cfg(feature = "debug")]
-                    {
-                        log::debug!(
-                            "[tokenize_line] End rule matched, popping '{}'",
-                            b.name.clone().unwrap_or_default()
-                        );
-                        log::debug!(
-                            "[BEFORE POP] Current anchor_position: {:?}",
-                            anchor_position
-                        );
-                        log::debug!(
-                            "[BEFORE POP] Stack: {}",
-                            stack.debug(&self.scope_interner).unwrap_or_default()
-                        );
-                    }
                     accumulator.produce(m.start, stack.top().content_scopes);
                     let popped_enter_position = stack.top().enter_position; // Save for infinite loop protection
                     let popped_anchor_position = stack.top().anchor_position;
-                    #[cfg(feature = "debug")]
-                    log::trace!(
-                        "[POPPED RULE] Stack: {}",
-                        stack.debug(&self.scope_interner).unwrap_or_default()
-                    );
                     stack.set_content_scopes(stack.top().name_scopes);
                     self.resolve_captures(
                         &stack,
@@ -705,17 +603,6 @@ impl<'g> Tokenizer<'g> {
                     // Pop to parent state and update anchor position
                     let popped_frame = stack.pop().unwrap();
                     anchor_position = popped_anchor_position;
-                    #[cfg(feature = "debug")]
-                    {
-                        log::debug!(
-                            "[AFTER POP] Restored anchor_position: {:?}",
-                            anchor_position
-                        );
-                        log::debug!(
-                            "[AFTER POP] New stack: {}",
-                            stack.debug(&self.scope_interner).unwrap_or_default()
-                        );
-                    }
 
                     // Grammar pushed & popped a rule without advancing - infinite loop protection
                     // It happens eg for astro grammar
@@ -723,11 +610,6 @@ impl<'g> Tokenizer<'g> {
                         // See https://github.com/Microsoft/vscode-textmate/issues/12
                         // Like vscode-textmate, restore the popped frame to keep the rule active
                         stack.frames.push(popped_frame);
-                        #[cfg(feature = "debug")]
-                        log::debug!(
-                            "[INFINITE LOOP PROTECTION] Restored rule to stack: {}",
-                            stack.debug(&self.scope_interner).unwrap_or_default()
-                        );
                         accumulator.produce(line.len(), stack.top().content_scopes);
                         break;
                     }
@@ -753,15 +635,6 @@ impl<'g> Tokenizer<'g> {
                          end_has_backrefs: bool,
                          begin_captures: &[Option<GlobalRuleRef>]| {
                             let re = &self.registry.grammars[m.rule_ref.grammar].patterns[re_id];
-                            #[cfg(feature = "debug")]
-                            {
-                                let rule = &self.registry.grammars[m.rule_ref.grammar].rules
-                                    [m.rule_ref.rule];
-                                log::debug!(
-                                    "[tokenize_line] Pushing begin rule={:?}",
-                                    rule.original_name().unwrap_or("No name")
-                                );
-                            }
 
                             self.resolve_captures(
                                 &stack,
@@ -802,13 +675,6 @@ impl<'g> Tokenizer<'g> {
                             handle_begin_rule(r.while_, r.while_has_backrefs, &r.begin_captures);
                         }
                         Rule::Match(r) => {
-                            #[cfg(feature = "debug")]
-                            log::debug!(
-                                "[handle_match] Matched '{}'",
-                                self.registry.grammars[m.rule_ref.grammar]
-                                    .get_original_rule_name(m.rule_ref.rule)
-                                    .unwrap_or_default()
-                            );
                             self.resolve_captures(
                                 &stack,
                                 line,
@@ -824,8 +690,6 @@ impl<'g> Tokenizer<'g> {
                             // Protection: grammar is not advancing, nor is it pushing/popping
                             // happens for some grammars eg astro
                             if !has_advanced {
-                                #[cfg(feature = "debug")]
-                                log::warn!("Match rule didn't advance, safe_pop and stop");
                                 stack.safe_pop();
                                 accumulator.produce(line.len(), stack.top().content_scopes);
                                 break;
@@ -841,8 +705,6 @@ impl<'g> Tokenizer<'g> {
                     is_first_line = false;
                 }
             } else {
-                #[cfg(feature = "debug")]
-                log::debug!("[tokenize_line] no more matches");
                 // No more matches - emit final token and stop
                 accumulator.produce(line.len(), stack.top().content_scopes);
                 break;

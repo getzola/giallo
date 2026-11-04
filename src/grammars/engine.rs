@@ -51,9 +51,8 @@ pub(crate) fn capture_spans(captures: &Captures<'_, str>) -> CaptureSpans {
 
 /// We treat runtime errors as not maching.
 fn ignore_regex_error<T>(res: Result<T, fancy_regex::Error>) -> Option<T> {
-    res.inspect_err(|_e| {
-        #[cfg(feature = "debug")]
-        log::warn!("Regex runtime error {_e}. Treating it as a no match");
+    res.inspect_err(|e| {
+        log::warn!("Regex runtime error {e}. Treating it as a no match");
     })
     .ok()
 }

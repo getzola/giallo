@@ -308,7 +308,6 @@ impl CompiledTheme {
                 if let Some(selector) = parse_selector(scope_pattern) {
                     selectors.push(selector);
                 } else {
-                    #[cfg(feature = "debug")]
                     log::warn!(
                         "Failed to parse theme selector: '{scope_pattern}' in theme {}",
                         raw_theme.name

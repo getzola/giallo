@@ -546,11 +546,6 @@ impl Registry {
         for (matchers, rule) in &self.grammars[target_grammar_id].injections {
             for matcher in matchers {
                 if matcher.matches(scope_stack) {
-                    if cfg!(feature = "debug") {
-                        eprintln!(
-                            "Scope stack {scope_stack:?} matched injection selector {matcher:?}"
-                        );
-                    }
                     match matcher.precedence() {
                         InjectionPrecedence::Left => left.push(*rule),
                         InjectionPrecedence::Right => right.push(*rule),

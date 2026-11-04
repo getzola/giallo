@@ -770,7 +770,6 @@ impl CompiledGrammar {
             }
 
             if !found {
-                #[cfg(feature = "debug")]
                 log::warn!(
                     "Local reference '{:?}' not found in grammar {}",
                     rep.reference,
@@ -879,11 +878,6 @@ impl CompiledGrammar {
 
         out
     }
-
-    #[cfg(feature = "debug")]
-    pub(crate) fn get_original_rule_name(&self, rule_id: RuleId) -> Option<&str> {
-        self.rules[rule_id.as_index()].original_name()
-    }
 }
 
 /// Resolves `grammars[index]` external references after all grammar compilations
@@ -918,7 +912,6 @@ pub(crate) fn resolve_external_references(
                         break;
                     }
                 }
-                #[cfg(feature = "debug")]
                 if resolved == NO_OP_GLOBAL_RULE_REF {
                     log::warn!(
                         "External grammar '{grammar_name}' found in registry but repository {repo_name} not found in it."
@@ -931,7 +924,6 @@ pub(crate) fn resolve_external_references(
                 };
             }
         } else {
-            #[cfg(feature = "debug")]
             log::warn!("External grammar '{grammar_name}' not found in registry.");
         }
 

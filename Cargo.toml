@@ -28,17 +28,15 @@ serde_json = "1"
 bitcode = { version = "0.6.9", optional = true, features = ["serde"] }
 zstd = { version = "0.14", optional = true }
 fancy-regex = "0.20"
-log = { version = "0.4", optional = true }
+log = "0.4"
 
 [features]
 tools = ["dump"]
-debug = ["dep:log"]
 dump = ["dep:bitcode", "dep:zstd"]
 
 [dev-dependencies]
 criterion = "0.8"
 insta = { version = "1", features = ["yaml"] }
-# env_logger = "0.11.8"
 
 [profile.dev.package]
 insta.opt-level = 3
