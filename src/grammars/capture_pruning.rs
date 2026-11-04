@@ -71,7 +71,7 @@ fn find_highest_backref(pattern: &str) -> usize {
 
     for rest in pattern.split('\\').skip(1) {
         let digits = rest.bytes().take_while(u8::is_ascii_digit).count();
-        if let Some(num) = rest[..digits].parse().ok() {
+        if let Ok(num) = rest[..digits].parse() {
             highest = std::cmp::max(highest, num);
         }
     }
@@ -179,13 +179,10 @@ mod tests {
             (r"(a)\g<1>(b)", 0, None),
             (r"(?<word>a)(b)", 0, None),
         ] {
-            assert_eq!(
-                prune(pattern, highest_ref).as_deref(),
-                expected
-            );
+            assert_eq!(prune(pattern, highest_ref).as_deref(), expected);
         }
     }
-    
+
     #[test]
     fn prune_rule_keeps_groups_the_rule_references() {
         let prune = |value: Value| {
