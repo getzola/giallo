@@ -272,6 +272,11 @@ impl RawGrammar {
         let raw_grammar = serde_json::from_reader(&file)?;
         Ok(raw_grammar)
     }
+
+    pub fn load_from_bytes(content: &[u8]) -> GialloResult<Self> {
+        let raw_grammar = serde_json::from_slice(content)?;
+        Ok(raw_grammar)
+    }
 }
 
 #[cfg(test)]

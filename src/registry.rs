@@ -237,6 +237,11 @@ impl Registry {
         self.add_grammar_from_raw(raw_grammar)
     }
 
+    /// Add a grammar from in-memory bytes
+    pub fn add_grammar_from_bytes(&mut self, content: &[u8]) -> GialloResult<()> {
+        self.add_grammar_from_raw(RawGrammar::load_from_bytes(content)?)
+    }
+
     /// Adds an empty grammar that will not match any token. Useful as a fallback if the grammar is not found.
     ///
     /// It will get the `plain` grammar name.
@@ -268,13 +273,23 @@ impl Registry {
         }
     }
 
-    /// Reads the file and add it as a theme.
-    pub fn add_theme_from_path(&mut self, path: impl AsRef<Path>) -> GialloResult<()> {
-        let raw_theme = RawTheme::load_from_file(path)?;
+    fn add_theme_from_raw(&mut self, raw_theme: RawTheme) -> GialloResult<()> {
         let compiled_theme = raw_theme.compile()?;
         self.themes
             .insert(compiled_theme.name.to_lowercase(), compiled_theme);
         Ok(())
+    }
+
+    /// Reads the file and add it as a theme.
+    pub fn add_theme_from_path(&mut self, path: impl AsRef<Path>) -> GialloResult<()> {
+        let raw_theme = RawTheme::load_from_file(path)?;
+        self.add_theme_from_raw(raw_theme)
+    }
+
+    /// Add a theme from in-memory bytes
+    pub fn add_theme_from_bytes(&mut self, content: &[u8]) -> GialloResult<()> {
+        let raw_theme = RawTheme::load_from_bytes(content)?;
+        self.add_theme_from_raw(raw_theme)
     }
 
     /// Generates CSS stylesheet content for a theme.

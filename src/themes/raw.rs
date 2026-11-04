@@ -174,6 +174,11 @@ impl RawTheme {
         Ok(theme)
     }
 
+    pub fn load_from_bytes(content: &[u8]) -> GialloResult<Self> {
+        let theme = serde_json::from_slice(content)?;
+        Ok(theme)
+    }
+
     /// Compile this raw grammar into an optimized compiled grammar
     pub fn compile(self) -> GialloResult<CompiledTheme> {
         CompiledTheme::from_raw_theme(self)
